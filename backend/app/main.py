@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
-from .api import auth, catalog, decisions, demo, genome, projects, scenarios
+from .api import assistant, auth, catalog, decisions, demo, genome, projects, scenarios
 from .config import get_settings
 from .db import get_engine
 from .engine.model import MODEL_VERSION
@@ -40,7 +40,7 @@ async def validation_handler(request: Request, exc: RequestValidationError):
 
 
 API = "/api/v1"
-for r in (auth.router, catalog.router, projects.router, scenarios.router, decisions.router, demo.router, genome.router):
+for r in (auth.router, catalog.router, projects.router, scenarios.router, decisions.router, demo.router, genome.router, assistant.router):
     app.include_router(r, prefix=API)
 
 

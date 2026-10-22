@@ -134,14 +134,14 @@ async def build_snapshot(*, lat: float, lng: float, catchment: dict, category: d
     comp_radius_m = int(min(MAX_RADIUS_KM, radius_km + 1.0) * 1000)
 
     async def comp_task():
-        return await osm.fetch_pois(lat, lng, comp_radius_m, category.get("filters") or [], cache)
+        return await osm.fetch_pois(lat, lng, comp_radius_m, category.get("filters") or [], cache, fallback=True, timeout_s=35)
 
     async def bld_task():
         return await osm.fetch_buildings(lat, lng, radius_m, cache)
 
     async def ctx_task():
         # Context POIs feed the factor engine (schools, transit, offices…) and the visitor-demand proxy.
-        return await osm.fetch_pois(lat, lng, radius_m, list(CONTEXT_FILTERS), cache, limit=6000)
+        return await osm.fetch_pois(lat, lng, radius_m, list(CONTEXT_FILTERS), cache, limit=6000, timeout_s=80)
 
     async def agesex_task():
         return await population.worldpop_age_sex(polygon, cache)
@@ -157,10 +157,10 @@ async def build_snapshot(*, lat: float, lng: float, catchment: dict, category: d
         except asyncio.TimeoutError as e:
             raise ProviderError(what, f"no response within {int(seconds)} s") from e
 
-    # Overpass calls run one at a time (fair use), so later layers get larger budgets.
-    results = await asyncio.gather(bounded(comp_task(), 110, "overpass"), bounded(bld_task(), 170, "overpass"),
-                                   bounded(ctx_task(), 200, "overpass"), bounded(pop_task(), 130, "worldpop"),
-                                   bounded(agesex_task(), 130, "worldpop"), return_exceptions=True)
+    # Layers run concurrently; each races the Overpass mirrors. Competitors also fall back to Photon/Nominatim.
+    results = await asyncio.gather(bounded(comp_task(), 95, "overpass"), bounded(bld_task(), 110, "overpass"),
+                                   bounded(ctx_task(), 110, "overpass"), bounded(pop_task(), 100, "worldpop"),
+                                   bounded(agesex_task(), 100, "worldpop"), return_exceptions=True)
     names = ["competitors", "buildings", "context", "population", "age_sex"]
     vals = {}
     for nm, res in zip(names, results):
