@@ -12,6 +12,12 @@ from app.services import market as mk
 
 pytestmark = pytest.mark.db
 FX = Path(__file__).parent / "fixtures"
+
+
+async def fake_agesex(polygon, cache=None):
+    bands = [{"age": a, "male": 1000.0 - i * 40, "female": 950.0 - i * 38} for i, a in enumerate(
+        ["0-4", "5-9", "10-14", "15-19", "20-24", "25-29", "30-34", "35-39", "40-44", "45-49", "50-54", "55-59", "60-64", "65-69", "70-74", "75-79", "80+"])]
+    return {"bands": bands}, {"source": "worldpop", "name": "WorldPop age-sex"}
 LAT, LNG = 28.6315, 77.2167
 
 
@@ -20,7 +26,7 @@ def stub_providers(monkeypatch):
     gyms = json.loads((FX / "overpass_gyms.json").read_text())
     blds = json.loads((FX / "overpass_buildings.json").read_text())
 
-    async def fake_pois(lat, lng, radius_m, filters, cache=None):
+    async def fake_pois(lat, lng, radius_m, filters, cache=None, **kw):
         return osm.parse_pois(gyms), {"source": "osm_overpass", "name": "OSM", "retrieved_at": "2026-10-22T10:00:00+00:00"}
 
     async def fake_bld(lat, lng, radius_m, cache=None):
@@ -35,6 +41,7 @@ def stub_providers(monkeypatch):
     monkeypatch.setattr(mk.osm, "fetch_pois", fake_pois)
     monkeypatch.setattr(mk.osm, "fetch_buildings", fake_bld)
     monkeypatch.setattr(mk.population, "worldpop_total", fake_pop)
+    monkeypatch.setattr(mk.population, "worldpop_age_sex", fake_agesex)
     monkeypatch.setattr(osm, "geocode", fake_geocode)
 
 

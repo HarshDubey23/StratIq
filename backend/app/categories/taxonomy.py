@@ -121,3 +121,42 @@ ACTIVITY_FILTERS: tuple[str, ...] = (
     '["tourism"~"^(attraction|museum|viewpoint)$"]',
     '["shop"="mall"]',
 )
+
+# Context points of interest (factor engine). One Overpass query, classified by ``classify_poi``.
+CONTEXT_FILTERS: tuple[str, ...] = (
+    '["amenity"~"^(school|college|university|hospital|clinic|doctors|pharmacy|bank|atm|bus_station|parking|place_of_worship|marketplace|restaurant|cafe|fast_food|cinema|fuel|police|post_office|library|coworking_space)$"]',
+    '["highway"="bus_stop"]',
+    '["railway"~"^(station|halt|subway_entrance)$"]',
+    '["public_transport"="station"]',
+    '["leisure"~"^(park|playground|fitness_centre)$"]',
+    '["shop"~"^(mall|supermarket|convenience)$"]',
+    '["office"]',
+    '["tourism"="hotel"]',
+)
+ACTIVITY_KINDS = {"school", "college", "university", "hospital", "rail_station", "office", "mall", "marketplace", "cinema", "hotel", "place_of_worship"}
+
+
+def classify_poi(tags: dict) -> str | None:
+    a, sh, le = tags.get("amenity"), tags.get("shop"), tags.get("leisure")
+    if a in ("clinic", "doctors"):
+        return "clinic"
+    if a == "coworking_space":
+        return "coworking"
+    if a == "bus_station" or tags.get("highway") == "bus_stop":
+        return "bus_stop"
+    if tags.get("railway") in ("station", "halt", "subway_entrance") or tags.get("public_transport") == "station":
+        return "rail_station"
+    if a in ("school", "college", "university", "hospital", "pharmacy", "bank", "atm", "parking", "place_of_worship", "marketplace",
+             "restaurant", "cafe", "fast_food", "cinema", "fuel", "police", "post_office", "library"):
+        return a
+    if le in ("park", "playground"):
+        return le
+    if le == "fitness_centre":
+        return "gym"
+    if sh in ("mall", "supermarket", "convenience"):
+        return sh
+    if "office" in tags:
+        return "office"
+    if tags.get("tourism") == "hotel":
+        return "hotel"
+    return None

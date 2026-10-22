@@ -9,6 +9,12 @@ from app.providers import osm
 from app.services import market as mk
 
 FX = Path(__file__).parent / "fixtures"
+
+
+async def fake_agesex(polygon, cache=None):
+    bands = [{"age": a, "male": 1000.0 - i * 40, "female": 950.0 - i * 38} for i, a in enumerate(
+        ["0-4", "5-9", "10-14", "15-19", "20-24", "25-29", "30-34", "35-39", "40-44", "45-49", "50-54", "55-59", "60-64", "65-69", "70-74", "75-79", "80+"])]
+    return {"bands": bands}, {"source": "worldpop", "name": "WorldPop age-sex"}
 LAT, LNG = 28.6315, 77.2167
 
 
@@ -63,7 +69,7 @@ def test_coverage_levels_are_computed_not_invented():
 
 
 def test_build_snapshot_with_stubbed_providers(monkeypatch):
-    async def fake_pois(lat, lng, radius_m, filters, cache=None):
+    async def fake_pois(lat, lng, radius_m, filters, cache=None, **kw):
         if any("fitness" in f or "gym" in f for f in filters):
             return osm.parse_pois(load("overpass_gyms.json")), {"source": "osm_overpass", "retrieved_at": "2026-10-22T10:00:00+00:00"}
         return [], {"source": "osm_overpass"}
@@ -77,6 +83,7 @@ def test_build_snapshot_with_stubbed_providers(monkeypatch):
     monkeypatch.setattr(mk.osm, "fetch_pois", fake_pois)
     monkeypatch.setattr(mk.osm, "fetch_buildings", fake_bld)
     monkeypatch.setattr(mk.population, "worldpop_total", fake_pop)
+    monkeypatch.setattr(mk.population, "worldpop_age_sex", fake_agesex)
     cat = resolve_offline("gym").as_dict()
     snap = asyncio.run(mk.build_snapshot(lat=LAT, lng=LNG, catchment={"mode": "isochrone", "minutes": 10, "radius_km": 2.0},
                                          category=cat, manual_population=None, cache=None))
@@ -104,6 +111,7 @@ def test_build_snapshot_population_failure_is_reported(monkeypatch):
     monkeypatch.setattr(mk.osm, "fetch_pois", fake_pois)
     monkeypatch.setattr(mk.osm, "fetch_buildings", fake_bld)
     monkeypatch.setattr(mk.population, "worldpop_total", bad_pop)
+    monkeypatch.setattr(mk.population, "worldpop_age_sex", bad_pop)
     snap = asyncio.run(mk.build_snapshot(lat=LAT, lng=LNG, catchment={"mode": "radius", "radius_km": 1.5},
                                          category=resolve_offline("cafe").as_dict(), manual_population=None, cache=None))
     assert snap["population"]["method"] == "unavailable"
@@ -125,6 +133,7 @@ def test_population_fallback_uses_buildings_and_is_flagged(monkeypatch):
     monkeypatch.setattr(mk.osm, "fetch_pois", fake_pois)
     monkeypatch.setattr(mk.osm, "fetch_buildings", fake_bld)
     monkeypatch.setattr(mk.population, "worldpop_total", bad_pop)
+    monkeypatch.setattr(mk.population, "worldpop_age_sex", bad_pop)
     snap = asyncio.run(mk.build_snapshot(lat=LAT, lng=LNG, catchment={"mode": "radius", "radius_km": 2.0},
                                          category=resolve_offline("gym").as_dict(), manual_population=None, cache=None))
     assert snap["population"]["source"] == "estimate_buildings"

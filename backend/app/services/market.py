@@ -10,7 +10,7 @@ import numpy as np
 
 from ..categories.archetypes import get_archetype
 from ..config import get_settings
-from ..categories.taxonomy import ACTIVITY_FILTERS
+from ..categories.taxonomy import ACTIVITY_KINDS, CONTEXT_FILTERS, classify_poi
 from ..engine.geo import circle_polygon, haversine_km, hex_grid, km_to_deg_lat, km_to_deg_lng, points_in_polygon
 from ..providers import osm, population
 from ..providers.http import Cache, ProviderError
@@ -139,10 +139,12 @@ async def build_snapshot(*, lat: float, lng: float, catchment: dict, category: d
     async def bld_task():
         return await osm.fetch_buildings(lat, lng, radius_m, cache)
 
-    async def act_task():
-        if arch.demand_base != "residents_and_activity":
-            return [], None
-        return await osm.fetch_pois(lat, lng, radius_m, list(ACTIVITY_FILTERS), cache)
+    async def ctx_task():
+        # Context POIs feed the factor engine (schools, transit, offices…) and the visitor-demand proxy.
+        return await osm.fetch_pois(lat, lng, radius_m, list(CONTEXT_FILTERS), cache, limit=6000)
+
+    async def agesex_task():
+        return await population.worldpop_age_sex(polygon, cache)
 
     async def pop_task():
         if manual_population:
@@ -157,9 +159,9 @@ async def build_snapshot(*, lat: float, lng: float, catchment: dict, category: d
 
     # Overpass calls run one at a time (fair use), so later layers get larger budgets.
     results = await asyncio.gather(bounded(comp_task(), 110, "overpass"), bounded(bld_task(), 170, "overpass"),
-                                   bounded(act_task(), 200, "overpass"), bounded(pop_task(), 130, "worldpop"),
-                                   return_exceptions=True)
-    names = ["competitors", "buildings", "activity", "population"]
+                                   bounded(ctx_task(), 200, "overpass"), bounded(pop_task(), 130, "worldpop"),
+                                   bounded(agesex_task(), 130, "worldpop"), return_exceptions=True)
+    names = ["competitors", "buildings", "context", "population", "age_sex"]
     vals = {}
     for nm, res in zip(names, results):
         if isinstance(res, Exception):
@@ -175,6 +177,12 @@ async def build_snapshot(*, lat: float, lng: float, catchment: dict, category: d
                 prov["layer"] = nm
                 sources.append(prov)
     comps = vals["competitors"] or []
+    context = []
+    for c in vals["context"] or []:
+        kind = classify_poi(c["tags"])
+        if kind:
+            context.append({"lat": c["lat"], "lng": c["lng"], "name": c["name"], "kind": kind})
+    activity = [c for c in context if c["kind"] in ACTIVITY_KINDS] if arch.demand_base == "residents_and_activity" else []
     total_pop = vals["population"]
     pop_source = "user" if manual_population else ("worldpop" if total_pop is not None else None)
     if total_pop is None and vals["buildings"] and len(vals["buildings"]) >= 50:
@@ -184,8 +192,16 @@ async def build_snapshot(*, lat: float, lng: float, catchment: dict, category: d
         pop_source = "estimate_buildings"
         errors.append({"source": "population", "message": f"WorldPop unavailable; using a rough estimate of {ppb:g} persons per mapped building ({len(vals['buildings'])} buildings). Replace with a real figure if you have one.", "fallback": "building-based estimate"})
     zones, pop_meta = assemble_zones(lat, lng, polygon, radius_km, total_pop, vals["buildings"],
-                                     [(a["lat"], a["lng"]) for a in (vals["activity"] or [])])
+                                     [(a["lat"], a["lng"]) for a in activity])
     pop_meta["source"] = pop_source
+    pop_meta["n_buildings"] = len(vals["buildings"] or [])
+    if vals.get("age_sex"):
+        pop_meta["age_sex"] = vals["age_sex"]
+    bld = vals["buildings"] or []
+    if bld:
+        b = np.array(bld)
+        d = haversine_km(lat, lng, b[:, 0], b[:, 1])
+        pop_meta["buildings_1km"], pop_meta["buildings_2km"] = int((d <= 1).sum()), int((d <= 2).sum())
     area = math.pi * radius_km ** 2
     coverage = assess_coverage(comps, total_pop, len(vals["buildings"] or []), area)
     if total_pop is None:
@@ -200,7 +216,7 @@ async def build_snapshot(*, lat: float, lng: float, catchment: dict, category: d
         "zones": zones,
         "population": pop_meta,
         "competitors": comps,
-        "activity_points": [{"lat": a["lat"], "lng": a["lng"], "name": a["name"], "kind": next((f"{k}={v}" for k, v in a["tags"].items() if k in ("amenity", "railway", "office", "tourism", "shop", "public_transport")), "")} for a in (vals["activity"] or [])][:400],
+        "activity_points": context[:6000],
         "sources": sources,
         "coverage": coverage,
         "errors": errors,

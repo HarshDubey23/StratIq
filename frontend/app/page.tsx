@@ -6,7 +6,7 @@ import { MarketPreview } from "@/components/MarketPreview";
 const steps = [
   { n: "01", t: "Define", d: "Describe any business in your own words, plus its pricing, capacity and costs." },
   { n: "02", t: "Discover", d: "Search any place. Competitors, buildings and population are pulled live, with sources and timestamps." },
-  { n: "03", t: "Simulate", d: "Synthetic customer segments choose between you, nearby competitors and not buying at all." },
+  { n: "03", t: "Simulate", d: "Thousands of synthetic customers, placed by real population density and profiled on 615 factors, choose day by day between you, competitors and not buying." },
   { n: "04", t: "Decide", d: "Compare scenarios, see downside risk, and get a list of what to verify before you invest." },
 ];
 
@@ -58,6 +58,14 @@ export default function Landing() {
               <Link href="/sign-up?demo=1" className="inline-flex h-11 items-center gap-2 rounded-md border border-ink-600 bg-ink-900 px-5 text-[15px] text-ink-100 hover:bg-ink-800">
                 Explore a demo
               </Link>
+            </div>
+            <div className="mt-8 grid max-w-lg grid-cols-3 gap-3">
+              {[["615", "factors in the intelligence engine"], ["6,000", "synthetic agents per run, at real density"], ["84", "simulated days of market dynamics"]].map(([n, l]) => (
+                <div key={l} className="rounded-md border border-ink-700 bg-ink-900/70 p-3">
+                  <div className="num text-xl font-semibold text-accent">{n}</div>
+                  <div className="mt-0.5 text-[11px] leading-snug text-ink-400">{l}</div>
+                </div>
+              ))}
             </div>
             <p className="mt-6 text-xs text-ink-400">Works for any business type and any searchable place. Estimates, not guarantees.</p>
           </div>

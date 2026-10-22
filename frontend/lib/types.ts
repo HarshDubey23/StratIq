@@ -267,6 +267,7 @@ export interface SimResult {
   parameters: Record<string, { value: number; low: number; high: number; status: string; label: string; description: string }>;
   limitations: string[];
   duration_ms: number;
+  abm?: Abm;
   evidence?: {
     snapshot_id: string;
     retrieved_at: string;
@@ -387,4 +388,64 @@ export interface Capabilities {
   population: string;
   places: string;
   model_version: string;
+}
+
+export interface Abm {
+  n_agents: number;
+  scale: number;
+  days: number;
+  seed: number;
+  age_source: string;
+  in_market_agents: number;
+  monthly_units: number[];
+  steady_units: number;
+  peak_weekly_units: number;
+  ramp_up_week: number | null;
+  weekly: { week: number; units: number; aware_share: number; customers_cum: number; turned_away: number; comp_units: number }[];
+  daily: { units_you: number[]; units_comp: number[]; aware_share: number[]; customers_you: number[]; turned_away: number[] };
+  frames: { day: number; a: number[]; c: number[] }[];
+  frame_every: number;
+  businesses: { idx: number; name: string; lat: number; lng: number }[];
+  agents: { columns: string[]; rows: number[][]; modes: string[]; segments: string[]; time_prefs: string[] };
+  metrics: Record<string, unknown> & {
+    aware_final: number;
+    trial_rate: number;
+    repeat_share: number;
+    customers_total: number;
+    mean_trip_km: number | null;
+    afford_share: number;
+    mean_age: number;
+    female_share: number;
+    wtp_p10: number;
+    wtp_p50: number;
+    wtp_p90: number;
+    customer_modes: Record<string, number | null>;
+    customer_segments: Record<string, number | null>;
+    competitor_shares: number[];
+  };
+  monthly_finance: { month: number; units: number; capped_units: number; revenue: number; profit: number }[];
+  assumptions: Record<string, number>;
+  note: string;
+  duration_ms: number;
+}
+
+export interface FactorDef {
+  key: string;
+  label: string;
+  domain: string;
+  group: string;
+  unit: string;
+  scope: string;
+  source: string;
+  role: string;
+  description: string;
+}
+
+export interface FactorsResponse {
+  definitions: FactorDef[];
+  values: { key: string; value: unknown; status: "computed" | "user" | "assumed" | "simulated" | "pending" | "unavailable" }[];
+  summary: Record<string, number>;
+  counts: { total: number; by_domain: Record<string, number>; by_role: Record<string, number>; by_source: Record<string, number> };
+  domains: Record<string, string>;
+  scenario: { id: string; name: string; run_id: string | null };
 }

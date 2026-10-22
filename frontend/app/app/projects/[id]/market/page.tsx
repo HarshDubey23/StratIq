@@ -1,6 +1,7 @@
 "use client";
 
 import { Building2, ExternalLink, Layers, MapPinPlus, Plus, RefreshCw, Trash2, Users } from "lucide-react";
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { LocationPicker, type PickedPlace } from "@/components/LocationPicker";
 import { Map as MarketMap, } from "@/components/Map";
@@ -56,6 +57,8 @@ export default function MarketPage() {
   }, [baseline?.latest_run?.id]);
 
   const [elapsed, setElapsed] = useState(0);
+  const [autoRunning, setAutoRunning] = useState(false);
+  const [liveReady, setLiveReady] = useState(false);
 
   const finishJob = useCallback(
     async (job: Promise<{ status: string; errors: { source: string; message: string }[] }>) => {
@@ -68,13 +71,28 @@ export default function MarketPage() {
         await load();
         await reload();
         setDirty(true);
+        // First load for a new project: run the baseline straight away so the live market is ready.
+        if (s.status !== "failed" && baseline && !baseline.latest_run) {
+          setAutoRunning(true);
+          try {
+            const r = await api<Run>(`/scenarios/${baseline.id}/runs`, { method: "POST" });
+            setBaseResult(r.results || null);
+            setDirty(false);
+            setLiveReady(true);
+            await reload();
+          } catch {
+            /* the lab shows the reason */
+          } finally {
+            setAutoRunning(false);
+          }
+        }
       } catch (e) {
         setError(e instanceof ApiError ? e.message : "Refresh failed");
       } finally {
         setRefreshing(false);
       }
     },
-    [load, reload],
+    [load, reload, baseline],
   );
 
   async function refresh() {
@@ -176,6 +194,19 @@ export default function MarketPage() {
           </div>
         </div>
         {loading && !refreshing && <div className="absolute right-14 top-3 z-10 rounded bg-ink-900/90 px-2 py-1"><Spinner label="Loading" /></div>}
+        {(autoRunning || liveReady) && (
+          <div className="absolute inset-x-0 bottom-24 z-10 mx-auto w-fit rounded-md border border-accent/50 bg-ink-900/95 px-4 py-3 text-sm shadow-xl">
+            {autoRunning ? (
+              <Spinner label="Simulating thousands of synthetic customers at real density…" />
+            ) : (
+              <div className="flex items-center gap-3">
+                <span>Baseline simulated.</span>
+                <Link href={`/app/projects/${p.id}/live`} className="rounded bg-accent px-3 py-1.5 text-xs font-semibold text-ink-950">Watch the live market →</Link>
+                <button onClick={() => setLiveReady(false)} className="text-xs text-ink-400">dismiss</button>
+              </div>
+            )}
+          </div>
+        )}
         {refreshing && (
           <div className="absolute inset-x-0 top-14 z-10 mx-auto w-fit max-w-md rounded-md border border-accent/40 bg-ink-900/95 px-4 py-3 text-sm shadow-xl">
             <Spinner label={`Loading live data from OpenStreetMap and WorldPop… ${elapsed}s`} />

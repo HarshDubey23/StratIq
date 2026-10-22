@@ -42,7 +42,7 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
       await api<User>(mode === "sign-up" ? "/auth/signup" : "/auth/login", { method: "POST", json: parsed.data });
       if (demo) {
         const p = await api<Project>("/demo", { method: "POST" });
-        router.push(`/app/projects/${p.id}/simulation`);
+        router.push(`/app/projects/${p.id}/live`);
         return;
       }
       const next = params.get("next");

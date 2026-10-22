@@ -59,8 +59,11 @@ await step("sign up", async () => {
 // ---------- Offline demo ----------
 await step("demo project", async () => {
   await page.getByRole("button", { name: /Open labelled demo/ }).click();
-  await page.waitForURL(/simulation/);
-  await page.getByRole("button", { name: /Run simulation/ }).first().click();
+  await page.waitForURL(/live/);
+  await page.getByText("Live market simulation").waitFor({ timeout: 60000 });
+  await page.waitForTimeout(4000);
+  await shot("04a-demo-live");
+  await page.getByLabel("Project").getByRole("link", { name: "Simulation lab" }).click();
   await page.getByText("Operating profit / mo").first().waitFor({ timeout: 60000 });
   await shot("04-demo-lab-baseline");
   await page.getByRole("tab", { name: /Lower price/ }).click();
@@ -146,6 +149,22 @@ await step("live gym journey", async () => {
   const runs = await api(`/projects/${pid}/compare`);
   const m = runs.body.rows[0].metrics;
   L(`live gym baseline: units=${m.units_sold} profit=${m.operating_profit} p_loss=${m.prob_loss} in_market=${m.in_market_units}`);
+  await page.goto(`${BASE}/app/projects/${pid}/live`);
+  await page.getByText("Live market simulation").waitFor({ timeout: 60000 });
+  await page.waitForTimeout(6000);
+  await shot("16c-live-gym-agents");
+  await page.getByLabel("Colour agents by").selectOption("segment");
+  await page.waitForTimeout(2500);
+  await shot("16d-live-gym-agents-segment");
+  await page.mouse.click(700, 500);
+  await page.waitForTimeout(1500);
+  await shot("16e-live-gym-agent-click");
+  await page.goto(`${BASE}/app/projects/${pid}/factors`);
+  await page.getByText("Factor Intelligence Engine").waitFor({ timeout: 30000 });
+  await page.waitForTimeout(1500);
+  await shot("16f-factors");
+  const fac = await api(`/projects/${pid}/factors`);
+  L(`factors: total=${fac.body.counts?.total} summary=${JSON.stringify(fac.body.summary)}`);
   const dec = await api(`/projects/${pid}/decisions`);
   L(`decision: ${dec.body.verdict} — ${dec.body.headline}`);
   await page.goto(`${BASE}/app/projects/${pid}/decisions`);

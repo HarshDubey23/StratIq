@@ -35,7 +35,7 @@ export default function Dashboard() {
     setBusy(true);
     try {
       const p = await api<Project>("/demo", { method: "POST" });
-      router.push(`/app/projects/${p.id}/simulation`);
+      router.push(`/app/projects/${p.id}/live`);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Could not create demo");
       setBusy(false);

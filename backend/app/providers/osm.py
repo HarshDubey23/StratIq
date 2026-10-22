@@ -158,10 +158,10 @@ async def overpass(query: str, cache: Cache | None = None, ttl: timedelta = time
     raise ProviderError("overpass", "; ".join(errors) or "no endpoint configured")
 
 
-async def fetch_pois(lat, lng, radius_m, filters, cache=None) -> tuple[list[dict], dict]:
+async def fetch_pois(lat, lng, radius_m, filters, cache=None, limit: int = 400) -> tuple[list[dict], dict]:
     if not filters:
         return [], provenance("osm_overpass", status="skipped", detail="No category filters.")
-    data, fetched, cached, endpoint = await overpass(build_poi_query(lat, lng, radius_m, filters), cache)
+    data, fetched, cached, endpoint = await overpass(build_poi_query(lat, lng, radius_m, filters, limit=limit), cache)
     pois = parse_pois(data)
     osm_base = data.get("osm3s", {}).get("timestamp_osm_base")
     return pois, provenance("osm_overpass", retrieved_at=fetched, source_updated_at=osm_base, cached=cached,

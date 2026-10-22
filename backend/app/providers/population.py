@@ -23,9 +23,11 @@ def _json_tail(text: str) -> dict:
         return json.loads(text)
     except ValueError:
         pass
+    dec = json.JSONDecoder()
     for m in _JSON_START.finditer(text):
         try:
-            return json.loads(text[m.start():])
+            obj, _ = dec.raw_decode(text, m.start())  # tolerate warnings before *and* after the JSON
+            return obj
         except ValueError:
             continue
     raise ProviderError("worldpop", f"unparseable response ({len(text)} bytes): {text[:100]!r}")
@@ -35,16 +37,14 @@ def _round_ring(ring: list[list[float]]) -> list[list[float]]:
     return [[round(x, 5), round(y, 5)] for x, y in ring]
 
 
-async def worldpop_total(polygon: list[list[list[float]]], cache: Cache | None = None) -> tuple[float, dict]:
-    """Total modelled population inside a GeoJSON polygon (WorldPop, fixed reference year)."""
+async def _worldpop_stats(dataset: str, polygon: list[list[list[float]]], cache: Cache | None, ttl_days: int = 60) -> tuple[dict, object, bool]:
     s = get_settings()
     fc = {"type": "FeatureCollection", "features": [{"type": "Feature", "properties": {}, "geometry": {"type": "Polygon", "coordinates": [_round_ring(r) for r in polygon]}}]}
     gj = json.dumps(fc, separators=(",", ":"))
-    params = {"dataset": "wpgppop", "year": s.worldpop_year, "geojson": gj, "runasync": "true"}
-    key = cache_key("worldpop", {"year": s.worldpop_year, "g": gj})
+    params = {"dataset": dataset, "year": s.worldpop_year, "geojson": gj, "runasync": "true"}
+    key = cache_key(f"worldpop:{dataset}", {"year": s.worldpop_year, "g": gj})
     if cache and (hit := cache.get(key)):
-        return float(hit[0]["total"]), provenance("worldpop", retrieved_at=hit[1], cached=True, source_updated_at=f"{s.worldpop_year} reference year",
-                                                  detail="Total population inside the catchment")
+        return hit[0], hit[1], True
     try:
         body = None
         for attempt in range(2):
@@ -71,13 +71,44 @@ async def worldpop_total(polygon: list[list[list[float]]], cache: Cache | None =
             r.raise_for_status()
             body = _json_tail(r.text)
         if body.get("status") != "finished":
-            raise ProviderError("worldpop", "population task did not finish in time")
-        total = float(body["data"]["total_population"])
+            raise ProviderError("worldpop", f"{dataset} task did not finish in time")
+        data = body["data"]
     except (httpx.HTTPError, KeyError, ValueError, TypeError) as e:
-        raise ProviderError("worldpop", f"population query failed: {type(e).__name__} {e}".strip()) from e
+        raise ProviderError("worldpop", f"{dataset} query failed: {type(e).__name__} {e}".strip()) from e
     if cache:
-        cache.put(key, "worldpop", {"total": total}, timedelta(days=60))
-    return total, provenance("worldpop", source_updated_at=f"{s.worldpop_year} reference year", detail="Total population inside the catchment")
+        cache.put(key, f"worldpop:{dataset}", data, timedelta(days=ttl_days))
+    from datetime import datetime, timezone
+    return data, datetime.now(timezone.utc), False
+
+
+async def worldpop_total(polygon: list[list[list[float]]], cache: Cache | None = None) -> tuple[float, dict]:
+    """Total modelled population inside a GeoJSON polygon (WorldPop, fixed reference year)."""
+    s = get_settings()
+    data, fetched, cached = await _worldpop_stats("wpgppop", polygon, cache)
+    try:
+        total = float(data["total_population"])
+    except (KeyError, TypeError, ValueError) as e:
+        raise ProviderError("worldpop", f"unexpected population payload: {str(data)[:120]}") from e
+    return total, provenance("worldpop", retrieved_at=fetched, cached=cached, source_updated_at=f"{s.worldpop_year} reference year",
+                             detail="Total population inside the catchment")
+
+
+def parse_age_sex(data: dict) -> dict:
+    """WorldPop wpgpas -> 17 five-year bands (0-4 … 80+) with male/female counts."""
+    rows = data.get("agesexpyramid") or []
+    bands = []
+    for r in sorted(rows, key=lambda x: int(x.get("class", 0))):
+        bands.append({"age": str(r.get("age")), "male": float(r.get("male") or 0), "female": float(r.get("female") or 0)})
+    if len(bands) != 17:
+        raise ProviderError("worldpop", f"age-sex pyramid has {len(bands)} bands, expected 17")
+    return {"bands": bands}
+
+
+async def worldpop_age_sex(polygon: list[list[list[float]]], cache: Cache | None = None) -> tuple[dict, dict]:
+    s = get_settings()
+    data, fetched, cached = await _worldpop_stats("wpgpas", polygon, cache)
+    return parse_age_sex(data), provenance("worldpop", retrieved_at=fetched, cached=cached, source_updated_at=f"{s.worldpop_year} reference year",
+                                           detail="Age and sex structure inside the catchment (17 five-year bands)")
 
 
 async def ors_isochrone(lat: float, lng: float, minutes: int, profile: str = "foot-walking", cache: Cache | None = None) -> tuple[list[list[list[float]]], dict]:

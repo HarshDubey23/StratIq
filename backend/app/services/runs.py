@@ -15,6 +15,7 @@ from ..categories.archetypes import get_archetype
 from ..config import get_settings
 from ..db import session_factory
 from ..engine import model as em
+from ..engine.abm import run_abm
 from ..engine.simulate import SimulationError, simulate
 from ..models import CandidateLocation, Competitor, MarketSnapshot, Project, Scenario, SimulationRun, utcnow
 from ..providers.http import Cache, ProviderError
@@ -185,6 +186,16 @@ def execute_run(db: Session, project: Project, scenario: Scenario) -> Simulation
         res = simulate(arch, zones, ecomps, biz, inputs.get("param_overrides") or {}, mc_draws=get_settings().mc_draws, seed=seed)
         if ref_fill is not None:
             res["summary"]["reference_price_status"] = "assumption_baseline_price"
+        # Agent-based "live market": synthetic people at real density, simulated day by day.
+        params = em.ResolvedParams.from_archetype(arch, inputs.get("param_overrides") or {})
+        abm = run_abm(arch, zones, ecomps, biz, params, float(res["summary"]["reference_price"]), n_agents=get_settings().abm_agents,
+                      days=84, seed=seed, age_sex=snap.population.get("age_sex"), spacing_km=float(snap.population.get("spacing_km") or 0.35))
+        vcu, fixed = float(res["summary"]["variable_cost_per_unit"] or 0), float(res["finance"]["fixed_cost"] or 0)
+        cap = float(res["summary"]["capacity_units"] or 0)
+        abm["monthly_finance"] = [{"month": i + 1, "units": u, "capped_units": min(u, cap) if cap else u,
+                                   "revenue": round(min(u, cap) * biz.price, 2), "profit": round(min(u, cap) * (biz.price - vcu) - fixed, 2)}
+                                  for i, u in enumerate(abm["monthly_units"])]
+        res["abm"] = abm
         res["evidence"] = {
             "snapshot_id": snap.id, "retrieved_at": snap.retrieved_at.isoformat(), "catchment_method": snap.catchment_method,
             "population_method": snap.population.get("method"), "population_source": snap.population.get("source"),

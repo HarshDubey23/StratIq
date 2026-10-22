@@ -261,3 +261,30 @@ def delete_competitor(project_id: str, competitor_id: str, user: User = Depends(
     db.delete(c)
     db.commit()
     return Response(status_code=204)
+
+
+@router.get("/factors/registry")
+def factor_registry():
+    from ..factors.registry import DOMAINS, FACTORS, counts
+    return {"domains": DOMAINS, "counts": counts(), "definitions": [f.as_dict() for f in FACTORS]}
+
+
+@router.get("/projects/{project_id}/factors")
+def project_factors(project_id: str, scenario_id: str | None = Query(default=None), user: User = Depends(current_user), db: Session = Depends(get_db)):
+    """All 615 factor definitions with values for this project's scenario (computed / user / assumed / simulated / pending / unavailable)."""
+    from ..factors.compute import compute
+    from ..models import ActualOutcome
+    p = owned_project(project_id, user, db)
+    scen = next((s for s in p.scenarios if s.id == scenario_id), None) or next((s for s in p.scenarios if s.is_baseline), None)
+    if scen is None:
+        raise HTTPException(404, "Scenario not found")
+    loc = db.get(CandidateLocation, scen.location_id)
+    snap = latest_snapshot(db, loc.id)
+    radius = float((snap.population.get("radius_km") if snap else None) or loc.catchment.get("radius_km") or 3)
+    comps = competitors_for(db, p, loc, radius) if snap else []
+    inactive = list(db.scalars(select(Competitor).where(Competitor.project_id == p.id, Competitor.active.is_(False))))
+    run = latest_runs(db, p).get(scen.id)
+    n_act = len(list(db.scalars(select(ActualOutcome.id).where(ActualOutcome.project_id == p.id))))
+    out = compute(p, ARCHETYPES[p.category["archetype"]], loc, snap, comps + inactive, scen.inputs, run.results if run else None, n_act)
+    out["scenario"] = {"id": scen.id, "name": scen.name, "run_id": run.id if run else None}
+    return out

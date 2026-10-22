@@ -63,4 +63,9 @@ def create_demo(user: User = Depends(current_user), db: Session = Depends(get_db
     db.add(Scenario(project_id=p.id, location_id=loc.id, name="Lower price ₹1,500", inputs=base | {"price": 1500}))
     db.commit()
     db.refresh(p)
+    # Pre-run both scenarios so the live market plays immediately.
+    from ..services.runs import execute_run
+    for sc in list(p.scenarios):
+        execute_run(db, p, sc)
+    db.refresh(p)
     return project_out(p)
