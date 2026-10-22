@@ -18,7 +18,11 @@ scenario comparisons and a list of what to verify next.
 | Live evidence with provenance | OpenStreetMap competitors and buildings (Overpass), WorldPop population; retrieval time and source-update time kept separately; coverage indicator from observable signals |
 | Customer-choice simulation | Vectorised multinomial logit with outside option, lognormal affordability by segment, distance decay, awareness from marketing, capacity limits ([docs/MODEL.md](docs/MODEL.md)) |
 | Uncertainty | Monte Carlo (seeded, reproducible) → P10/P50/P90 profit, modeled P(loss); tornado, price and marketing sweeps, stress tests, break-even thresholds |
-| Synthetic agents | Population-weighted sample of modeled customers drawn on the 3D map, coloured by choice (clearly labelled as simulated) |
+| Agent Genome | 10,000 synthetic agents per run at real population density, **each with a 615-parameter genome** (16 correlated latent traits conditioned on age and income, 46 real-geometry measurements, 553 generated parameters). Every parameter is consumed by the model — audited in tests. [docs/GENOME.md](docs/GENOME.md) |
+| Agent X-ray | Click any agent: its full genome, utility of each option split into 8 channels, and the parameters that pushed it away from you |
+| Market DNA | Agents × 615 parameters heatmap grouped by outcome; what separates your customers from competitors'; where you win and lose |
+| Calibration | Revealed-demand floor from incumbents (bounded, reported, can be disabled) |
+| Real feedback | Field survey kit targeting the assumptions the result is most sensitive to (Van Westendorp pricing, hours, travel, attributes, channels) |
 | Decisions | Rule-based verdict, ranking by goal (profit / low risk / payback / growth), recommendations with reason, uncertainty, what to verify and what would change them |
 | Missing evidence | Add observed or hypothetical competitors, record their prices, exclude records, override population; re-run and see the delta |
 | Reports | Snapshot report with sources, assumptions, scenarios, risks; print to PDF; revocable share links |

@@ -58,6 +58,14 @@ export default function LiveMarket() {
   useEffect(() => {
     load();
   }, [load]);
+  // deep link: /live?agent=123 opens that agent's X-ray (useful for demos)
+  useEffect(() => {
+    const a = new URLSearchParams(window.location.search).get("agent");
+    if (a !== null && /^\d+$/.test(a)) {
+      setAgent(Number(a));
+      setPlaying(false);
+    }
+  }, []);
 
   async function run() {
     if (!sc) return;

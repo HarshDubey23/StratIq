@@ -695,10 +695,11 @@ def business_features(arch_key: str, biz, comps, ref_price: float, quality_defau
         weekend[0] = False
     mask = np.zeros((J, 24))
     for j, (o, c) in enumerate(hours):
+        spans = [(o, c)] if c > o else [(o, 24.0), (0.0, c)]  # overnight hours wrap past midnight
         for h in range(24):
-            mask[j, h] = max(0.0, min(h + 1, c) - max(h, o))
+            mask[j, h] = sum(max(0.0, min(h + 1, b) - max(h, a)) for a, b in spans)
     F[:, FI["hours_span"]] = mask.sum(1) / 24 - 0.6
-    F[:, FI["late_open"]] = np.array([1.0 if c >= 22 else 0.0 for _, c in hours]) - 0.5
+    F[:, FI["late_open"]] = np.array([1.0 if (c >= 22 or c <= o) else 0.0 for o, c in hours]) - 0.5
     F[:, FI["early_open"]] = np.array([1.0 if o <= 6 else 0.0 for o, _ in hours]) - 0.5
     F[:, FI["weekend_open"]] = np.array([1.0 if w else 0.0 for w in weekend]) - 0.5
     return F, {"hours_mask": mask, "weekend": np.array(weekend), "hours": hours, "hours_source": hours_src, "prices": prices, "quality": qual,

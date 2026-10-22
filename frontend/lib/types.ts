@@ -87,6 +87,7 @@ export interface ScenarioInputs {
   other_fixed: number;
   startup_cost: number;
   param_overrides: Record<string, number>;
+  offer?: { open_hour: number | null; close_hour: number | null; weekend_open: boolean; attributes: Record<string, number> } | null;
   seed: number;
 }
 

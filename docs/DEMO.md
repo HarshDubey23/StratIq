@@ -9,6 +9,12 @@ project so its snapshot is cached. Keep the labelled offline demo (`Open labelle
    “dental clinic”) → price ₹1,800 → capacity, rent, payroll → positioning → search a real locality → 3 km radius → Create.
 3. **Explore (60 s)** — Market map: candidate, OSM competitors (amber), population zones, 3D buildings. Click a competitor:
    *Observed* vs *Unknown* (price) vs *Model-derived*. Evidence tab: retrieval vs source time, coverage signals.
+3b. **Live market (60 s)** — Live market tab → 10,000 red dots at real density, each with 615 parameters (HUD shows
+   “10,000 × 615 = 6,150,000 params”). Press play: awareness spreads, agents travel to you (cyan) or competitors (amber).
+   **Click one dot** → Agent X-ray: genome heatmap, utility by channel vs the competitor it chose, the exact parameters
+   (e.g. “relies on online reviews”) that cost you this customer.
+3c. **Market DNA (45 s)** — the full matrix; “What makes your customers different”; “Where you win and lose”; then
+   *Generate survey* → this is how the founder gets REAL feedback to replace assumptions.
 4. **Baseline (45 s)** — Simulation Lab → Run. Units, revenue, operating profit, break-even, P(loss), histogram, synthetic
    agents coloured by choice.
 5. **Change an assumption (45 s)** — Duplicate → price ₹1,500 → Run. Deltas vs baseline; price curve shows the trade-off

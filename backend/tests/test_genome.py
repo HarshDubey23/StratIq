@@ -123,3 +123,8 @@ def test_calibration_raises_participation_when_incumbents_starve():
     off = run_abm(arch, tiny, comps(6), biz(), ResolvedParams.from_archetype(arch), 1500.0, n_agents=1500, days=30, radius_km=3.0,
                   overrides={"calibrate_incumbents": 0})
     assert not off["calibration"]["applied"]
+
+
+def test_overnight_hours_wrap_past_midnight():
+    night = pop_for(offer={"open_hour": 18, "close_hour": 2})
+    assert night.meta["hours_mask"][0].sum() == 8

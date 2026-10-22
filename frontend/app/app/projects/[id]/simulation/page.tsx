@@ -216,6 +216,26 @@ export default function SimulationLab() {
           <Field label={<span className="inline-flex items-center gap-1">Attractiveness / quality: {draft.quality.toFixed(2)} <Tip text="Your claimed quality on a 0–1 scale. Competitors with unknown quality are assumed at 0.50. Unverified user claim." /></span>} kind="user">
             <input type="range" min={0} max={1} step={0.05} value={draft.quality} onChange={(e) => set("quality", Number(e.target.value))} className="w-full" aria-label="Quality" />
           </Field>
+          <Field
+            label={<span className="inline-flex items-center gap-1">Opening hours <Tip text="Each synthetic agent has 48 hour-by-hour availability parameters. Hours that miss when people are free cost you customers in the agent simulation." /></span>}
+            kind={draft.offer?.open_hour != null ? "user" : "assumption"}
+            hint={draft.offer?.open_hour != null ? undefined : "Using the hours from your profile, or the category default."}
+          >
+            <div className="flex items-center gap-2 text-xs">
+              <Select aria-label="Opening time" className="h-8" value={draft.offer?.open_hour ?? ""} onChange={(e) => set("offer", { open_hour: e.target.value === "" ? null : Number(e.target.value), close_hour: draft.offer?.close_hour ?? 22, weekend_open: draft.offer?.weekend_open ?? true, attributes: draft.offer?.attributes ?? {} })}>
+                <option value="">default</option>
+                {Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{String(h).padStart(2, "0")}:00</option>)}
+              </Select>
+              <span className="text-ink-400">to</span>
+              <Select aria-label="Closing time" className="h-8" value={draft.offer?.close_hour ?? ""} onChange={(e) => set("offer", { open_hour: draft.offer?.open_hour ?? 6, close_hour: e.target.value === "" ? null : Number(e.target.value), weekend_open: draft.offer?.weekend_open ?? true, attributes: draft.offer?.attributes ?? {} })}>
+                <option value="">default</option>
+                {Array.from({ length: 24 }, (_, h) => h + 1).map((h) => <option key={h} value={h}>{String(h).padStart(2, "0")}:00</option>)}
+              </Select>
+              <label className="ml-auto flex items-center gap-1 text-ink-300">
+                <input type="checkbox" checked={draft.offer?.weekend_open ?? true} onChange={(e) => set("offer", { open_hour: draft.offer?.open_hour ?? null, close_hour: draft.offer?.close_hour ?? null, weekend_open: e.target.checked, attributes: draft.offer?.attributes ?? {} })} /> Weekends
+              </label>
+            </div>
+          </Field>
           <div className="grid grid-cols-2 gap-2">
             {arch.capacity_fields.map((f) => (
               <Field key={f.key} label={f.label} kind="user">
