@@ -15,7 +15,7 @@ import type { MarketData, Run, SimResult } from "@/lib/types";
 const LiveMap = dynamic(() => import("@/components/LiveMap"), { ssr: false, loading: () => <div className="absolute inset-0 flex items-center justify-center bg-ink-950 text-sm text-ink-400">Loading live market…</div> });
 
 const MODE_LABEL: Record<string, string> = { walk: "Walk", two_wheeler: "Two-wheeler", car: "Car", auto: "Auto", bus: "Bus", metro: "Metro / rail", cycle: "Cycle" };
-const TT = { contentStyle: { background: "#131a24", border: "1px solid #263243", borderRadius: 6, fontSize: 12 } };
+const TT = { contentStyle: { background: "#111826", border: "1px solid #243045", borderRadius: 6, fontSize: 12 } };
 
 export default function LiveMarket() {
   const { project: p, reload } = useProject();
@@ -202,9 +202,9 @@ export default function LiveMarket() {
                   <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-amber-300" /> Travelling to a competitor</div>
                 </div>
               )}
-              {colorMode === "segment" && abm.agents.segments.map((s, i) => <div key={s} className="flex items-center gap-2"><span className="h-2 w-2 rounded-full" style={{ background: ["#fb7185", "#fbbf24", "#a78bfa"][i] }} /> {s}</div>)}
+              {colorMode === "segment" && abm.agents.segments.map((s, i) => <div key={s} className="flex items-center gap-2"><span className="h-2 w-2 rounded-full" style={{ background: ["#fb7185", "#fbbf24", "#C59BFF"][i] }} /> {s}</div>)}
               {colorMode === "mode" && abm.agents.modes.map((s, i) => <div key={s} className="flex items-center gap-2"><span className="h-2 w-2 rounded-full" style={{ background: ["#4ade80", "#38bdf8", "#f472b6", "#facc15", "#fb923c", "#c084fc", "#a3e635"][i] }} /> {MODE_LABEL[s] || s}</div>)}
-              {colorMode === "age" && [["#93c5fd", "0–14"], ["#22d3ee", "15–29"], ["#fbbf24", "30–49"], ["#f87171", "50+"]].map(([c, l]) => <div key={l} className="flex items-center gap-2"><span className="h-2 w-2 rounded-full" style={{ background: c }} /> {l}</div>)}
+              {colorMode === "age" && [["#93c5fd", "0–14"], ["#FF9F2E", "15–29"], ["#fbbf24", "30–49"], ["#f87171", "50+"]].map(([c, l]) => <div key={l} className="flex items-center gap-2"><span className="h-2 w-2 rounded-full" style={{ background: c }} /> {l}</div>)}
               <div className="mt-1.5 border-t border-ink-700 pt-1.5 text-ink-500">
                 {num(abm.n_agents)} synthetic agents · each ≈ {num(abm.scale)} residents · {abm.genome ? `${abm.genome.per_agent} parameters each` : "profile per agent"}. Placed by {market?.snapshot?.population.source === "worldpop" ? "WorldPop" : "estimated"} density. Click any dot to X-ray its decision.
               </div>
@@ -262,12 +262,12 @@ export default function LiveMarket() {
               <div className="mb-1 flex items-center justify-between text-xs"><span className="font-medium text-ink-200">{membership ? "Members" : `Daily ${unit}`} — you</span><Evidence kind="model" label="Simulated" /></div>
               <ResponsiveContainer width="100%" height={120}>
                 <AreaChart data={dailyChart} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
-                  <CartesianGrid stroke="#1b2431" vertical={false} />
-                  <XAxis dataKey="d" stroke="#5d6b80" fontSize={10} />
-                  <YAxis stroke="#5d6b80" fontSize={10} width={36} />
+                  <CartesianGrid stroke="#192233" vertical={false} />
+                  <XAxis dataKey="d" stroke="#64718A" fontSize={10} />
+                  <YAxis stroke="#64718A" fontSize={10} width={36} />
                   <Tooltip {...TT} />
-                  <ReferenceLine x={day + 1} stroke="#22d3ee" />
-                  <Area dataKey="you" stroke="#22d3ee" fill="#22d3ee" fillOpacity={0.15} />
+                  <ReferenceLine x={day + 1} stroke="#FF9F2E" />
+                  <Area dataKey="you" stroke="#FF9F2E" fill="#FF9F2E" fillOpacity={0.15} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -275,11 +275,11 @@ export default function LiveMarket() {
               <div className="mb-1 text-xs font-medium text-ink-200">Awareness of your business (%)</div>
               <ResponsiveContainer width="100%" height={90}>
                 <LineChart data={dailyChart} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
-                  <XAxis dataKey="d" stroke="#5d6b80" fontSize={10} />
-                  <YAxis stroke="#5d6b80" fontSize={10} width={28} domain={[0, 100]} />
+                  <XAxis dataKey="d" stroke="#64718A" fontSize={10} />
+                  <YAxis stroke="#64718A" fontSize={10} width={28} domain={[0, 100]} />
                   <Tooltip {...TT} />
-                  <ReferenceLine x={day + 1} stroke="#22d3ee" />
-                  <Line dataKey="aware" stroke="#a78bfa" dot={false} strokeWidth={2} />
+                  <ReferenceLine x={day + 1} stroke="#FF9F2E" />
+                  <Line dataKey="aware" stroke="#C59BFF" dot={false} strokeWidth={2} />
                 </LineChart>
               </ResponsiveContainer>
             </div>

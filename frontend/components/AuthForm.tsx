@@ -60,15 +60,34 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
     }
   }
 
+  async function guest() {
+    setBusy(true);
+    setError(null);
+    try {
+      await api<User>("/auth/guest", { method: "POST" });
+      if (demo) {
+        const p = await api<Project>("/demo", { method: "POST" });
+        router.push(`/app/projects/${p.id}/live`);
+        return;
+      }
+      const next = params.get("next");
+      router.push(next && next.startsWith("/") ? next : "/app");
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Something went wrong");
+      setBusy(false);
+    }
+  }
+
   return (
-    <div className="grid-bg flex min-h-screen items-center justify-center bg-ink-950 px-4">
+    <div className="contours flex min-h-screen items-center justify-center bg-ink-950 px-4">
       <div className="w-full max-w-sm">
-        <div className="mb-8 flex justify-center">
+        <div className="mb-10 flex justify-center">
           <Logo />
         </div>
-        <form onSubmit={submit} className="space-y-4 rounded-lg border border-ink-700 bg-ink-900 p-6" noValidate>
+        <form onSubmit={submit} className="panel space-y-4 rounded-3xl p-7" noValidate>
           <div>
-            <h1 className="text-lg font-semibold">{mode === "sign-up" ? "Create your account" : "Sign in"}</h1>
+            <h1 className="font-display text-2xl font-semibold tracking-tight">{mode === "sign-up" ? "Create your account" : "Sign in"}</h1>
             <p className="mt-1 text-sm text-ink-300">
               {demo ? "Sign in to open the labelled demo scenario." : mode === "sign-up" ? "Start testing business ideas against a model of the real market." : "Welcome back."}
             </p>
@@ -88,6 +107,13 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
           <Button type="submit" variant="primary" className="w-full" loading={busy}>
             {mode === "sign-up" ? "Create account" : "Sign in"}
           </Button>
+          <button
+            type="button"
+            onClick={guest}
+            className="w-full rounded-full border border-white/10 py-2.5 text-sm text-ink-200 transition-colors hover:border-white/25 hover:text-ink-100"
+          >
+            Continue as guest
+          </button>
           <p className="text-center text-xs text-ink-400">
             {mode === "sign-up" ? (
               <>Already have an account? <Link className="text-accent hover:underline" href={`/sign-in${demo ? "?demo=1" : ""}`}>Sign in</Link></>

@@ -135,6 +135,7 @@ export default function MarketPage() {
     [comps],
   );
   const zones = useMemo(() => (snap?.zones || []).map((z) => ({ lat: z.lat, lng: z.lng, value: z.population })), [snap]);
+  const compWeight = useMemo(() => Object.fromEntries((baseResult?.competitors || []).map((c) => [c.id, c.modeled_units])), [baseResult]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
@@ -158,24 +159,26 @@ export default function MarketPage() {
           onMapClick={(lat, lng) => addMode && setDraft({ lat, lng })}
           crosshair={addMode}
           fitKey={`${locId}-${snap?.id || "none"}`}
+          zoneSpacingKm={snap?.population?.spacing_km}
+          competitorWeight={compWeight}
         />
         <div className="absolute left-3 top-3 z-10 flex flex-wrap items-center gap-2">
-          <Select value={locId} onChange={(e) => setLocId(e.target.value)} className="h-8 w-auto bg-ink-900/95 text-xs" aria-label="Location">
+          <Select value={locId} onChange={(e) => setLocId(e.target.value)} className="panel h-8 w-auto text-xs" aria-label="Location">
             {p.locations.map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}
           </Select>
-          <Button size="sm" onClick={refresh} loading={refreshing} className="bg-ink-900/95">
+          <Button size="sm" onClick={refresh} loading={refreshing} className="panel">
             <RefreshCw className="h-3.5 w-3.5" /> {snap ? "Refresh live data" : "Load live data"}
           </Button>
-          <Button size="sm" variant={addMode ? "primary" : "secondary"} onClick={() => setAddMode((x) => !x)} className={addMode ? "" : "bg-ink-900/95"}>
+          <Button size="sm" variant={addMode ? "primary" : "secondary"} onClick={() => setAddMode((x) => !x)} className={addMode ? "" : "panel"}>
             <MapPinPlus className="h-3.5 w-3.5" /> {addMode ? "Click the map to place it" : "Add competitor"}
           </Button>
         </div>
-        <div className="absolute bottom-8 left-3 z-10 w-52 rounded-md border border-ink-700 bg-ink-900/95 p-2.5 text-xs">
+        <div className="panel absolute bottom-8 left-3 z-10 w-56 rounded-xl p-3 text-xs">
           <div className="mb-1.5 flex items-center gap-1.5 font-medium text-ink-200"><Layers className="h-3.5 w-3.5" /> Layers</div>
           {(
             [
               ["catchment", "Catchment", "border-accent"],
-              ["zones", "Population zones", "bg-cyan-700"],
+              ["zones", "Population zones", "bg-orange-700"],
               ["competitors", "Competitors", "bg-observed"],
               ["agents", "Synthetic customers", "bg-agent"],
               ["activity", "Activity points", "bg-assumption"],

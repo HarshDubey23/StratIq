@@ -1,0 +1,22 @@
+name: Keep demo warm
+
+# Render free instances sleep after ~15 minutes idle. This pings the public URLs so a judge
+# never waits for a cold start, and pre-warms the cached live OpenStreetMap preview.
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping API and web
+        run: |
+          for u in "https://strataiq-api-wd4s.onrender.com/api/health" \
+                   "https://strataiq-web.onrender.com/" \
+                   "https://strataiq-api-wd4s.onrender.com/api/v1/market/preview?spot=cp-delhi&category=cafe"; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 120 "$u" || true)
+            echo "$u -> $code"
+          done

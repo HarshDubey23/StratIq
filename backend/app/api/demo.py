@@ -69,3 +69,38 @@ def create_demo(user: User = Depends(current_user), db: Session = Depends(get_db
         execute_run(db, p, sc)
     db.refresh(p)
     return project_out(p)
+
+
+LIVE_SPOTS = {
+    "cp-delhi": ("Connaught Place, New Delhi", 28.6315, 77.2167),
+    "indiranagar": ("Indiranagar, Bengaluru", 12.9719, 77.6412),
+    "bandra": ("Bandra West, Mumbai", 19.0596, 72.8295),
+}
+
+
+@router.post("/demo/live", status_code=201)
+async def create_live_demo(spot: str = "cp-delhi", user: User = Depends(current_user), db: Session = Depends(get_db)):
+    """A real-data demo: live OpenStreetMap competitors + WorldPop population around a real street.
+    Only the business inputs (price, rent, payroll…) are example assumptions, and they are labelled as such."""
+    from ..services.runs import start_refresh
+    label, lat, lng = LIVE_SPOTS.get(spot, LIVE_SPOTS["cp-delhi"])
+    cat = from_taxonomy_key("gym", "gym").as_dict()
+    p = Project(owner_id=user.id, name=f"Gym near {label.split(',')[0]}", objective="start_new", decision_goal="profit", category=cat,
+                profile={"description": "Premium neighbourhood gym. Market data is live; business inputs are example assumptions you can edit.",
+                         "positioning": ["Premium experience", "Extended operating hours"], "operating_hours": "5:30am–10:30pm",
+                         "inputs_note": "Example inputs entered for the demo"}, status="created", is_demo=False)
+    db.add(p)
+    db.flush()
+    loc = CandidateLocation(project_id=p.id, label="Location A", address=label, lat=lat, lng=lng, geog=point_wkt(lat, lng),
+                            catchment={"mode": "radius", "radius_km": 2.0, "minutes": None, "profile": "foot-walking"})
+    db.add(loc)
+    db.flush()
+    base = {"price": 2000, "quality": 0.65, "marketing_spend": 25000, "reference_price": None, "variable_cost_per_unit": None,
+            "capacity": {"max_members": 420}, "rent": 180000, "payroll": 150000, "utilities": 30000, "other_fixed": 15000,
+            "startup_cost": 3500000, "param_overrides": {}, "seed": 42}
+    db.add(Scenario(project_id=p.id, location_id=loc.id, name="Baseline", is_baseline=True, inputs=base))
+    db.add(Scenario(project_id=p.id, location_id=loc.id, name="Lower price ₹1,500", inputs=base | {"price": 1500}))
+    db.commit()
+    db.refresh(p)
+    start_refresh(db, p, loc)
+    return project_out(p)
