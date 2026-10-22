@@ -88,6 +88,9 @@ def _gaps(evidence: dict, result: dict) -> list[dict]:
                      "action": "Treat zone-level demand patterns as rough; verify where residents actually live."})
     if evidence.get("population_source") == "user":
         gaps.append({"key": "population_user", "severity": "high", "text": "Catchment population is a user-entered figure.", "action": "Confirm it against census or ward data."})
+    if evidence.get("population_source") == "estimate_buildings":
+        gaps.append({"key": "population_estimate", "severity": "high", "text": "Population is a rough building-count estimate because WorldPop was unavailable.",
+                     "action": "Reload market data later, or enter a census/ward population figure for the catchment."})
     if evidence.get("catchment_method") == "radius":
         gaps.append({"key": "catchment_radius", "severity": "low", "text": "Catchment is a straight-line radius, not a travel-time area.", "action": "Configure a routing key to use travel-time catchments."})
     cov = evidence.get("coverage") or {}

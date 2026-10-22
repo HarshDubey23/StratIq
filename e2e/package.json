@@ -1,0 +1,7 @@
+{
+  "name": "strataiq-e2e",
+  "private": true,
+  "type": "module",
+  "scripts": { "journey": "node journey.mjs" },
+  "dependencies": { "playwright": "1.52.0" }
+}

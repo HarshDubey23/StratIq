@@ -108,3 +108,25 @@ def test_build_snapshot_population_failure_is_reported(monkeypatch):
                                          category=resolve_offline("cafe").as_dict(), manual_population=None, cache=None))
     assert snap["population"]["method"] == "unavailable"
     assert any(e["source"] == "population" for e in snap["errors"])
+
+
+def test_population_fallback_uses_buildings_and_is_flagged(monkeypatch):
+    from app.providers.http import ProviderError
+
+    async def fake_pois(*a, **k):
+        return [], {"source": "osm_overpass"}
+
+    async def fake_bld(*a, **k):
+        return osm.parse_building_centers(load("overpass_buildings.json")), {"source": "osm_overpass"}
+
+    async def bad_pop(*a, **k):
+        raise ProviderError("worldpop", "ReadTimeout")
+
+    monkeypatch.setattr(mk.osm, "fetch_pois", fake_pois)
+    monkeypatch.setattr(mk.osm, "fetch_buildings", fake_bld)
+    monkeypatch.setattr(mk.population, "worldpop_total", bad_pop)
+    snap = asyncio.run(mk.build_snapshot(lat=LAT, lng=LNG, catchment={"mode": "radius", "radius_km": 2.0},
+                                         category=resolve_offline("gym").as_dict(), manual_population=None, cache=None))
+    assert snap["population"]["source"] == "estimate_buildings"
+    assert snap["population"]["total"] == 1500 * 12
+    assert any(e.get("fallback") == "building-based estimate" for e in snap["errors"])

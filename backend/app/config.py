@@ -39,6 +39,7 @@ class Settings:
     anthropic_api_key: str = field(default_factory=lambda: os.getenv("ANTHROPIC_API_KEY", ""))
     anthropic_model: str = field(default_factory=lambda: os.getenv("ANTHROPIC_MODEL", "claude-haiku-5-5"))
     http_timeout_s: float = field(default_factory=lambda: float(os.getenv("HTTP_TIMEOUT_S", "40")))
+    persons_per_building: float = field(default_factory=lambda: float(os.getenv("PERSONS_PER_BUILDING", "12")))
     mc_draws: int = field(default_factory=lambda: int(os.getenv("MC_DRAWS", "800")))
 
     @property

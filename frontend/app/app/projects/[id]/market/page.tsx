@@ -221,7 +221,7 @@ export default function MarketPage() {
                   <div className="rounded-md border border-ink-700 p-3">
                     <div className="mb-2 flex items-center justify-between text-xs">
                       <span className="font-medium text-ink-200">Catchment population</span>
-                      <Evidence kind={snap.population.source === "user" ? "user" : snap.population.source === "worldpop" ? "official" : snap.population.source === "demo" ? "demo" : "unknown"} />
+                      <Evidence kind={snap.population.source === "user" ? "user" : snap.population.source === "worldpop" ? "official" : snap.population.source === "demo" ? "demo" : snap.population.source === "estimate_buildings" ? "assumption" : "unknown"} label={snap.population.source === "estimate_buildings" ? "Rough estimate" : undefined} />
                     </div>
                     {snap.population.total ? (
                       <>
@@ -230,6 +230,7 @@ export default function MarketPage() {
                           {snap.catchment_method === "isochrone" ? "Travel-time catchment" : `${snap.population.radius_km?.toFixed(1)} km radius (straight-line)`} · {snap.population.zones} zones of ~{num((snap.population.spacing_km || 0) * 1000)} m ·{" "}
                           {snap.population.method === "dasymetric_buildings" ? `placed using ${num(snap.population.buildings_used)} mapped buildings` : snap.population.method === "uniform" ? "spread evenly (few buildings mapped)" : snap.population.method}
                         </div>
+                        {snap.population.source === "estimate_buildings" && <div className="mt-3"><PopulationFallback projectId={p.id} locationId={locId!} onSaved={refresh} /></div>}
                       </>
                     ) : (
                       <PopulationFallback projectId={p.id} locationId={locId!} onSaved={refresh} />
@@ -342,7 +343,7 @@ function PopulationFallback({ projectId, locationId, onSaved }: { projectId: str
   const [busy, setBusy] = useState(false);
   return (
     <div className="space-y-2">
-      <p className="text-xs text-amber-200">Population data could not be loaded, so demand cannot be simulated yet. Retry, or enter your best estimate for the catchment (it will be labelled as user-entered).</p>
+      <p className="text-xs text-amber-200">Official population data could not be loaded. Retry later, or enter your best figure for the catchment (labelled as user-entered).</p>
       <div className="flex gap-2">
         <NumberInput value={pop} onChange={setPop} allowEmpty suffix="people" />
         <Button

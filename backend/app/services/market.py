@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 import numpy as np
 
 from ..categories.archetypes import get_archetype
+from ..config import get_settings
 from ..categories.taxonomy import ACTIVITY_FILTERS
 from ..engine.geo import circle_polygon, haversine_km, hex_grid, km_to_deg_lat, km_to_deg_lng, points_in_polygon
 from ..providers import osm, population
@@ -166,9 +167,16 @@ async def build_snapshot(*, lat: float, lng: float, catchment: dict, category: d
                 sources.append(prov)
     comps = vals["competitors"] or []
     total_pop = vals["population"]
+    pop_source = "user" if manual_population else ("worldpop" if total_pop is not None else None)
+    if total_pop is None and vals["buildings"] and len(vals["buildings"]) >= 50:
+        # Transparent fallback: mapped buildings x an explicit persons-per-building assumption.
+        ppb = get_settings().persons_per_building
+        total_pop = float(len(vals["buildings"]) * ppb)
+        pop_source = "estimate_buildings"
+        errors.append({"source": "population", "message": f"WorldPop unavailable; using a rough estimate of {ppb:g} persons per mapped building ({len(vals['buildings'])} buildings). Replace with a real figure if you have one.", "fallback": "building-based estimate"})
     zones, pop_meta = assemble_zones(lat, lng, polygon, radius_km, total_pop, vals["buildings"],
                                      [(a["lat"], a["lng"]) for a in (vals["activity"] or [])])
-    pop_meta["source"] = "user" if manual_population else ("worldpop" if total_pop is not None else None)
+    pop_meta["source"] = pop_source
     area = math.pi * radius_km ** 2
     coverage = assess_coverage(comps, total_pop, len(vals["buildings"] or []), area)
     if total_pop is None:

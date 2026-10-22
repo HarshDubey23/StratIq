@@ -27,9 +27,17 @@ async def worldpop_total(polygon: list[list[list[float]]], cache: Cache | None =
         return float(hit[0]["total"]), provenance("worldpop", retrieved_at=hit[1], cached=True, source_updated_at=f"{s.worldpop_year} reference year",
                                                   detail="Total population inside the catchment")
     try:
-        r = await client().get(f"{s.worldpop_url}/services/stats", params=params, timeout=httpx.Timeout(30.0, connect=10.0))
-        r.raise_for_status()
-        body = r.json()
+        body = None
+        for attempt in range(2):
+            try:
+                r = await client().get(f"{s.worldpop_url}/services/stats", params=params, timeout=httpx.Timeout(60.0, connect=15.0))
+                r.raise_for_status()
+                body = r.json()
+                break
+            except httpx.TimeoutException:
+                if attempt == 1:
+                    raise
+                await asyncio.sleep(2)
         for _ in range(30):  # asynchronous task: poll until finished (~60 s max)
             if body.get("error"):
                 raise ProviderError("worldpop", str(body.get("error_message")))
