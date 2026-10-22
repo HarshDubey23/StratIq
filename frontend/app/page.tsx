@@ -6,8 +6,9 @@ import { MarketPreview } from "@/components/MarketPreview";
 const steps = [
   { n: "01", t: "Define", d: "Describe any business in your own words, plus its pricing, capacity and costs." },
   { n: "02", t: "Discover", d: "Search any place. Competitors, buildings and population are pulled live, with sources and timestamps." },
-  { n: "03", t: "Simulate", d: "Thousands of synthetic customers, placed by real population density and profiled on 615 factors, choose day by day between you, competitors and not buying." },
-  { n: "04", t: "Decide", d: "Compare scenarios, see downside risk, and get a list of what to verify before you invest." },
+  { n: "03", t: "Simulate", d: "10,000 synthetic customers, placed by real population density and each carrying a 615-parameter genome, choose day by day between you, competitors and not buying." },
+  { n: "04", t: "X-ray", d: "Click any customer to see why they chose a competitor — price, travel, opening hours, trust — down to the individual parameter." },
+  { n: "05", t: "Decide & verify", d: "Compare scenarios, see downside risk, and get a field survey that measures the assumptions your result depends on." },
 ];
 
 const uses = [
@@ -60,7 +61,7 @@ export default function Landing() {
               </Link>
             </div>
             <div className="mt-8 grid max-w-lg grid-cols-3 gap-3">
-              {[["615", "factors in the intelligence engine"], ["6,000", "synthetic agents per run, at real density"], ["84", "simulated days of market dynamics"]].map(([n, l]) => (
+              {[["10,000", "synthetic agents per run, at real population density"], ["615", "parameters in every agent's genome"], ["6.15M", "parameters simulated over 84 days"]].map(([n, l]) => (
                 <div key={l} className="rounded-md border border-ink-700 bg-ink-900/70 p-3">
                   <div className="num text-xl font-semibold text-accent">{n}</div>
                   <div className="mt-0.5 text-[11px] leading-snug text-ink-400">{l}</div>
@@ -102,7 +103,7 @@ export default function Landing() {
       <section id="how" className="border-b border-ink-800">
         <div className="mx-auto max-w-6xl px-4 py-20">
           <h2 className="text-3xl font-semibold tracking-tight">How it works</h2>
-          <div className="mt-10 grid gap-px overflow-hidden rounded-lg border border-ink-700 bg-ink-700 md:grid-cols-4">
+          <div className="mt-10 grid gap-px overflow-hidden rounded-lg border border-ink-700 bg-ink-700 md:grid-cols-5">
             {steps.map((s) => (
               <div key={s.n} className="bg-ink-900 p-6">
                 <div className="num text-xs text-accent">{s.n}</div>

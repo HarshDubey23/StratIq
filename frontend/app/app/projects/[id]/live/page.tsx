@@ -1,10 +1,11 @@
 "use client";
 
-import { Activity, Pause, Play, RotateCcw, Users, X } from "lucide-react";
+import { Activity, Dna, Pause, Play, RotateCcw, Users } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Area, AreaChart, CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import AgentXray from "@/components/AgentXray";
 import { useProject } from "@/components/ProjectContext";
 import { Badge, Button, EmptyState, ErrorState, Evidence, Notice, Segmented, Select, Spinner } from "@/components/ui";
 import { api, ApiError } from "@/lib/api";
@@ -22,6 +23,7 @@ export default function LiveMarket() {
   const [sid, setSid] = useState(scenarios.find((s) => s.is_baseline)?.id || scenarios[0]?.id);
   const sc = scenarios.find((s) => s.id === sid);
   const [res, setRes] = useState<SimResult | null>(null);
+  const [runId, setRunId] = useState<string | null>(null);
   const [market, setMarket] = useState<MarketData | null>(null);
   const [frame, setFrame] = useState(0);
   const [playing, setPlaying] = useState(true);
@@ -45,6 +47,7 @@ export default function LiveMarket() {
       ]);
       setMarket(m);
       setRes(r?.results || null);
+      setRunId(r?.id || null);
       setFrame(0);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Could not load");
@@ -55,6 +58,14 @@ export default function LiveMarket() {
   useEffect(() => {
     load();
   }, [load]);
+  // deep link: /live?agent=123 opens that agent's X-ray (useful for demos)
+  useEffect(() => {
+    const a = new URLSearchParams(window.location.search).get("agent");
+    if (a !== null && /^\d+$/.test(a)) {
+      setAgent(Number(a));
+      setPlaying(false);
+    }
+  }, []);
 
   async function run() {
     if (!sc) return;
@@ -63,6 +74,8 @@ export default function LiveMarket() {
     try {
       const r = await api<Run>(`/scenarios/${sc.id}/runs`, { method: "POST" });
       setRes(r.results || null);
+      setRunId(r.id);
+      setAgent(null);
       setFrame(0);
       setPlaying(true);
       reload();
@@ -77,8 +90,6 @@ export default function LiveMarket() {
   const day = abm ? abm.frames[frame]?.day ?? 0 : 0;
   const unit = res?.unit_label || "units";
   const membership = res?.archetype === "membership";
-  const cols: Record<string, number> = abm ? Object.fromEntries(abm.agents.columns.map((c, i) => [c, i])) : {};
-  const ag = abm && agent !== null ? abm.agents.rows[agent] : null;
   const dailyChart = useMemo(
     () => (abm ? abm.daily.units_you.map((u, d) => ({ d: d + 1, you: u, aware: Math.round(abm.daily.aware_share[d] * 100), cust: abm.daily.customers_you[d] })) : []),
     [abm],
@@ -115,7 +126,7 @@ export default function LiveMarket() {
               <EmptyState
                 icon={<Users className="h-6 w-6" />}
                 title="Run the live market"
-                body="Thousands of synthetic people are placed by real population density, each with their own profile, and the market is simulated day by day."
+                body="10,000 synthetic people are placed by real population density, each carrying a 615-parameter genome, and the market is simulated day by day."
                 action={<Button variant="primary" onClick={run} loading={running}><Play className="h-4 w-4" /> Simulate 12 weeks</Button>}
               />
             )}
@@ -141,7 +152,19 @@ export default function LiveMarket() {
                   <div className="num text-lg font-semibold text-ink-100">{v}</div>
                 </div>
               ))}
+              {abm.genome && (
+                <Link href={`/app/projects/${p.id}/genome`} className="pointer-events-auto rounded-lg border border-agent/40 bg-ink-950/90 px-3 py-2 backdrop-blur hover:border-agent">
+                  <div className="flex items-center gap-1 text-[10px] uppercase tracking-wide text-agent"><Dna className="h-3 w-3" /> Agent genome</div>
+                  <div className="num text-lg font-semibold text-ink-100">{num(abm.n_agents)} × {abm.genome.per_agent}<span className="ml-1.5 text-xs font-normal text-ink-400">= {num(abm.genome.total_parameters)} params</span></div>
+                </Link>
+              )}
             </div>
+            {agent !== null && runId && abm.genome && (
+              <AgentXray runId={runId} agent={agent} price={res?.summary.price} onClose={() => setAgent(null)} className="absolute bottom-24 right-14 top-24 z-20 w-[min(560px,calc(100%-5rem))]" />
+            )}
+            {agent !== null && abm && !abm.genome && (
+              <div className="absolute right-14 top-24 z-20 max-w-sm"><Notice tone="warn">This run was made before the Agent Genome. Re-run to X-ray agents.</Notice></div>
+            )}
 
             {/* controls */}
             <div className="absolute bottom-6 left-3 right-14 z-10 flex flex-wrap items-center gap-2 rounded-lg border border-ink-700 bg-ink-950/90 p-2 backdrop-blur">
@@ -170,7 +193,7 @@ export default function LiveMarket() {
             </div>
 
             {/* legend */}
-            <div className="absolute bottom-24 left-3 z-10 max-w-xs rounded-lg border border-ink-700 bg-ink-950/90 p-3 text-[11px] text-ink-300 backdrop-blur">
+            <div className="absolute bottom-32 left-3 z-10 max-w-xs rounded-lg border border-ink-700 bg-ink-950/90 p-3 text-[11px] text-ink-300 backdrop-blur">
               {colorMode === "choice" && (
                 <div className="space-y-1">
                   <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-agent" /> In-market person (not yet your customer)</div>
@@ -183,7 +206,7 @@ export default function LiveMarket() {
               {colorMode === "mode" && abm.agents.modes.map((s, i) => <div key={s} className="flex items-center gap-2"><span className="h-2 w-2 rounded-full" style={{ background: ["#4ade80", "#38bdf8", "#f472b6", "#facc15", "#fb923c", "#c084fc", "#a3e635"][i] }} /> {MODE_LABEL[s] || s}</div>)}
               {colorMode === "age" && [["#93c5fd", "0–14"], ["#22d3ee", "15–29"], ["#fbbf24", "30–49"], ["#f87171", "50+"]].map(([c, l]) => <div key={l} className="flex items-center gap-2"><span className="h-2 w-2 rounded-full" style={{ background: c }} /> {l}</div>)}
               <div className="mt-1.5 border-t border-ink-700 pt-1.5 text-ink-500">
-                {num(abm.n_agents)} synthetic agents · each ≈ {num(abm.scale)} residents. Placed by {market?.snapshot?.population.source === "worldpop" ? "WorldPop" : "estimated"} density. Click any dot to inspect it.
+                {num(abm.n_agents)} synthetic agents · each ≈ {num(abm.scale)} residents · {abm.genome ? `${abm.genome.per_agent} parameters each` : "profile per agent"}. Placed by {market?.snapshot?.population.source === "worldpop" ? "WorldPop" : "estimated"} density. Click any dot to X-ray its decision.
               </div>
             </div>
           </>
@@ -204,41 +227,20 @@ export default function LiveMarket() {
           <Notice tone="warn">Competitor data failed to load for this location, so this run has no competitors and is optimistic. Refresh live data on the Market map, then re-run.</Notice>
         )}
 
-        {ag && abm && (
-          <div className="rounded-lg border border-accent/40 bg-accent/5 p-3 text-xs">
-            <div className="mb-2 flex items-center justify-between">
-              <span className="font-semibold text-ink-100">Synthetic agent #{agent}</span>
-              <button onClick={() => setAgent(null)} aria-label="Close"><X className="h-3.5 w-3.5 text-ink-400" /></button>
-            </div>
-            <div className="grid grid-cols-2 gap-x-3 gap-y-1">
-              {[
-                ["Age / sex", `${ag[cols.age]} · ${ag[cols.female] ? "female" : "male"}`],
-                ["Segment", abm.agents.segments[ag[cols.segment]]],
-                ["Travel mode", MODE_LABEL[abm.agents.modes[ag[cols.mode]]]],
-                ["Time preference", abm.agents.time_prefs[ag[cols.time_pref]]],
-                ["Willingness to pay", money(ag[cols.wtp])],
-                ["Price sensitivity", `${ag[cols.price_sens]}×`],
-                ["Digital adoption", pct(ag[cols.digital])],
-                ["Word-of-mouth pull", pct(ag[cols.social])],
-                ["Distance to you", `${ag[cols.dist_km]} km`],
-                ["In this market", ag[cols.in_market] ? "yes" : "no"],
-                ["Aware of you", ag[cols.aware] ? "yes" : "no"],
-                ["Purchases from you", String(ag[cols.purchases_you])],
-                ["Current choice", ag[cols.last_choice] < 0 ? "none" : ag[cols.last_choice] === 0 ? "you" : abm.businesses[ag[cols.last_choice]]?.name || "competitor"],
-                ["Can afford you", ag[cols.wtp] >= (res?.summary.price || 0) ? "yes" : "no"],
-              ].map(([k, v]) => (
-                <div key={k} className="contents">
-                  <span className="text-ink-400">{k}</span>
-                  <span className="text-right text-ink-100">{v}</span>
-                </div>
-              ))}
-            </div>
-            <p className="mt-2 text-[10px] text-ink-500">Simulated person, not a real individual. Profile drawn from the factor engine (age–sex from WorldPop where available; behaviour from documented assumptions).</p>
-          </div>
-        )}
-
         {abm && res && (
           <>
+            {(() => {
+              const a = abm.monthly_units[abm.monthly_units.length - 1];
+              const b = res.summary.units_sold;
+              const r = b > 0 ? a / b : 0;
+              const agree = r >= 0.67 && r <= 1.5;
+              return (
+                <div className={`rounded-md border p-2 text-[11px] ${agree ? "border-model/40 bg-model/5 text-ink-300" : "border-warn/40 bg-warn/5 text-ink-300"}`}>
+                  <span className="font-medium text-ink-100">Model agreement: {agree ? "consistent" : "models disagree"}</span> — agent simulation {num(a)} vs aggregate model {num(b)} {unit}
+                  {b > 0 ? ` (${r.toFixed(2)}×)` : ""}. {agree ? "Two independent methods land close together." : "Two independent methods differ; treat demand as highly uncertain and verify with the field survey."}
+                </div>
+              );
+            })()}
             <div className="grid grid-cols-2 gap-2 text-xs">
               {[
                 ["Month 3 " + unit, num(abm.monthly_units[abm.monthly_units.length - 1])],
@@ -307,7 +309,8 @@ export default function LiveMarket() {
             </div>
             <div className="text-[11px] text-ink-500">
               <Badge className="mb-1">{abm.age_source === "worldpop" ? "Age–sex: WorldPop" : "Age–sex: default assumption"}</Badge>
-              <p>{abm.note} Seed {abm.seed}; {num(abm.metrics.decision_events as number)} purchase decisions simulated in {num(abm.duration_ms)} ms.</p>
+              <p>{abm.note} Seed {abm.seed}; {num(abm.metrics.decision_events as number)} purchase decisions simulated in {num(abm.duration_ms)} ms{abm.timing_ms ? ` (genomes built in ${num(abm.timing_ms.genome)} ms)` : ""}.</p>
+              {abm.calibration?.applied && <p className="mt-1 text-warn">Calibrated: {abm.calibration.reason} ({abm.calibration.summary}).</p>}
               <Link href={`/app/projects/${p.id}/factors`} className="text-accent hover:underline">See all 615 factors →</Link>
             </div>
           </>

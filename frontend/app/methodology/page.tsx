@@ -83,10 +83,22 @@ Payback          = startup cost / operating profit`}</Eq>
         </section>
 
         <section className="space-y-3">
-          <h2 className="text-xl font-semibold text-ink-100">6. Synthetic agents</h2>
+          <h2 className="text-xl font-semibold text-ink-100">6. Synthetic agents and the 615-parameter genome</h2>
           <p>
-            The red dots on the map are a visual sample drawn from the modeled demand distribution: each dot is placed in a zone in proportion to its in-market weight and
-            assigned a choice by sampling the model’s probabilities. They are not real people, and the number of dots is a display choice.
+            The live market places 10,000 synthetic agents in proportion to real population density (WorldPop totals spread over OpenStreetMap buildings). Each agent
+            carries a 615-parameter genome: 46 values measured from real geography (position, distance and travel time to every mapped business), 16 correlated latent
+            traits (income, price consciousness, time poverty, digital nativity…) drawn conditionally on the agent&apos;s age and income segment, and 553 parameters
+            generated from those traits plus noise (hour-by-hour availability, 40 attribute importances and minimums, 48 media-channel parameters, price psychology,
+            mobility, retention, category affinities, lifestyle and constraints).
+          </p>
+          <Eq>{`x_k = mu_k + loadings_k · z + sd_k · eps        z ~ N(mu_z | age, income segment ; Sigma)
+V_ij = price_ij + quality_j + travel_ij + hours_fit_ij + attributes_ij + expectation_gap_ij + trust_ij + lifestyle_ij
+choice = argmax( V_ij + habit_ij + noise_i · Gumbel ,  outside_i + noise_i · Gumbel )`}</Eq>
+          <p>
+            Every one of the 615 parameters reaches a decision (choice utility, participation, outside option, awareness, word of mouth, retention or noise); the test
+            suite fails if any is unused. Click an agent to see its genome and why it chose what it chose. These are documented assumptions conditioned on real
+            evidence, not data about real people, and more parameters do not by themselves mean more accuracy. Before a run, demand is checked against incumbents:
+            businesses that exist need customers, so if the model leaves nearby incumbents below a survival floor, participation is raised (bounded at ×2.5 and reported).
           </p>
         </section>
 

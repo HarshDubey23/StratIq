@@ -18,7 +18,8 @@ export default function Overview() {
   const alt = scen.length > 1;
   const steps = [
     { done: hasSnap, t: "Load live market evidence", href: `${base}/market` },
-    { done: ran, t: "Run the baseline simulation", href: `${base}/simulation` },
+    { done: ran, t: "Run the live market (10,000 agents)", href: `${base}/live` },
+    { done: false, t: "X-ray agents & read the Market DNA", href: `${base}/genome` },
     { done: alt && scen.filter((s) => s.latest_run).length > 1, t: "Test an alternative scenario", href: `${base}/simulation` },
     { done: false, t: "Review the decision and what to verify", href: `${base}/decisions` },
     { done: false, t: "Share a feasibility report", href: `${base}/report` },

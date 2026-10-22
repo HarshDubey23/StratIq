@@ -247,7 +247,7 @@ def compute(project, arch: Archetype, loc, snap, competitors: list, scenario_inp
         put(f"mob_{mname}_share", round(0.45 * sb + 0.40 * sm + 0.15 * sp, 4), "assumed")
         put(f"mob_{mname}_speed", spd, "assumed")
         put(f"mob_{mname}_tolerance", tolm, "assumed")
-    for k_, fk in (("noise_scale", "beh_noise_scale"), ("habit_build", "ret_loyalty_build"), ("habit_cap", "ret_loyalty_cap"), ("trial_bias", "beh_trial_bias"),
+    for k_, fk in (("noise_scale", "beh_noise_scale"), ("habit_build", "ret_loyalty_build"), ("habit_cap", "ret_loyalty_cap"),
                    ("congestion_penalty", "ret_congestion_penalty"), ("congestion_memory", "ret_congestion_memory_days"), ("monthly_churn", "ret_monthly_churn"),
                    ("switch_threshold", "ret_switch_threshold"), ("wom_rate", "mkt_wom_rate"), ("signage_radius", "mkt_signage_radius")):
         put(fk, ABM_DEFAULTS[k_], "assumed")

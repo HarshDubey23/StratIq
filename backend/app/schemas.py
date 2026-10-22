@@ -111,6 +111,22 @@ class LocationPatch(BaseModel):
     manual_population: float | None = Field(default=None, ge=0, le=5_000_000)
 
 
+class OfferInputs(BaseModel):
+    """What your business offers, beyond price: opening hours and attribute levels (0-1). All optional."""
+    open_hour: float | None = Field(default=None, ge=0, le=24)
+    close_hour: float | None = Field(default=None, ge=0, le=24)
+    weekend_open: bool = True
+    attributes: dict[str, float] = Field(default_factory=dict)
+
+    @field_validator("attributes")
+    @classmethod
+    def _attrs(cls, v: dict[str, float]) -> dict[str, float]:
+        for k, x in v.items():
+            if len(k) > 40 or x is None or not 0 <= x <= 1:
+                raise ValueError(f"attribute {k} must be between 0 and 1")
+        return v
+
+
 class ScenarioInputs(BaseModel):
     price: float = Field(gt=0, le=10_000_000)
     quality: float = Field(default=0.55, ge=0, le=1)
@@ -124,6 +140,7 @@ class ScenarioInputs(BaseModel):
     other_fixed: float = Field(default=0, ge=0)
     startup_cost: float = Field(default=0, ge=0)
     param_overrides: dict[str, float] = Field(default_factory=dict)
+    offer: OfferInputs | None = None
     seed: int = Field(default=42, ge=0, le=2**31)
 
     @field_validator("capacity", "param_overrides")

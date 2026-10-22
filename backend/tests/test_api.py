@@ -168,3 +168,36 @@ def test_background_refresh_job(client):
     assert status in ("complete", "partial")
     m = client.get(f"/api/v1/projects/{pid}/market", params={"location_id": lid}).json()
     assert m["snapshot"]["id"] == sid and m["loading_snapshot_id"] is None and len(m["competitors"]) == 3
+
+
+def test_agent_genome_xray_matrix_and_survey(client):
+    signup(client, "genome@example.com")
+    assert client.get("/api/v1/genome/registry").json()["size"] == 615
+    p = client.post("/api/v1/demo").json()
+    proj = client.get(f"/api/v1/projects/{p['id']}").json()
+    base = next(s for s in proj["scenarios"] if s["is_baseline"])
+    run = client.post(f"/api/v1/scenarios/{base['id']}/runs").json()
+    abm = run["results"]["abm"]
+    assert abm["genome"]["per_agent"] == 615 and abm["n_agents"] >= 1000
+    rid = run["id"]
+    cols = abm["agents"]["columns"]
+    near = min(range(len(abm["agents"]["rows"])), key=lambda i: abm["agents"]["rows"][i][cols.index("dist_km")])
+    x = client.get(f"/api/v1/simulation-runs/{rid}/agents/{near}")
+    assert x.status_code == 200, x.text
+    x = x.json()
+    assert len(x["genome"]) == 615 and len(x["percentile"]) == 615 and x["options"]
+    # rebuilt from stored inputs after the in-memory cache is gone: identical genome
+    from app.api import genome as gapi
+    from app.engine import abm as abm_mod
+    abm_mod._CACHE.clear()
+    gapi._PCT.clear()
+    x2 = client.get(f"/api/v1/simulation-runs/{rid}/agents/{near}").json()
+    assert x2["genome"] == x["genome"]
+    m = client.get(f"/api/v1/simulation-runs/{rid}/genome-matrix", params={"rows": 120}).json()
+    assert m["cols"] == 615 and m["rows"] > 0 and len(m["blocks"]) == 16
+    kit = client.get(f"/api/v1/simulation-runs/{rid}/survey-kit").json()
+    assert len(kit["questions"]) >= 10
+    assert client.get(f"/api/v1/simulation-runs/{rid}/agents/999999").status_code == 404
+    client.post("/api/v1/auth/logout")
+    signup(client, "other@example.com")
+    assert client.get(f"/api/v1/simulation-runs/{rid}/agents/7").status_code == 404

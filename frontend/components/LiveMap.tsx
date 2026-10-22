@@ -81,7 +81,8 @@ export default function LiveMap(p: LiveMapProps) {
               paint: { "fill-extrusion-color": "#18212d", "fill-extrusion-height": ["coalesce", ["get", "render_height"], 6], "fill-extrusion-base": ["coalesce", ["get", "render_min_height"], 0], "fill-extrusion-opacity": 0.8 } }, firstSymbol);
           } catch { /* style without buildings */ }
         }
-        for (const id of ["catch", "heat", "trails", "idle", "moving", "sel"]) m.addSource(id, { type: "geojson", data: EMPTY });
+        for (const id of ["catch", "heat", "trails", "moving", "sel"]) m.addSource(id, { type: "geojson", data: EMPTY });
+        m.addSource("idle", { type: "geojson", data: EMPTY, promoteId: "i" });
         m.addLayer({ id: "catch-line", type: "line", source: "catch", paint: { "line-color": "#22d3ee", "line-width": 1.4, "line-dasharray": [2, 2], "line-opacity": 0.7 } });
         m.addLayer({ id: "heat", type: "heatmap", source: "heat", paint: {
           "heatmap-weight": ["get", "w"], "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 11, 0.6, 15, 1.4],
@@ -90,7 +91,11 @@ export default function LiveMap(p: LiveMapProps) {
           "heatmap-color": ["interpolate", ["linear"], ["heatmap-density"], 0, "rgba(0,0,0,0)", 0.2, "rgba(14,116,144,0.35)", 0.45, "rgba(34,211,238,0.5)", 0.7, "rgba(251,191,36,0.6)", 1, "rgba(244,63,94,0.75)"],
         } });
         m.addLayer({ id: "trails", type: "line", source: "trails", paint: { "line-color": ["get", "c"], "line-width": 0.7, "line-opacity": 0.22 } });
-        m.addLayer({ id: "idle", type: "circle", source: "idle", paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 1.1, 14, 2.2, 16, 3.5], "circle-color": ["get", "c"], "circle-opacity": ["get", "o"] } });
+        m.addLayer({ id: "idle", type: "circle", source: "idle", paint: {
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, ["case", ["boolean", ["feature-state", "cust"], false], 2.2, 1.3], 14, ["case", ["boolean", ["feature-state", "cust"], false], 3.8, 2.5], 16, ["case", ["boolean", ["feature-state", "cust"], false], 5.5, 3.8]],
+          "circle-color": ["case", ["boolean", ["feature-state", "cust"], false], "#22d3ee", ["get", "c"]],
+          "circle-opacity": ["case", ["boolean", ["feature-state", "cust"], false], 0.95, ["get", "o"]],
+        } });
         m.addLayer({ id: "moving", type: "circle", source: "moving", paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 1.8, 14, 3.2, 16, 5], "circle-color": ["get", "c"], "circle-opacity": 0.95, "circle-blur": 0.15 } });
         m.addLayer({ id: "sel", type: "circle", source: "sel", paint: { "circle-radius": 9, "circle-color": "rgba(255,255,255,0)", "circle-stroke-color": "#ffffff", "circle-stroke-width": 2 } });
         m.on("click", (e) => {
@@ -146,23 +151,44 @@ export default function LiveMap(p: LiveMapProps) {
     });
   }, [ready, p.abm]);
 
-  // idle agents + trails, recomputed per frame (and when colouring changes)
+  // idle agents: static geometry, set once per run / colouring (10k points). Customer status is GPU feature-state.
+  const lastFi = useRef(-1);
   useEffect(() => {
     const m = map.current;
     if (!ready || !m) return;
     const rows = p.abm.agents.rows;
-    const fi = p.frameIdx;
-    const color = (r: number[], i: number) => {
+    const color = (r: number[]) => {
       if (p.colorMode === "segment") return SEG_COLORS[r[ci.segment]] || "#fb7185";
       if (p.colorMode === "mode") return MODE_COLORS[r[ci.mode]] || "#fb7185";
       if (p.colorMode === "age") return ageColor(r[ci.age]);
-      if (customerFrom[i] <= fi) return "#22d3ee";
-      return r[ci.in_market] ? "#f43f5e" : "#7f1d1d";
+      return r[ci.in_market] ? "#fb3b5c" : "#9f1239";
     };
     (m.getSource("idle") as GeoJSONSource).setData({
       type: "FeatureCollection",
-      features: rows.map((r, i) => ({ type: "Feature", geometry: { type: "Point", coordinates: [r[ci.lng], r[ci.lat]] }, properties: { i, c: color(r, i), o: r[ci.in_market] ? 0.75 : 0.35 } })),
+      features: rows.map((r, i) => ({ type: "Feature", geometry: { type: "Point", coordinates: [r[ci.lng], r[ci.lat]] }, properties: { i, c: color(r), o: r[ci.in_market] ? 0.95 : 0.45 } })),
     });
+    lastFi.current = -1;
+  }, [ready, p.abm, p.colorMode, ci]);
+
+  // per frame: only agents whose customer status changed get a feature-state update; trips redrawn
+  useEffect(() => {
+    const m = map.current;
+    if (!ready || !m) return;
+    const fi = p.frameIdx;
+    const showCust = p.colorMode === "choice";
+    const n = p.abm.n_agents;
+    if (!showCust || fi < lastFi.current) {
+      m.removeFeatureState({ source: "idle" });
+      lastFi.current = -1;
+    }
+    if (showCust) {
+      for (let i = 0; i < n; i++) {
+        const cf = customerFrom[i];
+        if (cf <= fi && cf > lastFi.current) m.setFeatureState({ source: "idle", id: i }, { cust: true });
+      }
+      lastFi.current = fi;
+    }
+    const rows = p.abm.agents.rows;
     const f = p.abm.frames[fi];
     const biz = p.abm.businesses;
     (m.getSource("trails") as GeoJSONSource).setData({

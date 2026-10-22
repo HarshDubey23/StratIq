@@ -1,32 +1,43 @@
-"""Agent-based market simulation ("live market").
+"""Agent-based market simulation ("live market") on the 615-parameter Agent Genome.
 
 Synthetic people are placed on the map in proportion to real population density
-(WorldPop totals distributed over OSM buildings), each with an individual profile
-drawn from the factor registry: age and sex (WorldPop age–sex structure where
-available), segment, willingness to pay, price/quality sensitivity, travel mode and
-distance tolerance, digital adoption, social influence, loyalty and category
-affinity. The simulation then runs day by day:
+(WorldPop totals distributed over OSM buildings). Each one receives a 615-parameter
+genome (``engine/genome.py``): real-geometry measurements (distance and travel time to
+every mapped business), 16 correlated latent traits conditioned on the agent's age and
+income segment, and 553 generated parameters - hour-by-hour availability, 40 attribute
+importances and 40 minimum expectations, 48 media-channel parameters, price psychology,
+mobility, retention, category affinities, lifestyle and constraints.
 
-* awareness of a new business spreads through paid reach (scaled by digital
-  adoption), word of mouth from customers in the same zone, and storefront signage;
-* in-market agents make purchase decisions with their own random-utility choice
-  (price vs their own WTP, quality, distance, habit, congestion memory, taste noise),
-  including a "none of these" option;
-* membership businesses hold members, who reconsider monthly and may churn or switch;
+The simulation then runs day by day:
+
+* awareness of the new business spreads through paid media (each agent's exposure,
+  trust and response on 16 channels x the category's media mix), word of mouth from
+  customers in the same zone (sender propensity x receiver susceptibility) and signage;
+* in-market agents choose with their own random utility: price vs their own WTP and
+  caps, quality, travel (distance, time, value of time, friction), opening-hours fit,
+  40 attribute importances x business attributes, expectation gaps, trust/novelty and
+  ~120 lifestyle modulators - plus a personal outside option and personal noise scale;
+* membership businesses hold members who reconsider monthly with a personal churn hazard;
 * capacity limits turn customers away, and a turned-away agent remembers it.
 
-This is a stochastic, assumption-driven model. Every agent is synthetic; the
-population of agents is a scaled sample (each represents ``scale`` residents).
+Before the run, demand is optionally calibrated against incumbents ("revealed demand"):
+businesses that exist and survive need customers, so if the model leaves nearby
+incumbents far below a survival floor, participation is scaled up (bounded, reported).
+
+This is a stochastic, assumption-driven model. Every agent is synthetic; one agent
+represents ``scale`` residents. Not a forecast guarantee.
 """
 from __future__ import annotations
 
 import math
 import time
+from collections import OrderedDict
+from dataclasses import dataclass
 
 import numpy as np
 
 from ..categories.archetypes import Archetype
-from .geo import haversine_km
+from . import genome as gm
 from .model import BusinessInputs, Competitor, ResolvedParams, Zone
 
 AGE_BANDS = ["0-4", "5-9", "10-14", "15-19", "20-24", "25-29", "30-34", "35-39", "40-44", "45-49", "50-54", "55-59", "60-64", "65-69", "70-74", "75-79", "80+"]
@@ -36,29 +47,25 @@ DEFAULT_AGE = np.array([0.075, 0.080, 0.085, 0.088, 0.092, 0.092, 0.085, 0.077, 
 
 # Category affinity by age group: child (0-14), young (15-29), mid (30-49), senior (50+). Assumptions.
 AFFINITY = {
-    "membership": (0.15, 1.6, 1.0, 0.45),
-    "dine_in": (0.5, 1.4, 1.1, 0.6),
-    "takeaway": (0.4, 1.5, 1.05, 0.45),
-    "retail": (0.5, 1.0, 1.1, 1.0),
-    "appointment": (0.5, 1.1, 1.1, 1.0),
-    "lodging": (0.1, 1.1, 1.25, 0.7),
+    # children (0-14) are not decision-makers: their household's purchases are carried by adult agents (mean is renormalised)
+    "membership": (0.0, 1.6, 1.0, 0.45),
+    "dine_in": (0.0, 1.4, 1.1, 0.6),
+    "takeaway": (0.0, 1.5, 1.05, 0.45),
+    "retail": (0.0, 1.0, 1.1, 1.0),
+    "appointment": (0.0, 1.1, 1.1, 1.0),
+    "lodging": (0.0, 1.1, 1.25, 0.7),
 }
 FEMALE_AFFINITY = {"membership": 0.8, "dine_in": 1.0, "takeaway": 0.95, "retail": 1.05, "appointment": 1.2, "lodging": 0.95}
-# Travel modes: (name, share budget, share mainstream, share premium, distance tolerance multiplier, speed km/h)
-MODES = [
-    ("walk", 0.36, 0.24, 0.12, 0.55, 4.5),
-    ("two_wheeler", 0.30, 0.34, 0.22, 1.25, 18.0),
-    ("car", 0.02, 0.10, 0.38, 1.4, 16.0),
-    ("auto", 0.10, 0.10, 0.10, 1.1, 14.0),
-    ("bus", 0.14, 0.10, 0.04, 0.95, 11.0),
-    ("metro", 0.04, 0.08, 0.10, 1.2, 25.0),
-    ("cycle", 0.04, 0.04, 0.04, 0.8, 10.0),
-]
-CHANNELS = ["digital", "social", "print", "signage", "wom", "referral", "events", "aggregator"]
+MODE_NAMES = [m[0] for m in gm.MODES]
+# (name, base share, base share, base share, distance-tolerance multiplier, speed km/h): baseline of the genome's mode choice
+MODE_BASE = [0.30, 0.30, 0.08, 0.10, 0.12, 0.05, 0.05]
+MODES = [(m[0], b, b, b, m[2], m[1]) for m, b in zip(gm.MODES, MODE_BASE)]
 
 DEFAULTS = {
     "wom_rate": 0.015, "signage_radius": 0.35, "signage_daily": 0.04, "noise_scale": 0.6, "habit_build": 0.25, "habit_cap": 1.2,
-    "congestion_penalty": 1.0, "congestion_memory": 14, "monthly_churn": 0.08, "switch_threshold": 0.35, "trial_bias": 0.15,
+    "congestion_penalty": 1.0, "congestion_memory": 14, "monthly_churn": 0.08, "switch_threshold": 0.35,
+    "taste_sd": 0.45, "beta_time": 1.2, "beta_attr": 2.2, "beta_exp": 2.0,
+    "calibrate_incumbents": 1.0, "survival_floor": 0.4, "calibration_max": 2.5,
 }
 
 
@@ -77,91 +84,201 @@ def _age_group(age: np.ndarray) -> np.ndarray:
     return np.select([age < 15, age < 30, age < 50], [0, 1, 2], 3)
 
 
-def run_abm(arch: Archetype, zones: list[Zone], comps: list[Competitor], biz: BusinessInputs, params: ResolvedParams,
-            ref_price: float, *, n_agents: int = 6000, days: int = 84, seed: int = 42, age_sex: dict | None = None,
-            spacing_km: float = 0.35, frame_every: int = 2, overrides: dict | None = None) -> dict:
-    t0 = time.perf_counter()
-    rng = np.random.default_rng(seed + 101)
+@dataclass
+class Population:
+    """Everything that is a deterministic function of the inputs and seed (no day-by-day dynamics)."""
+    N: int
+    scale: float
+    zi: np.ndarray
+    lat: np.ndarray
+    lng: np.ndarray
+    age: np.ndarray
+    female: np.ndarray
+    seg: np.ndarray
+    gen: gm.Genome
+    F: np.ndarray
+    meta: dict
+    up: gm.UtilityParts
+    p_in_base: np.ndarray
+    freq: np.ndarray
+    age_src: str
+    names: list[str]
+
+
+def build_population(arch: Archetype, zones: list[Zone], comps: list[Competitor], biz: BusinessInputs, params: ResolvedParams,
+                     ref_price: float, *, n_agents: int, seed: int, age_sex: dict | None, spacing_km: float, profile: dict | None,
+                     offer: dict | None, overrides: dict | None, month0: int, days: int) -> Population:
     P = params.values
     D = {**DEFAULTS, **{k: v for k, v in (overrides or {}).items() if k in DEFAULTS}}
-    S = len(arch.segments)
-    J = 1 + len(comps)
-    membership = arch.key == "membership"
-
-    # ---------------- population of agents (real density) ----------------
+    rng = np.random.default_rng(seed + 101)
     pop = np.array([max(0.0, z.population) for z in zones])
     act = np.array([max(0.0, z.activity) for z in zones])
     W = pop + (act * P.get("activity_equivalent", 120.0) if arch.demand_base == "residents_and_activity" else 0.0)
     if W.sum() <= 0:
         raise ValueError("No population to place agents")
     N = int(n_agents)
-    scale = float(W.sum() / N)  # resident-equivalents represented by one agent
+    scale = float(W.sum() / N)
     zi = rng.choice(len(zones), size=N, p=W / W.sum())
     zlat = np.array([z.lat for z in zones])
     zlng = np.array([z.lng for z in zones])
     jit = spacing_km / 2.2
     lat = zlat[zi] + rng.uniform(-1, 1, N) * jit / 110.574
     lng = zlng[zi] + rng.uniform(-1, 1, N) * jit / (111.32 * math.cos(math.radians(float(np.mean(zlat)))))
-
     band_p, fem_p, age_src = _age_dist(age_sex)
     band = rng.choice(len(AGE_BANDS), size=N, p=band_p)
     age = np.clip(AGE_MID[band] + rng.uniform(-2, 2, N), 0, 95)
     female = rng.random(N) < fem_p[band]
     seg_share = np.array([s.share for s in arch.segments])
-    seg = rng.choice(S, size=N, p=seg_share / seg_share.sum())
+    seg = rng.choice(len(arch.segments), size=N, p=seg_share / seg_share.sum())
+
+    blat = np.array([biz.lat] + [c.lat for c in comps])
+    blng = np.array([biz.lng] + [c.lng for c in comps])
+    seg_dt = np.array([s.distance_tolerance for s in arch.segments])[seg]
+    gen = gm.generate(np.random.default_rng(seed + 7), age=age, female=female, seg_keys=[s.key for s in arch.segments], seg=seg,
+                      zone_pop=pop, zone_act=act, lat=lat, lng=lng, zi=zi, blat=blat, blng=blng, circuity=P["circuity"],
+                      max_km=P["max_km"], seg_dt=seg_dt)
+    hs = max(P["marketing_half_saturation"], 1.0)
+    a_target = P["awareness_base"] + (1 - P["awareness_base"]) * (1 - 2 ** (-max(biz.marketing_spend, 0) / hs))
+    F, meta = gm.business_features(arch.key, biz, comps, ref_price, P["competitor_quality"], profile, a_target, offer)
+    # competitor prices unknown -> assumed ratio x reference
+    meta["prices"] = np.array([biz.price] + [c.price if c.price else ref_price * P["competitor_price_ratio"] for c in comps], float)
+    F[:, gm.FI["price_rel"]] = np.log(meta["prices"] / ref_price)
+    F[:, gm.FI["premium"]] = np.clip(meta["prices"] / ref_price - 1.0, 0, 2)
+    F[:, gm.FI["budget"]] = np.clip(1.0 - meta["prices"] / ref_price, 0, 1)
+    meta["a_target"] = a_target
+    meta["blat"], meta["blng"] = blat, blng
+    seg_psens = np.array([s.price_sensitivity for s in arch.segments])[seg]
+    up = gm.assemble_utility(arch.key, gen, F, meta, P, ref_price, seg_psens, lin_target_sd=D["taste_sd"], beta_time=D["beta_time"],
+                             beta_attr=D["beta_attr"], beta_exp=D["beta_exp"])
+    up.outside = up.outside + gm.outside_substitutes(arch.key, gen.G)
+
+    # participation: archetype mean x age/sex affinity x personal index (genome), mean preserved
     aff_tab = np.array(AFFINITY[arch.key])
     affinity = aff_tab[_age_group(age)] * np.where(female, FEMALE_AFFINITY[arch.key], 1.0)
     affinity = affinity / max(1e-9, affinity.mean())
-    p_in = np.clip(P["participation"] * affinity, 0, 0.97)
+    base = np.clip(P["participation"] * affinity, 1e-4, 0.95)
+    idx = gm.participation_index(arch.key, gen.G, month0, days)
+    logit = np.log(base / (1 - base)) + idx
+    p_in = 1 / (1 + np.exp(-logit))
+    p_in = np.clip(p_in * (base.mean() / max(p_in.mean(), 1e-9)), 0, 0.97)
+    if arch.key == "membership":
+        freq = np.ones(N)
+    else:
+        r = np.random.default_rng(seed + 13)
+        f0 = r.gamma(4.0, P["frequency"] / 4.0, N) * np.exp(0.25 * idx)
+        if arch.key in ("retail", "takeaway"):
+            f0 *= (gen.G[:, gm.KI["ev_household_size"]] / 4.2) ** 0.3
+        freq = np.clip(f0 * (P["frequency"] / max(f0.mean(), 1e-9)), 0.1, 30)
+    names = ["Your business"] + [c.name for c in comps]
+    return Population(N, scale, zi, lat, lng, age, female, seg, gen, F, meta, up, p_in, freq, age_src, names)
+
+
+def _calibrate(pop: Population, arch: Archetype, D: dict, radius_km: float | None) -> dict:
+    """Revealed-demand floor: incumbents that exist need customers. Scale participation if they look starved."""
+    J = pop.up.total.shape[1]
+    out = {"applied": False, "multiplier": 1.0, "method": "revealed-demand floor from incumbents (assumption-anchored)"}
+    if not D["calibrate_incumbents"] or J < 3:
+        out["reason"] = "fewer than 2 incumbents" if J < 3 else "disabled"
+        return out
+    V = pop.up.total[:, 1:]  # incumbents only: the market before you open
+    noise = pop.up.noise[:, None]
+    ex = np.exp(np.clip(V / noise, -50, 50))
+    ex = np.where(np.isfinite(V), ex, 0)
+    den = np.exp(np.clip(pop.up.outside / pop.up.noise, -50, 50)) + ex.sum(1)
+    Pij = ex / den[:, None]
+    demand = pop.scale * (pop.p_in_base * pop.freq) @ Pij  # units / month per incumbent from inside the catchment
+    cap_default = arch.capacity_units({})
+    floor = D["survival_floor"] * cap_default
+    inner = np.arange(J - 1)
+    if radius_km:
+        from .geo import haversine_km
+        d_site = haversine_km(pop.meta["blat"][0], pop.meta["blng"][0], pop.meta["blat"][1:], pop.meta["blng"][1:])
+        inner = np.where(d_site <= 0.6 * radius_km)[0]
+    if inner.size < 2:
+        out["reason"] = "fewer than 2 incumbents in the inner catchment"
+        return out
+    med = float(np.median(demand[inner]))
+    out.update({"incumbents_used": int(inner.size), "median_incumbent_units": round(med, 1), "survival_floor_units": round(floor, 1)})
+    if med <= 0:
+        out["reason"] = "incumbents receive no modeled demand"
+        return out
+    if med < floor:
+        m = float(min(D["calibration_max"], floor / med))
+        out.update({"applied": True, "multiplier": round(m, 3), "reason": "incumbents below survival floor; participation scaled up"})
+    else:
+        out["reason"] = "incumbents already above survival floor; no change"
+    return out
+
+
+# ---------------------------------------------------------------- population cache (agent X-ray / DNA matrix)
+_CACHE: OrderedDict = OrderedDict()
+_CACHE_MAX = 2
+
+
+def cache_put(key: str, pop: Population) -> None:
+    _CACHE[key] = pop
+    _CACHE.move_to_end(key)
+    while len(_CACHE) > _CACHE_MAX:
+        _CACHE.popitem(last=False)
+
+
+def cache_get(key: str) -> Population | None:
+    p = _CACHE.get(key)
+    if p is not None:
+        _CACHE.move_to_end(key)
+    return p
+
+
+def run_abm(arch: Archetype, zones: list[Zone], comps: list[Competitor], biz: BusinessInputs, params: ResolvedParams,
+            ref_price: float, *, n_agents: int = 10000, days: int = 84, seed: int = 42, age_sex: dict | None = None,
+            spacing_km: float = 0.35, frame_every: int = 2, overrides: dict | None = None, profile: dict | None = None,
+            offer: dict | None = None, radius_km: float | None = None, month0: int | None = None, cache_key: str | None = None) -> dict:
+    t0 = time.perf_counter()
+    D = {**DEFAULTS, **{k: v for k, v in (overrides or {}).items() if k in DEFAULTS}}
+    month0 = gm.month_now() if month0 is None else month0
+    pop = build_population(arch, zones, comps, biz, params, ref_price, n_agents=n_agents, seed=seed, age_sex=age_sex, spacing_km=spacing_km,
+                           profile=profile, offer=offer, overrides=overrides, month0=month0, days=days)
+    t_gen = time.perf_counter()
+    if cache_key:
+        cache_put(cache_key, pop)
+    G, gen, up = pop.gen.G, pop.gen, pop.up
+    KI = gm.KI
+    N, J = pop.N, up.total.shape[1]
+    scale, zi, age, female, seg = pop.scale, pop.zi, pop.age, pop.female, pop.seg
+    membership = arch.key == "membership"
+    rng = np.random.default_rng(seed + 211)
+
+    calib = _calibrate(pop, arch, D, radius_km)
+    p_in = np.clip(pop.p_in_base * calib["multiplier"], 0, 0.97)
     in_market = rng.random(N) < p_in
+    G[:, KI["ev_in_market"]] = in_market
 
-    wtp_mult = np.array([s.wtp_multiplier for s in arch.segments])[seg]
-    wtp = ref_price * wtp_mult * np.exp(rng.normal(0, P["wtp_sigma"], N))
-    psens = np.array([s.price_sensitivity for s in arch.segments])[seg] * np.exp(rng.normal(0, 0.25, N))
-    qsens = np.exp(rng.normal(0, 0.25, N))
-    mode_share = np.array([[m[1 + s] for m in MODES] for s in range(3)])
-    mode = np.array([rng.choice(len(MODES), p=mode_share[min(s_, 2)] / mode_share[min(s_, 2)].sum()) for s_ in seg])
-    mode_tol = np.array([m[4] for m in MODES])[mode]
-    seg_dt = np.array([s.distance_tolerance for s in arch.segments])[seg]
-    tol = seg_dt * mode_tol
-    young = np.clip(1.2 - (age - 15) / 50, 0.15, 1.0)
-    digital = np.clip(rng.beta(2.5, 2.0, N) * young * 1.15, 0, 1)
-    social = rng.beta(2.0, 2.5, N)
-    loyal_prop = rng.beta(2.0, 2.0, N)
-    novelty = rng.beta(1.6, 2.4, N)
-    freq = np.clip(rng.gamma(4.0, P["frequency"] / 4.0, N), 0.1, 30) if not membership else np.ones(N)
-    time_pref = rng.choice(3, size=N, p=[0.38, 0.47, 0.15])
+    gget = lambda k: G[:, KI[k]].astype(float)  # noqa: E731
+    v_static = up.total
+    noise = D["noise_scale"] * up.noise
+    outside = up.outside
+    ret_idx = gm.mech_index(G, "retention", 0.5)
+    soc_idx = gm.mech_index(G, "social", 0.4)
+    wom_send = gget("so_wom_propensity") * np.exp(soc_idx)
+    wom_recv = gget("so_wom_susceptibility") * np.exp(soc_idx)
+    habit_rate = D["habit_build"] * (0.5 + gget("rt_habit_rate"))
+    habit_cap = D["habit_cap"] * (0.6 + 0.8 * gget("rt_habit_cap"))
+    sat_gap = -up.parts["expectation"][:, 0]  # how far you fall below this agent's minimums
+    churn_m = D["monthly_churn"] * np.exp(-ret_idx) * (1 + gget("rt_satisfaction_sens") * np.clip(sat_gap, 0, 2)) * (0.6 + 0.8 * gget("rt_churn_base"))
+    churn_m = np.clip(churn_m, 0.005, 0.6)
+    switch_keep = np.clip(D["switch_threshold"] + 0.15 + 0.25 * ret_idx, 0.1, 0.9)
 
-    # ---------------- businesses ----------------
-    blat = np.array([biz.lat] + [c.lat for c in comps])
-    blng = np.array([biz.lng] + [c.lng for c in comps])
-    price = np.array([biz.price] + [c.price if c.price else ref_price * P["competitor_price_ratio"] for c in comps], float)
-    qual = np.array([biz.quality] + [c.quality if c.quality is not None else P["competitor_quality"] for c in comps], float)
-    dist = haversine_km(lat[:, None], lng[:, None], blat[None, :], blng[None, :]) * P["circuity"]
-    dist = np.maximum(dist, 0.1)
-    reach = dist <= (P["max_km"] * tol)[:, None]
-
-    # static utility (without noise / habit / congestion)
-    afford_pen = np.where(price[None, :] > wtp[:, None], 2.5 * np.log(price[None, :] / wtp[:, None]), 0.0)
-    v_static = (P["beta_quality"] * qsens[:, None] * (qual[None, :] - 0.5)
-                - P["beta_price"] * psens[:, None] * np.log(price[None, :] / ref_price)
-                - (P["distance_decay"] / tol)[:, None] * dist - afford_pen)
-    v_static[:, 0] += D["trial_bias"] * novelty
-    v_static = np.where(reach, v_static, -np.inf)
-
-    # awareness: competitors known if reachable; you are discovered over time
-    hs = max(P["marketing_half_saturation"], 1.0)
-    a_target = P["awareness_base"] + (1 - P["awareness_base"]) * (1 - 2 ** (-max(biz.marketing_spend, 0) / hs))
-    daily_paid = -math.log(max(1e-6, 1 - a_target)) / 30.0  # hazard so that ~a_target is reached in a month
-    dig_norm = digital / max(1e-6, digital.mean())
+    a_target = pop.meta["a_target"]
+    daily_paid = -math.log(max(1e-6, 1 - a_target)) / 30.0
+    ch_mult = gm.channel_awareness(arch.key, G)
     aware = np.zeros(N, bool)
     aware_day = np.full(N, -1)
     aware_channel = np.full(N, -1)
-    near_site = dist[:, 0] <= D["signage_radius"]
+    near_site = gen.dist[:, 0] <= D["signage_radius"]
+    sign_att = D["signage_daily"] * (0.5 + gget("ch_signage_reach"))
 
-    # dynamic state
     habit = np.zeros((N, J))
-    cong = np.zeros(N)  # congestion memory against you (days remaining)
+    cong = np.zeros(N)
     member_of = np.full(N, -1)
     reconsider = rng.integers(0, 30, N)
     purchases_you = np.zeros(N, int)
@@ -170,6 +287,7 @@ def run_abm(arch: Archetype, zones: list[Zone], comps: list[Competitor], biz: Bu
     turned_away = np.zeros(N, int)
     left_you = np.zeros(N, bool)
     churned = 0
+    freq = pop.freq
 
     daily_cap = arch.capacity_units(biz.capacity) / 30.0 / scale if not membership else arch.capacity_units(biz.capacity) / scale
     zone_count = np.bincount(zi, minlength=len(zones)).astype(float)
@@ -183,47 +301,43 @@ def run_abm(arch: Archetype, zones: list[Zone], comps: list[Competitor], biz: Bu
             return idx
         v = v_static[idx] + habit[idx] - np.where(np.arange(J)[None, :] == 0, (cong[idx] > 0)[:, None] * D["congestion_penalty"], 0)
         v[:, 0] = np.where(aware[idx], v[:, 0], -np.inf)
-        g = rng.gumbel(0, D["noise_scale"], size=v.shape)
-        u = v + g
-        u0 = P["outside_utility"] + rng.gumbel(0, D["noise_scale"], size=idx.size)
+        ns = noise[idx]
+        u = v + rng.gumbel(0, 1, size=v.shape) * ns[:, None]
+        u0 = outside[idx] + rng.gumbel(0, 1, size=idx.size) * ns
         best = np.argmax(u, axis=1)
         bu = u[np.arange(idx.size), best]
         return np.where(bu > u0, best, -1)
 
     for day in range(days):
-        # ---- awareness spread ----
-        cust_zone = np.bincount(zi[purchases_you > 0], minlength=len(zones)).astype(float)
+        cust_zone = np.bincount(zi[purchases_you > 0], weights=wom_send[purchases_you > 0], minlength=len(zones)).astype(float)
         wom_pressure = np.divide(cust_zone, zone_count, out=np.zeros_like(cust_zone), where=zone_count > 0)[zi]
-        p_paid = 1 - np.exp(-daily_paid * dig_norm)
-        p_wom = np.clip(D["wom_rate"] * social * wom_pressure * 30, 0, 0.5)
-        p_sign = np.where(near_site, D["signage_daily"], 0.0)
+        p_paid = 1 - np.exp(-daily_paid * ch_mult)
+        p_wom = np.clip(D["wom_rate"] * wom_recv * wom_pressure * 30, 0, 0.5)
+        p_sign = np.where(near_site, sign_att, 0.0)
         r = rng.random(N)
         newly = (~aware) & (r < 1 - (1 - p_paid) * (1 - p_wom) * (1 - p_sign))
         if newly.any():
             idx = np.where(newly)[0]
-            weights = np.stack([p_paid[idx], p_wom[idx], p_sign[idx]], 1) + 1e-12
-            ch = np.array([rng.choice(3, p=w / w.sum()) for w in weights])
-            aware_channel[idx] = np.array([0, 4, 3])[ch]
+            w3 = np.stack([p_paid[idx], p_wom[idx], p_sign[idx]], 1) + 1e-12
+            cum = np.cumsum(w3 / w3.sum(1, keepdims=True), 1)
+            ch = (rng.random(idx.size)[:, None] > cum).sum(1)
+            aware_channel[idx] = np.array([0, 2, 1])[np.minimum(ch, 2)]  # 0 paid, 1 signage, 2 wom
             aware[idx] = True
             aware_day[idx] = day
         cong = np.maximum(cong - 1, 0)
-        frame_events = []
 
         if membership:
             due = np.where(in_market & ((reconsider == day % 30) | (member_of < 0) & (rng.random(N) < 1 / 15)))[0]
-            # churn among current members at their monthly reconsideration
             mem_due = due[member_of[due] >= 0]
-            churn = mem_due[rng.random(mem_due.size) < D["monthly_churn"]]
+            churn = mem_due[rng.random(mem_due.size) < churn_m[mem_due]]
             churned += int((member_of[churn] == 0).sum())
             left_you[churn[member_of[churn] == 0]] = True
             member_of[churn] = -1
             choice = choose(due)
             decisions += due.size
             cur = member_of[due]
-            # switching only if clearly better than current (habit already favours current)
-            keep = (cur >= 0) & (choice != cur) & (rng.random(due.size) > 0.5)
+            keep = (cur >= 0) & (choice != cur) & (rng.random(due.size) < switch_keep[due])
             choice = np.where(keep, cur, choice)
-            # capacity for you
             joining = due[(choice == 0) & (cur != 0)]
             current_members = int((member_of == 0).sum())
             room = int(max(0, math.floor(daily_cap) - current_members))
@@ -232,28 +346,26 @@ def run_abm(arch: Archetype, zones: list[Zone], comps: list[Competitor], biz: Bu
                 choice[np.isin(due, rejected)] = -1
                 cong[rejected] = D["congestion_memory"]
                 turned_away[rejected] += 1
-                series_turned = rejected.size
+                n_rej = rejected.size
             else:
-                series_turned = 0
+                n_rej = 0
             left = due[(cur == 0) & (choice != 0)]
             left_you[left] = True
             member_of[due] = choice
-            newm = due[choice >= 0]
-            habit[newm, choice[choice >= 0]] = np.minimum(habit[newm, choice[choice >= 0]] + D["habit_build"], D["habit_cap"])
+            got = choice >= 0
+            newm = due[got]
+            habit[newm, choice[got]] = np.minimum(habit[newm, choice[got]] + habit_rate[newm], habit_cap[newm])
             fy = due[(choice == 0) & (first_you[due] < 0)]
             first_you[fy] = day
             purchases_you[due[choice == 0]] += 1
             last_choice[due] = choice
             units_you = int((member_of == 0).sum())
-            units_comp = int((member_of > 0).sum())
-            # members "visit" ~3x a week: used for the animation and daily activity
-            visiting = np.where((member_of >= 0) & (rng.random(N) < 3 / 7))[0]
-            frame_events = visiting
             series["members_you"].append(units_you)
             series["units_you"].append(units_you)
-            series["units_comp"].append(units_comp)
-            series["turned_away"].append(series_turned)
+            series["units_comp"].append(int((member_of > 0).sum()))
+            series["turned_away"].append(n_rej)
             series["units_none"].append(int((in_market & (member_of < 0)).sum()))
+            frame_events = np.where((member_of >= 0) & (rng.random(N) < 3 / 7))[0]
         else:
             buyers = np.where(in_market & (rng.random(N) < freq / 30.0))[0]
             choice = choose(buyers)
@@ -269,35 +381,35 @@ def run_abm(arch: Archetype, zones: list[Zone], comps: list[Competitor], biz: Bu
             else:
                 n_rej = 0
             got = choice >= 0
-            habit[buyers[got], choice[got]] = np.minimum(habit[buyers[got], choice[got]] + D["habit_build"] * loyal_prop[buyers[got]], D["habit_cap"])
+            b = buyers[got]
+            habit[b, choice[got]] = np.minimum(habit[b, choice[got]] + habit_rate[b], habit_cap[b])
             prev = last_choice[buyers]
             left_you[buyers[(prev == 0) & (choice > 0)]] = True
             fy = buyers[(choice == 0) & (first_you[buyers] < 0)]
             first_you[fy] = day
             purchases_you[buyers[choice == 0]] += 1
-            last_choice[buyers[got]] = choice[got]
+            last_choice[b] = choice[got]
             series["units_you"].append(int((choice == 0).sum()))
             series["units_comp"].append(int((choice > 0).sum()))
             series["units_none"].append(int((choice < 0).sum()))
             series["turned_away"].append(n_rej)
             series["members_you"].append(0)
-            frame_events = buyers[got]
+            frame_events = b
         series["customers_you"].append(int((purchases_you > 0).sum()))
         series["aware_share"].append(float(aware[in_market].mean()) if in_market.any() else 0.0)
         if day % frame_every == 0:
             ev = frame_events
-            if membership:
-                ch_ev = member_of[ev]
-            else:
-                ch_ev = last_choice[ev]
+            ch_ev = member_of[ev] if membership else last_choice[ev]
             frames.append({"day": day, "a": ev.astype(int).tolist(), "c": ch_ev.astype(int).tolist()})
 
     # ---------------- outputs ----------------
     units_you_daily = np.array(series["units_you"], float)
+    n_months = math.ceil(days / 30)
     if membership:
-        monthly_units = [float(units_you_daily[min(len(units_you_daily) - 1, m * 30 + 29)] * scale) for m in range(math.ceil(days / 30))]
+        monthly_units = [float(units_you_daily[min(len(units_you_daily) - 1, m * 30 + 29)] * scale) for m in range(n_months)]
     else:
-        monthly_units = [float(units_you_daily[m * 30:(m + 1) * 30].sum() * scale * (30 / max(1, len(units_you_daily[m * 30:(m + 1) * 30])))) for m in range(math.ceil(days / 30))]
+        monthly_units = [float(units_you_daily[m * 30:(m + 1) * 30].sum() * scale * (30 / max(1, len(units_you_daily[m * 30:(m + 1) * 30]))))
+                         for m in range(n_months)]
     weekly = []
     for w in range(math.ceil(days / 7)):
         sl = slice(w * 7, min(days, (w + 1) * 7))
@@ -314,35 +426,98 @@ def run_abm(arch: Archetype, zones: list[Zone], comps: list[Competitor], biz: Bu
     peak = max((x["units"] for x in weekly), default=0)
     ramp_week = next((x["week"] for x in weekly if steady and x["units"] >= 0.8 * (weekly[-1]["units"] or 1)), None)
 
+    final = member_of if membership else last_choice
     cust = purchases_you > 0
+
     def share(mask, of):
         return float(mask[of].mean()) if of.any() else None
 
-    mode_names = [m[0] for m in MODES]
-    cust_modes = {mode_names[k]: share(mode == k, cust) for k in range(len(MODES))}
-    cust_segs = {arch.segments[k].key: share(seg == k, cust) for k in range(S)}
-    trip = dist[cust, 0]
+    mode = gen.mode
+    cust_modes = {MODE_NAMES[k]: share(mode == k, cust) for k in range(len(MODE_NAMES))}
+    cust_segs = {arch.segments[k].key: share(seg == k, cust) for k in range(len(arch.segments))}
+    trip = gen.dist[cust, 0]
     choice_counts = np.bincount(np.where(last_choice >= 0, last_choice, J), minlength=J + 1)
     comp_shares = (choice_counts[1:J] / max(1, choice_counts[:J].sum())).tolist()
-    channel_counts = {CHANNELS[c]: int((aware_channel == c).sum()) for c in (0, 3, 4)}
+    ch_names = {0: "paid_media", 1: "signage", 2: "wom"}
+    channel_counts = {ch_names[c]: int((aware_channel == c).sum()) for c in (0, 1, 2)}
+    wd = np.stack([G[:, KI[f"tm_wd_{h:02d}"]] for h in range(24)], 1)
+    peak_h = np.argmax(wd, 1)
+    time_pref = np.select([peak_h < 12, peak_h < 21], [0, 1], 2)
+    income_z = G[:, KI["lt_income"]]
+
+    # ---- why: population decomposition of the choice (static utility channels)
+    groups = {"chose_you": in_market & (final == 0), "chose_competitor": in_market & (final > 0), "chose_none": in_market & (final < 0)}
+    best_comp = np.full(N, -1)
+    if J > 1:
+        vc = np.where(np.isfinite(v_static[:, 1:]), v_static[:, 1:], -1e9)
+        best_comp = np.argmax(vc, 1) + 1
+    decomp = {}
+    for gname, mask in groups.items():
+        if not mask.any():
+            decomp[gname] = None
+            continue
+        row = {}
+        for ch, arr in up.parts.items():
+            you = arr[mask, 0]
+            comp = arr[mask, best_comp[mask]] if J > 1 else np.zeros(mask.sum())
+            row[ch] = {"you": round(float(np.mean(you)), 3), "best_competitor": round(float(np.mean(comp)), 3),
+                       "edge": round(float(np.mean(you - comp)), 3)}
+        decomp[gname] = {"n_agents": int(mask.sum()), "channels": row}
+    # population-level importance of individual parameters for you vs the agent's best competitor
+    lost = in_market & (final != 0) & gen.reach[:, 0]
+    top_drivers = []
+    if lost.any() and J > 1:
+        Zu = gm._zcols(G, gm.UTIL_IDX)[lost]
+        bc = best_comp[lost]
+        W = up.lin_contrib_w  # P_u x J
+        eff = Zu * (W[:, 0][None, :] - W[:, bc].T)  # effect on (you - best competitor); negative hurts you
+        mean_eff = eff.mean(0)
+        for k in np.argsort(mean_eff)[:12]:
+            p = gm.REG[gm.UTIL_IDX[k]]
+            top_drivers.append({"key": p.key, "label": p.label, "block": p.block, "feat": p.feat, "mean_effect": round(float(mean_eff[k]), 4)})
+    # unreachable and price-excluded counts
+    afford = (pop.meta["prices"][0] <= gm_wtp(G, ref_price))
+    calib_after = None
+    if calib["applied"]:
+        calib_after = "participation x" + str(calib["multiplier"])
 
     agents = {
-        "columns": ["lat", "lng", "age", "female", "segment", "mode", "in_market", "aware", "last_choice", "purchases_you", "wtp", "price_sens", "dist_km", "digital", "social", "zone", "time_pref"],
-        "rows": [[round(float(lat[i]), 5), round(float(lng[i]), 5), int(age[i]), int(female[i]), int(seg[i]), int(mode[i]), int(in_market[i]), int(aware[i]),
-                  int(member_of[i] if membership else last_choice[i]), int(purchases_you[i]), round(float(wtp[i])), round(float(psens[i]), 2),
-                  round(float(dist[i, 0]), 2), round(float(digital[i]), 2), round(float(social[i]), 2), int(zi[i]), int(time_pref[i])] for i in range(N)],
-        "modes": mode_names, "segments": [s.key for s in arch.segments], "time_prefs": ["morning", "evening", "late"],
+        "columns": ["lat", "lng", "age", "female", "segment", "mode", "in_market", "aware", "last_choice", "purchases_you", "wtp", "price_sens",
+                    "dist_km", "digital", "social", "zone", "time_pref", "income_z", "time_fit_you", "u_you"],
+        "rows": [], "modes": MODE_NAMES, "segments": [s.key for s in arch.segments], "time_prefs": ["morning", "evening", "late"],
     }
+    wtp_v = gm_wtp(G, ref_price)
+    psens_v = G[:, KI["ec_price_sens"]]
+    dig = G[:, KI["lt_digital"]]
+    soc = G[:, KI["lt_social"]]
+    tfy = up.parts["time_fit"][:, 0]
+    uy = np.where(np.isfinite(v_static[:, 0]), v_static[:, 0], -99)
+    rows = agents["rows"]
+    for i in range(N):
+        rows.append([round(float(pop.lat[i]), 5), round(float(pop.lng[i]), 5), int(age[i]), int(female[i]), int(seg[i]), int(mode[i]), int(in_market[i]),
+                     int(aware[i]), int(final[i]), int(purchases_you[i]), round(float(wtp_v[i])), round(float(psens_v[i]), 2),
+                     round(float(gen.dist[i, 0]), 2), round(float(1 / (1 + math.exp(-dig[i]))), 2), round(float(1 / (1 + math.exp(-soc[i]))), 2),
+                     int(zi[i]), int(time_pref[i]), round(float(income_z[i]), 2), round(float(tfy[i]), 3), round(float(uy[i]), 2)])
+
+    by_block = {}
+    for p in gm.REG:
+        by_block[p.block] = by_block.get(p.block, 0) + 1
     return {
-        "n_agents": N, "scale": round(scale, 2), "days": days, "seed": seed, "age_source": age_src,
+        "n_agents": N, "scale": round(scale, 2), "days": days, "seed": seed, "age_source": pop.age_src,
         "in_market_agents": int(in_market.sum()),
         "monthly_units": [round(x, 1) for x in monthly_units], "steady_units": round(steady, 1), "peak_weekly_units": round(peak, 1),
         "ramp_up_week": ramp_week, "weekly": weekly, "frames": frames, "frame_every": frame_every,
         "daily": {"units_you": [round(x * scale, 1) for x in series["units_you"]], "units_comp": [round(x * scale, 1) for x in series["units_comp"]],
                   "aware_share": [round(x, 4) for x in series["aware_share"]], "customers_you": [round(x * scale, 1) for x in series["customers_you"]],
                   "turned_away": [round(x * scale, 1) for x in series["turned_away"]]},
-        "businesses": [{"idx": 0, "name": "Your business", "lat": float(blat[0]), "lng": float(blng[0])}] + [{"idx": j + 1, "name": c.name, "lat": c.lat, "lng": c.lng} for j, c in enumerate(comps)],
+        "businesses": [{"idx": 0, "name": "Your business", "lat": float(biz.lat), "lng": float(biz.lng)}]
+                      + [{"idx": j + 1, "name": c.name, "lat": c.lat, "lng": c.lng} for j, c in enumerate(comps)],
         "agents": agents,
+        "genome": {"size": gm.GENOME_SIZE, "per_agent": gm.GENOME_SIZE, "total_parameters": int(N * gm.GENOME_SIZE), "by_block": by_block,
+                   "blocks": gm.BLOCKS, "audit": gm.audit(), "hours_source": pop.meta["hours_source"], "attr_sources": pop.meta["attr_sources"],
+                   "your_hours": list(pop.meta["hours"][0]), "month0": month0},
+        "calibration": {**calib, "summary": calib_after},
+        "decomposition": decomp, "top_drivers_against_you": top_drivers,
         "metrics": {
             "aware_final": round(float(aware[in_market].mean()) if in_market.any() else 0.0, 4),
             "aware_week4": round(series["aware_share"][min(days - 1, 27)], 4),
@@ -365,10 +540,21 @@ def run_abm(arch: Archetype, zones: list[Zone], comps: list[Competitor], biz: Bu
             "none_share": round(float(np.sum(series["units_none"]) / max(1, decisions)), 4) if not membership else None,
             "aware_channels": {k: round(v * scale, 1) for k, v in channel_counts.items()},
             "mean_age": round(float(age.mean()), 1), "female_share": round(float(female.mean()), 4),
-            "afford_share": round(float((wtp[in_market] >= biz.price).mean()) if in_market.any() else 0.0, 4),
-            "wtp_p10": round(float(np.percentile(wtp, 10))), "wtp_p50": round(float(np.percentile(wtp, 50))), "wtp_p90": round(float(np.percentile(wtp, 90))),
+            "afford_share": round(float(afford[in_market].mean()) if in_market.any() else 0.0, 4),
+            "wtp_p10": round(float(np.percentile(wtp_v, 10))), "wtp_p50": round(float(np.percentile(wtp_v, 50))), "wtp_p90": round(float(np.percentile(wtp_v, 90))),
+            "reach_you_share": round(float(gen.reach[in_market, 0].mean()) if in_market.any() else 0.0, 4),
+            "mean_time_fit_you": round(float(up.parts["time_fit"][in_market, 0].mean()) if in_market.any() else 0.0, 3),
         },
-        "assumptions": {k: v for k, v in D.items()},
-        "note": "Synthetic agents placed by real population density; behaviour parameters are documented assumptions. Not real people; not a forecast guarantee.",
+        "assumptions": dict(D),
+        "note": "Synthetic agents placed by real population density, each with a 615-parameter genome; behaviour parameters are documented "
+                "assumptions. Not real people; not a forecast guarantee.",
+        "timing_ms": {"genome": round((t_gen - t0) * 1000, 1), "total": round((time.perf_counter() - t0) * 1000, 1)},
         "duration_ms": round((time.perf_counter() - t0) * 1000, 1),
     }
+
+
+def gm_wtp(G: np.ndarray, ref_price: float) -> np.ndarray:
+    """Effective willingness to pay (same formula as the price channel)."""
+    KI = gm.KI
+    g = lambda k: G[:, KI[k]].astype(float)  # noqa: E731
+    return ref_price * g("ec_wtp_multiple") * (1 + 0.25 * (g("ec_budget_flex") - 0.5)) * (1 + 0.15 * g("ec_corporate_benefit"))
