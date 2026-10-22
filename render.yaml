@@ -1,0 +1,26 @@
+# Render Blueprint for the FastAPI backend. The database is external (e.g. Neon with PostGIS enabled)
+# so set DATABASE_URL in the Render dashboard. The frontend is deployed on Vercel (root: frontend/).
+services:
+  - type: web
+    name: strataiq-api
+    runtime: docker
+    rootDir: backend
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false
+      - key: CONTACT_EMAIL
+        sync: false
+      - key: ORS_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false

@@ -15,7 +15,8 @@ from ..config import get_settings
 log = logging.getLogger("strataiq.providers")
 
 _client: httpx.AsyncClient | None = None
-_nominatim_lock = asyncio.Lock()
+_client_loop: asyncio.AbstractEventLoop | None = None
+_locks: dict[tuple[int, str], asyncio.Lock] = {}
 _last_nominatim = 0.0
 
 
@@ -26,9 +27,26 @@ class ProviderError(RuntimeError):
         self.message = message
 
 
+def _lock(name: str) -> asyncio.Lock:
+    """Per-event-loop lock (asyncio primitives cannot be shared across loops)."""
+    key = (id(asyncio.get_running_loop()), name)
+    if key not in _locks:
+        _locks[key] = asyncio.Lock()
+    return _locks[key]
+
+
+def overpass_slot() -> asyncio.Lock:
+    """Public Overpass servers allow ~2 concurrent requests per IP; we use one at a time."""
+    return _lock("overpass")
+
+
 def client() -> httpx.AsyncClient:
-    global _client
+    global _client, _client_loop
+    loop = asyncio.get_running_loop()
+    if _client is not None and _client_loop is not loop:
+        _client = None  # created under a different event loop (e.g. tests); make a fresh one
     if _client is None:
+        _client_loop = loop
         s = get_settings()
         _client = httpx.AsyncClient(
             timeout=httpx.Timeout(s.http_timeout_s, connect=10.0),
@@ -48,7 +66,7 @@ async def close_client() -> None:
 async def nominatim_throttle() -> None:
     """Nominatim usage policy: at most one request per second per application."""
     global _last_nominatim
-    async with _nominatim_lock:
+    async with _lock("nominatim"):
         wait = 1.05 - (time.monotonic() - _last_nominatim)
         if wait > 0:
             await asyncio.sleep(wait)

@@ -80,7 +80,13 @@ jobs:
           pytest -v -s -rA -m live tests/test_live.py 2>&1 | tee live.log
       - if: always()
         run: |
-          [ -f live.log ] && python3 -c "import sys;l=open('live.log').read()[-3500:];print('::notice title=live-results::'+l.replace('%','%25').replace(chr(10),'%0A'))" || true
+          [ -f live.log ] || exit 0
+          python3 - <<'PY'
+          import re
+          log = open("live.log").read()
+          keep = [l for l in log.splitlines() if re.search(r"(PASSED|FAILED|ERROR|gyms found|population 1km|^status |Error:|ProviderError)", l)]
+          print("::notice title=live-summary::" + "%0A".join(x.replace("%", "%25")[:400] for x in keep[:40]))
+          PY
 
   frontend:
     runs-on: ubuntu-latest

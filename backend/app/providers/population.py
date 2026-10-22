@@ -21,16 +21,16 @@ async def worldpop_total(polygon: list[list[list[float]]], cache: Cache | None =
     s = get_settings()
     fc = {"type": "FeatureCollection", "features": [{"type": "Feature", "properties": {}, "geometry": {"type": "Polygon", "coordinates": [_round_ring(r) for r in polygon]}}]}
     gj = json.dumps(fc, separators=(",", ":"))
-    params = {"dataset": "wpgppop", "year": s.worldpop_year, "geojson": gj, "runasync": "false"}
+    params = {"dataset": "wpgppop", "year": s.worldpop_year, "geojson": gj, "runasync": "true"}
     key = cache_key("worldpop", {"year": s.worldpop_year, "g": gj})
     if cache and (hit := cache.get(key)):
         return float(hit[0]["total"]), provenance("worldpop", retrieved_at=hit[1], cached=True, source_updated_at=f"{s.worldpop_year} reference year",
                                                   detail="Total population inside the catchment")
     try:
-        r = await client().get(f"{s.worldpop_url}/services/stats", params=params, timeout=httpx.Timeout(45.0, connect=10.0))
+        r = await client().get(f"{s.worldpop_url}/services/stats", params=params, timeout=httpx.Timeout(30.0, connect=10.0))
         r.raise_for_status()
         body = r.json()
-        for _ in range(12):  # if the server answered asynchronously, poll the task
+        for _ in range(30):  # asynchronous task: poll until finished (~60 s max)
             if body.get("error"):
                 raise ProviderError("worldpop", str(body.get("error_message")))
             if body.get("status") == "finished" and body.get("data"):
@@ -39,12 +39,14 @@ async def worldpop_total(polygon: list[list[list[float]]], cache: Cache | None =
             if not tid:
                 raise ProviderError("worldpop", f"unexpected response: {str(body)[:200]}")
             await asyncio.sleep(2)
-            r = await client().get(f"{s.worldpop_url}/tasks/{tid}")
+            r = await client().get(f"{s.worldpop_url}/tasks/{tid}", timeout=httpx.Timeout(20.0, connect=10.0))
             r.raise_for_status()
             body = r.json()
+        if body.get("status") != "finished":
+            raise ProviderError("worldpop", "population task did not finish in time")
         total = float(body["data"]["total_population"])
     except (httpx.HTTPError, KeyError, ValueError, TypeError) as e:
-        raise ProviderError("worldpop", f"population query failed: {e}") from e
+        raise ProviderError("worldpop", f"population query failed: {type(e).__name__} {e}".strip()) from e
     if cache:
         cache.put(key, "worldpop", {"total": total}, timedelta(days=60))
     return total, provenance("worldpop", source_updated_at=f"{s.worldpop_year} reference year", detail="Total population inside the catchment")

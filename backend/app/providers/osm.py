@@ -7,7 +7,9 @@ from datetime import datetime, timedelta, timezone
 import httpx
 
 from ..config import get_settings
-from .http import Cache, ProviderError, cache_key, client, nominatim_throttle
+import asyncio
+
+from .http import Cache, ProviderError, cache_key, client, nominatim_throttle, overpass_slot
 from .registry import provenance
 
 log = logging.getLogger("strataiq.osm")
@@ -126,23 +128,27 @@ async def overpass(query: str, cache: Cache | None = None, ttl: timedelta = time
     if cache and (hit := cache.get(key)):
         return hit[0], hit[1], True, "cache"
     errors = []
-    for url in s.overpass_urls:
-        try:
-            r = await client().post(url, data={"data": query}, timeout=httpx.Timeout(90.0, connect=10.0))
-            if r.status_code in (429, 504, 503):
-                errors.append(f"{url}: HTTP {r.status_code}")
-                continue
-            r.raise_for_status()
-            data = r.json()
-            remark = data.get("remark") or ""
-            if "runtime error" in remark.lower():
-                errors.append(f"{url}: {remark[:160]}")
-                continue
-            if cache:
-                cache.put(key, tag, data, ttl)
-            return data, datetime.now(timezone.utc), False, url
-        except (httpx.HTTPError, ValueError) as e:
-            errors.append(f"{url}: {e}")
+    async with overpass_slot():
+        for attempt in range(2):
+            for url in s.overpass_urls:
+                try:
+                    r = await client().post(url, data={"data": query}, timeout=httpx.Timeout(90.0, connect=10.0))
+                    if r.status_code in (429, 504, 503, 502):
+                        errors.append(f"{url.split('/')[2]}: HTTP {r.status_code}")
+                        continue
+                    r.raise_for_status()
+                    data = r.json()
+                    remark = data.get("remark") or ""
+                    if "runtime error" in remark.lower():
+                        errors.append(f"{url.split('/')[2]}: {remark[:160]}")
+                        continue
+                    if cache:
+                        cache.put(key, tag, data, ttl)
+                    return data, datetime.now(timezone.utc), False, url
+                except (httpx.HTTPError, ValueError) as e:
+                    errors.append(f"{url.split('/')[2]}: {type(e).__name__} {e}".strip())
+            if attempt == 0:
+                await asyncio.sleep(4)  # polite back-off before one retry round
     raise ProviderError("overpass", "; ".join(errors) or "no endpoint configured")
 
 
