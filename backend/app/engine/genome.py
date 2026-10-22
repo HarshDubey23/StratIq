@@ -945,8 +945,11 @@ def explain(i: int, gen: Genome, up: UtilityParts, names: list[str], final_choic
     reach_opts = [o for o in opts if o["reachable"]]
     reach_opts.sort(key=lambda o: -o["utility"])
     top = reach_opts[:6]
-    if all(o["idx"] != 0 for o in top) and opts[0]["reachable"]:
+    if all(o["idx"] != 0 for o in top):
         top.append(opts[0])
+    if len(top) < 3:  # out-of-range agent: show the nearest options it will not consider
+        for o in sorted((o for o in opts if not o["reachable"] and o not in top), key=lambda o: o["dist_km"])[:3 - len(top)]:
+            top.append(o)
     # driver attribution: chosen (or best) vs your business
     ref = final_choice if final_choice >= 0 else (reach_opts[0]["idx"] if reach_opts else 0)
     Zu = _zcols(G, UTIL_IDX)[i]

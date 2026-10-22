@@ -428,6 +428,118 @@ export interface Abm {
   assumptions: Record<string, number>;
   note: string;
   duration_ms: number;
+  timing_ms?: { genome: number; total: number };
+  genome?: {
+    size: number;
+    per_agent: number;
+    total_parameters: number;
+    by_block: Record<string, number>;
+    blocks: Record<string, string>;
+    audit: Record<string, number>;
+    hours_source: string;
+    attr_sources: Record<string, string>;
+    your_hours: number[];
+    month0: number;
+  };
+  calibration?: {
+    applied: boolean;
+    multiplier: number;
+    method: string;
+    reason?: string;
+    incumbents_used?: number;
+    median_incumbent_units?: number;
+    survival_floor_units?: number;
+    summary?: string | null;
+  };
+  decomposition?: Record<"chose_you" | "chose_competitor" | "chose_none", null | { n_agents: number; channels: Record<string, { you: number; best_competitor: number; edge: number }> }>;
+  top_drivers_against_you?: { key: string; label: string; block: string; feat: string | null; mean_effect: number }[];
+}
+
+export interface GenomeParam {
+  key: string;
+  label: string;
+  block: string;
+  unit: string;
+  origin: "evidence" | "latent" | "generated";
+  mechanism: string;
+  w: number;
+  feat: string | null;
+  loads: Record<string, number>;
+  sd: number;
+  transform: string;
+  range: [number, number];
+}
+
+export interface GenomeRegistry {
+  size: number;
+  blocks: Record<string, string>;
+  by_block: Record<string, number>;
+  by_mechanism: Record<string, number>;
+  by_origin: Record<string, number>;
+  latents: { key: string; label: string }[];
+  params: GenomeParam[];
+  audit: Record<string, number>;
+}
+
+export interface XrayOption {
+  idx: number;
+  name: string;
+  reachable: boolean;
+  dist_km: number;
+  time_min: number;
+  utility: number | null;
+  parts: Record<string, number>;
+}
+
+export interface AgentXray {
+  agent: number;
+  final_choice: number;
+  outside_utility: number;
+  noise_scale: number;
+  options: XrayOption[];
+  drivers_vs_you: { key: string; label: string; feat: string | null; value: number; z: number; effect: number }[];
+  ref_option: number;
+  genome: (number | null)[];
+  percentile: number[];
+  summary: Record<string, number>;
+  segment: string;
+  mode: string;
+  scale: number;
+  note: string;
+}
+
+export interface GenomeMatrix {
+  rows: number;
+  cols: number;
+  data: string;
+  agent_index: number[];
+  groups: ("you" | "competitor" | "none" | "not_in_market")[];
+  group_counts: Record<string, number>;
+  blocks: { key: string; label: string; start: number; size: number }[];
+  params: { key: string; label: string; block: string; mechanism: string; origin: string }[];
+  separators: { key: string; label: string; block: string; delta_pct: number; you_pct: number; competitor_pct: number }[];
+  n_agents: number;
+  note: string;
+}
+
+export interface SurveyQuestion {
+  id: string;
+  section: string;
+  type: "single" | "multi" | "money" | "scale5" | "text";
+  text: string;
+  options?: string[];
+  measures: string[];
+  why: string;
+}
+
+export interface SurveyKit {
+  title: string;
+  purpose: string;
+  sample_size: { recommended: number; minimum: number; margin_of_error_at_100: string; how: string };
+  reference_price: number | null;
+  focus: { weakest_channels_vs_competitors: string[]; top_parameters_against_you: string[] };
+  questions: SurveyQuestion[];
+  note: string;
 }
 
 export interface FactorDef {

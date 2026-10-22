@@ -180,7 +180,9 @@ def test_agent_genome_xray_matrix_and_survey(client):
     abm = run["results"]["abm"]
     assert abm["genome"]["per_agent"] == 615 and abm["n_agents"] >= 1000
     rid = run["id"]
-    x = client.get(f"/api/v1/simulation-runs/{rid}/agents/7")
+    cols = abm["agents"]["columns"]
+    near = min(range(len(abm["agents"]["rows"])), key=lambda i: abm["agents"]["rows"][i][cols.index("dist_km")])
+    x = client.get(f"/api/v1/simulation-runs/{rid}/agents/{near}")
     assert x.status_code == 200, x.text
     x = x.json()
     assert len(x["genome"]) == 615 and len(x["percentile"]) == 615 and x["options"]
@@ -189,7 +191,7 @@ def test_agent_genome_xray_matrix_and_survey(client):
     from app.engine import abm as abm_mod
     abm_mod._CACHE.clear()
     gapi._PCT.clear()
-    x2 = client.get(f"/api/v1/simulation-runs/{rid}/agents/7").json()
+    x2 = client.get(f"/api/v1/simulation-runs/{rid}/agents/{near}").json()
     assert x2["genome"] == x["genome"]
     m = client.get(f"/api/v1/simulation-runs/{rid}/genome-matrix", params={"rows": 120}).json()
     assert m["cols"] == 615 and m["rows"] > 0 and len(m["blocks"]) == 16

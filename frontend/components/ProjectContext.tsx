@@ -1,6 +1,6 @@
 "use client";
 
-import { BarChart3, ClipboardList, FileText, Layers, LineChart, Map as MapIcon, SlidersHorizontal, Users } from "lucide-react";
+import { BarChart3, ClipboardList, Dna, FileText, Layers, LineChart, Map as MapIcon, SlidersHorizontal, Users } from "lucide-react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
@@ -22,10 +22,11 @@ export function useProject(): Ctx {
 
 const tabs = [
   { seg: "", label: "Overview", icon: ClipboardList },
-  { seg: "/market", label: "Market map", icon: MapIcon },
-  { seg: "/live", label: "Live market", icon: Users },
-  { seg: "/simulation", label: "Simulation lab", icon: SlidersHorizontal },
-  { seg: "/decisions", label: "Decisions", icon: BarChart3 },
+  { seg: "/market", label: "1 · Market map", icon: MapIcon },
+  { seg: "/live", label: "2 · Live market", icon: Users },
+  { seg: "/genome", label: "3 · Market DNA", icon: Dna },
+  { seg: "/simulation", label: "4 · Simulation lab", icon: SlidersHorizontal },
+  { seg: "/decisions", label: "5 · Decisions", icon: BarChart3 },
   { seg: "/report", label: "Report", icon: FileText },
   { seg: "/factors", label: "615 factors", icon: Layers },
   { seg: "/monitor", label: "Monitoring", icon: LineChart },
