@@ -104,7 +104,7 @@ async def preview(spot: str = Query(default="cp-delhi"), category: str = Query(d
         raise HTTPException(404, "Unknown category")
     try:
         pois, prov = await osm.fetch_pois(sp["lat"], sp["lng"], radius_m, list(entry.filters), Cache(session_factory()), limit=250,
-                                          fallback=True, timeout_s=30)
+                                          fallback=True, timeout_s=30, terms=[entry.label.split("/")[0].strip(), *entry.synonyms[:2]])
     except ProviderError as e:
         raise HTTPException(502, f"OpenStreetMap is busy right now ({e.message[:100]})") from e
     return {"spot": {**sp, "key": spot}, "category": {"key": entry.key, "label": entry.label}, "radius_m": radius_m,

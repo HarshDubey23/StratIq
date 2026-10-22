@@ -134,7 +134,9 @@ async def build_snapshot(*, lat: float, lng: float, catchment: dict, category: d
     comp_radius_m = int(min(MAX_RADIUS_KM, radius_km + 1.0) * 1000)
 
     async def comp_task():
-        return await osm.fetch_pois(lat, lng, comp_radius_m, category.get("filters") or [], cache, fallback=True, timeout_s=35)
+        terms = [w for w in [category.get("query"), category.get("label")] if w]
+        terms = [t.split("/")[0].strip() for t in terms]
+        return await osm.fetch_pois(lat, lng, comp_radius_m, category.get("filters") or [], cache, fallback=True, timeout_s=35, terms=terms)
 
     async def bld_task():
         return await osm.fetch_buildings(lat, lng, radius_m, cache)

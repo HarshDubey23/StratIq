@@ -42,4 +42,4 @@ def test_filter_terms_for_fallbacks():
 def test_age_sex_accepts_18_bands():
     rows = [{"class": i, "age": str(i), "male": 10, "female": 10} for i in range(18)]
     out = parse_age_sex({"agesexpyramid": rows})
-    assert len(out["bands"]) == 17 and out["bands"][-1]["male"] == 20
+    assert len(out["bands"]) == 17 and out["bands"][0]["male"] == 20 and out["bands"][-1]["male"] == 10

@@ -154,6 +154,7 @@ async def overpass(query: str, cache: Cache | None = None, ttl: timedelta = time
     if cache and (hit := cache.get(key)):
         return hit[0], hit[1], True, "cache"
     errors: list[str] = []
+    empty: tuple[dict, str] | None = None
     for rnd in range(rounds):
         tasks = [asyncio.create_task(_overpass_one(u, query, timeout_s)) for u in s.overpass_urls]
         try:
@@ -164,6 +165,10 @@ async def overpass(query: str, cache: Cache | None = None, ttl: timedelta = time
                     errors.append(e.message)
                     continue
                 url = data.pop("_endpoint", "")
+                if not data.get("elements") and empty is None:
+                    # An empty answer may be a stale or lagging mirror: keep waiting for the others.
+                    empty = (data, url)
+                    continue
                 if cache:
                     cache.put(key, tag, data, ttl)
                 return data, datetime.now(timezone.utc), False, url
@@ -171,6 +176,8 @@ async def overpass(query: str, cache: Cache | None = None, ttl: timedelta = time
             for t in tasks:
                 if not t.done():
                     t.cancel()
+        if empty is not None:
+            return empty[0], datetime.now(timezone.utc), False, empty[1]
         if rnd + 1 < rounds:
             await asyncio.sleep(3)
     raise ProviderError("overpass", "; ".join(errors[-8:]) or "no endpoint configured")
@@ -202,12 +209,21 @@ def _tag_word(t: str) -> str:
     return t.split(":", 1)[1].replace("_", " ")
 
 
-async def photon_pois(lat: float, lng: float, radius_m: int, filters: list[str], limit: int = 50) -> list[dict]:
+async def photon_pois(lat: float, lng: float, radius_m: int, filters: list[str], limit: int = 50, terms: list[str] | None = None) -> list[dict]:
     """Komoot Photon (OSM-based geocoder) — finds POIs by OSM tag near a point. No key needed."""
     tags, words = filter_terms(filters)
-    queries = [(_tag_word(t), t) for t in tags] + [(w, None) for w in words]
-    out: dict[str, dict] = {}
-    for q, tag in queries[:6]:
+    extra = [t for t in (terms or []) if t and len(t) >= 3]
+    queries = [(_tag_word(t), t) for t in tags]
+    # same tag, everyday words (Photon ranks by text, so "gym" finds fitness centres the tag word misses)
+    queries += [(w, t) for t in tags[:2] for w in extra[:3] if w.lower() != _tag_word(t).lower()]
+    queries += [(w, None) for w in words + extra[:2]]
+    seen_q: list[tuple[str, str | None]] = []
+    for q, tag in queries:
+        if (q.lower(), tag) not in [(x.lower(), y) for x, y in seen_q] and len(seen_q) < 9:
+            seen_q.append((q, tag))
+    POI_KEYS = {"amenity", "shop", "leisure", "sport", "craft", "office", "healthcare", "tourism", "club"}
+
+    async def one(q: str, tag: str | None) -> list[dict]:
         params: list[tuple[str, str]] = [("q", q), ("lat", f"{lat:.6f}"), ("lon", f"{lng:.6f}"), ("limit", str(limit)),
                                          ("location_bias_scale", "0.1"), ("zoom", "16")]
         if tag:
@@ -215,15 +231,18 @@ async def photon_pois(lat: float, lng: float, radius_m: int, filters: list[str],
         try:
             r = await client().get("https://photon.komoot.io/api/", params=params, timeout=httpx.Timeout(15.0, connect=6.0))
             if r.status_code != 200:
-                continue
+                return []
             feats = r.json().get("features", [])
         except (httpx.HTTPError, ValueError):
-            continue
+            return []
+        res = []
         for ft in feats:
             pr = ft.get("properties") or {}
             coords = (ft.get("geometry") or {}).get("coordinates") or []
             if len(coords) != 2 or not pr.get("osm_id"):
                 continue
+            if tag is None and pr.get("osm_key") not in POI_KEYS:
+                continue  # free-text hit on a street or area name, not a business
             plng, plat = float(coords[0]), float(coords[1])
             if _dist_m(lat, lng, plat, plng) > radius_m:
                 continue
@@ -235,7 +254,13 @@ async def photon_pois(lat: float, lng: float, radius_m: int, filters: list[str],
                     tags_out[f"addr:{k}"] = str(pr[k])
             if pr.get("name"):
                 tags_out["name"] = pr["name"]
-            out[ref] = {"ref": ref, "lat": plat, "lng": plng, "tags": tags_out, "name": pr.get("name") or "", "source_updated_at": None}
+            res.append({"ref": ref, "lat": plat, "lng": plng, "tags": tags_out, "name": pr.get("name") or "", "source_updated_at": None})
+        return res
+
+    out: dict[str, dict] = {}
+    for batch in await asyncio.gather(*(one(q, t) for q, t in seen_q)):
+        for p in batch:
+            out.setdefault(p["ref"], p)
     return list(out.values())
 
 
@@ -284,7 +309,7 @@ def _dist_m(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
 
 
 async def fetch_pois(lat, lng, radius_m, filters, cache=None, limit: int = 400, fallback: bool = False,
-                     timeout_s: float = 45.0) -> tuple[list[dict], dict]:
+                     timeout_s: float = 45.0, terms: list[str] | None = None) -> tuple[list[dict], dict]:
     """POIs matching tag filters. With ``fallback`` the same OpenStreetMap data is fetched from
     Photon / Nominatim when every Overpass mirror is down, so a busy mirror never empties the market."""
     if not filters:
@@ -301,7 +326,7 @@ async def fetch_pois(lat, lng, radius_m, filters, cache=None, limit: int = 400, 
             pois = hit[0]["pois"]
             return pois, provenance("osm_photon", retrieved_at=hit[1], cached=True,
                                     detail=f"{len(pois)} features (Overpass busy; served from Photon/Nominatim index)")
-        pois = await photon_pois(lat, lng, radius_m, filters)
+        pois = await photon_pois(lat, lng, radius_m, filters, terms=terms)
         src = "osm_photon"
         if len(pois) < 3:
             more = await nominatim_pois(lat, lng, radius_m, filters)
