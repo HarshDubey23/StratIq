@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 import time
 from datetime import timedelta
 
@@ -11,6 +12,23 @@ import httpx
 from ..config import get_settings
 from .http import Cache, ProviderError, cache_key, client
 from .registry import provenance
+
+
+_JSON_START = re.compile(r'\{\s*"(status|error|taskid)"')
+
+
+def _json_tail(text: str) -> dict:
+    """WorldPop sometimes prefixes its JSON with PHP deprecation notices (HTML). Parse the JSON object at the end."""
+    try:
+        return json.loads(text)
+    except ValueError:
+        pass
+    for m in _JSON_START.finditer(text):
+        try:
+            return json.loads(text[m.start():])
+        except ValueError:
+            continue
+    raise ProviderError("worldpop", f"unparseable response ({len(text)} bytes): {text[:100]!r}")
 
 
 def _round_ring(ring: list[list[float]]) -> list[list[float]]:
@@ -33,10 +51,7 @@ async def worldpop_total(polygon: list[list[list[float]]], cache: Cache | None =
             try:
                 r = await client().get(f"{s.worldpop_url}/services/stats", params=params, timeout=httpx.Timeout(40.0, connect=15.0))
                 r.raise_for_status()
-                try:
-                    body = r.json()
-                except ValueError as e:
-                    raise ProviderError("worldpop", f"non-JSON response (HTTP {r.status_code}, {len(r.content)} bytes): {r.text[:120]!r}") from e
+                body = _json_tail(r.text)
                 break
             except httpx.TimeoutException:
                 if attempt == 1:
@@ -54,7 +69,7 @@ async def worldpop_total(polygon: list[list[list[float]]], cache: Cache | None =
             await asyncio.sleep(2)
             r = await client().get(f"{s.worldpop_url}/tasks/{tid}", timeout=httpx.Timeout(20.0, connect=10.0))
             r.raise_for_status()
-            body = r.json()
+            body = _json_tail(r.text)
         if body.get("status") != "finished":
             raise ProviderError("worldpop", "population task did not finish in time")
         total = float(body["data"]["total_population"])

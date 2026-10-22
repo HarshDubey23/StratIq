@@ -290,7 +290,7 @@ export default function SimulationLab() {
           {error && <ErrorState message={error} />}
           <div className="relative h-[380px] overflow-hidden rounded-lg border border-ink-700">
             <MarketMap
-              className="absolute inset-0"
+              fill
               center={center}
               catchment={market?.snapshot?.catchment_geojson || null}
               zones={zones}

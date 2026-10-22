@@ -122,7 +122,7 @@ export default function MarketPage() {
     <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
       <section className="relative h-[55vh] min-h-[380px] flex-1 lg:h-auto">
         <MarketMap
-          className="absolute inset-0"
+          fill
           center={center}
           catchment={snap?.catchment_geojson || null}
           zones={zones}

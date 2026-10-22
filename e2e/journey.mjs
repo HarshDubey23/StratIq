@@ -9,7 +9,7 @@ const log = [];
 const L = (...a) => { const s = a.join(" "); console.log(s); log.push(s); };
 let failures = 0;
 
-const browser = await chromium.launch({ args: ["--use-gl=swiftshader", "--enable-webgl", "--ignore-gpu-blocklist"] });
+const browser = await chromium.launch({ args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--enable-webgl", "--ignore-gpu-blocklist"] });
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
 const page = await ctx.newPage();
 page.on("console", (m) => { if (["error", "warning"].includes(m.type())) L(`[console.${m.type()}] ${m.text().slice(0, 300)}`); });
@@ -18,6 +18,17 @@ page.on("response", (r) => { if (r.url().includes("/api/") && r.status() >= 400)
 
 async function shot(name) {
   await page.waitForTimeout(1200);
+  const diag = await page.evaluate(() => {
+    const maps = [...document.querySelectorAll('[data-testid="map"]')].map((m) => {
+      const r = m.getBoundingClientRect();
+      const c = m.querySelector("canvas");
+      return `map ${Math.round(r.width)}x${Math.round(r.height)} canvas=${c ? `${c.width}x${c.height}` : "none"} markers=${m.querySelectorAll(".maplibregl-marker").length} text=${(m.textContent || "").slice(0, 60)}`;
+    });
+    let gl = "n/a";
+    try { const cv = document.createElement("canvas"); gl = cv.getContext("webgl2") ? "webgl2" : cv.getContext("webgl") ? "webgl1" : "none"; } catch { gl = "err"; }
+    return `${gl} | ${maps.join(" ; ")}`;
+  }).catch(() => "");
+  if (diag.includes("map")) L(`  diag ${name}: ${diag}`);
   await page.screenshot({ path: `${OUT}/${name}.png`, fullPage: false });
   L(`shot ${name} @ ${page.url().replace(BASE, "")}`);
 }
@@ -59,10 +70,10 @@ await step("demo project", async () => {
   await shot("05-demo-lab-lower-price");
   await page.getByRole("radio", { name: "Assumptions" }).click();
   await shot("06-demo-tornado");
-  await page.getByRole("link", { name: "Decisions" }).click();
+  await page.getByLabel("Project").getByRole("link", { name: "Decisions" }).click();
   await page.getByText("What could make this result wrong?").waitFor({ timeout: 30000 });
   await shot("07-demo-decisions");
-  await page.getByRole("link", { name: "Market map" }).click();
+  await page.getByLabel("Project").getByRole("link", { name: "Market map" }).click();
   await page.waitForTimeout(3000);
   await shot("08-demo-market");
 });
@@ -92,7 +103,7 @@ await step("wizard ui", async () => {
   await page.waitForURL(/market/, { timeout: 60000 });
   await page.waitForTimeout(3000);
   await shot("13a-live-market-loading");
-  await page.getByText("Data coverage").waitFor({ timeout: 200000 });
+  await page.getByText("Data coverage").waitFor({ timeout: 280000 });
   await page.waitForTimeout(4000);
   await shot("13-live-market-pizza");
   await page.getByRole("button", { name: /Competitors/ }).click();
@@ -112,7 +123,7 @@ await step("live gym journey", async () => {
   const start = await api(`/projects/${pid}/locations/${lid}/refresh`, "POST");
   L(`refresh start ${start.status} ${start.body.status}`);
   let st = start.body;
-  for (let i = 0; i < 90 && st.status === "loading"; i++) { await page.waitForTimeout(2500); st = (await api(`/projects/${pid}/snapshots/${start.body.id}`)).body; }
+  for (let i = 0; i < 115 && st.status === "loading"; i++) { await page.waitForTimeout(2500); st = (await api(`/projects/${pid}/snapshots/${start.body.id}`)).body; }
   const snapFull = await api(`/projects/${pid}/market?location_id=${lid}`);
   const snap = { body: snapFull.body.snapshot || {} };
   L(`snapshot status=${snap.body.status} pop=${JSON.stringify(snap.body.population)} errors=${JSON.stringify(snap.body.errors)} sources=${(snap.body.sources || []).map((s) => s.layer + ":" + (s.from_cache ? "cache" : "live")).join(",")}`);

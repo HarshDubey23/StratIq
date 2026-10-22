@@ -51,6 +51,8 @@ interface Props {
   fitKey?: string;
   className?: string;
   pitch?: number;
+  /** Fill the nearest positioned ancestor (absolute, inset 0). */
+  fill?: boolean;
 }
 
 const EMPTY: GeoJSON.FeatureCollection = { type: "FeatureCollection", features: [] };
@@ -85,6 +87,7 @@ export default function MapView(props: Props) {
         style = STYLE_FALLBACK;
       }
       if (cancelled || !el.current) return;
+      try {
       m = new maplibregl.Map({
         container: el.current,
         style,
@@ -95,6 +98,10 @@ export default function MapView(props: Props) {
         attributionControl: { compact: true },
         maxPitch: 70,
       });
+      } catch (err) {
+        setStyleNote(`The map could not start in this browser (${err instanceof Error ? err.message : "WebGL unavailable"}). Data panels still work.`);
+        return;
+      }
       map.current = m;
       m.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-right");
       m.addControl(new maplibregl.ScaleControl({ unit: "metric" }), "bottom-left");
@@ -328,10 +335,10 @@ export default function MapView(props: Props) {
   }, [ready, props.fitKey]);
 
   return (
-    <div className={`relative ${props.className || ""}`}>
+    <div className={props.className} style={{ position: props.fill ? "absolute" : "relative", ...(props.fill ? { inset: 0 } : {}) }} data-testid="map">
       {/* inline style: maplibre's .maplibregl-map sets position:relative, which would override a utility class */}
       <div ref={el} style={{ position: "absolute", inset: 0 }} />
-      {!ready && <div className="absolute inset-0 flex items-center justify-center bg-ink-900 text-sm text-ink-400">Loading map…</div>}
+      {!ready && !styleNote && <div className="absolute inset-0 flex items-center justify-center bg-ink-900 text-sm text-ink-400">Loading map…</div>}
       {styleNote && <div className="absolute left-2 top-2 rounded bg-ink-900/90 px-2 py-1 text-xs text-amber-200">{styleNote}</div>}
     </div>
   );

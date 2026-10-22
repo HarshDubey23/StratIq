@@ -8,6 +8,7 @@ import httpx
 
 from ..config import get_settings
 import asyncio
+import time
 
 from .http import Cache, ProviderError, cache_key, client, nominatim_throttle, overpass_slot
 from .registry import provenance
@@ -82,8 +83,9 @@ def build_poi_query(lat: float, lng: float, radius_m: int, filters: list[str], t
     return f"[out:json][timeout:{timeout}];({parts});out center meta qt {limit};"
 
 
-def build_buildings_query(lat: float, lng: float, radius_m: int, timeout: int = 60) -> str:
-    return f'[out:json][timeout:{timeout}][maxsize:200000000];way["building"](around:{radius_m},{lat:.6f},{lng:.6f});out center qt;'
+def build_buildings_query(lat: float, lng: float, radius_m: int, timeout: int = 60, limit: int = 200000) -> str:
+    # Skeleton output (ids + centres only) keeps the response small even in dense cities.
+    return f'[out:json][timeout:{timeout}];way["building"](around:{radius_m},{lat:.6f},{lng:.6f});out skel center qt {limit};'
 
 
 def parse_pois(data: dict) -> list[dict]:
@@ -129,26 +131,30 @@ async def overpass(query: str, cache: Cache | None = None, ttl: timedelta = time
         return hit[0], hit[1], True, "cache"
     errors = []
     async with overpass_slot():
+        t0 = time.monotonic()
         for attempt in range(2):
             for url in s.overpass_urls:
+                host = url.split("/")[2]
                 try:
-                    r = await client().post(url, data={"data": query}, timeout=httpx.Timeout(90.0, connect=10.0))
+                    r = await client().post(url, data={"data": query}, timeout=httpx.Timeout(45.0, connect=8.0))
                     if r.status_code in (429, 504, 503, 502):
-                        errors.append(f"{url.split('/')[2]}: HTTP {r.status_code}")
+                        errors.append(f"{host}: HTTP {r.status_code}")
                         continue
                     r.raise_for_status()
                     data = r.json()
                     remark = data.get("remark") or ""
                     if "runtime error" in remark.lower():
-                        errors.append(f"{url.split('/')[2]}: {remark[:160]}")
+                        errors.append(f"{host}: {remark[:160]}")
                         continue
                     if cache:
                         cache.put(key, tag, data, ttl)
                     return data, datetime.now(timezone.utc), False, url
                 except (httpx.HTTPError, ValueError) as e:
-                    errors.append(f"{url.split('/')[2]}: {type(e).__name__} {e}".strip())
-            if attempt == 0:
-                await asyncio.sleep(4)  # polite back-off before one retry round
+                    errors.append(f"{host}: {type(e).__name__} {e}".strip())
+            if attempt == 0 and time.monotonic() - t0 < 30:
+                await asyncio.sleep(4)  # every endpoint failed fast (busy): one polite retry round
+            else:
+                break
     raise ProviderError("overpass", "; ".join(errors) or "no endpoint configured")
 
 

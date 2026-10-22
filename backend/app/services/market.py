@@ -149,7 +149,16 @@ async def build_snapshot(*, lat: float, lng: float, catchment: dict, category: d
             return float(manual_population), provenance("user", detail="Catchment population entered by the user")
         return await population.worldpop_total(polygon, cache)
 
-    results = await asyncio.gather(comp_task(), bld_task(), act_task(), pop_task(), return_exceptions=True)
+    async def bounded(coro, seconds: float, what: str):
+        try:
+            return await asyncio.wait_for(coro, seconds)
+        except asyncio.TimeoutError as e:
+            raise ProviderError(what, f"no response within {int(seconds)} s") from e
+
+    # Overpass calls run one at a time (fair use), so later layers get larger budgets.
+    results = await asyncio.gather(bounded(comp_task(), 110, "overpass"), bounded(bld_task(), 170, "overpass"),
+                                   bounded(act_task(), 200, "overpass"), bounded(pop_task(), 130, "worldpop"),
+                                   return_exceptions=True)
     names = ["competitors", "buildings", "activity", "population"]
     vals = {}
     for nm, res in zip(names, results):
