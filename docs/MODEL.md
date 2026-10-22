@@ -75,3 +75,29 @@ every archetype runs end to end.
 
 It is not calibrated on observed sales. Probabilities are conditional on the assumed ranges. Synthetic agents are a
 visual sample, not people. Competitor capacity and spill-over are not modeled.
+
+## 8. Agent-based live market (`engine/abm.py`)
+
+Every run also simulates a **live market** of synthetic people (default 6,000 agents, 84 days):
+
+* **Placement at real density** — agents are sampled from demand zones in proportion to WorldPop population
+  (distributed over OSM buildings) plus activity points; each agent represents `total / N` resident-equivalents.
+* **Profile** — age and sex from the WorldPop age–sex structure of the catchment (default pyramid if unavailable),
+  segment, individual willingness to pay (lognormal), price/quality sensitivity, travel mode (7 modes, segment-dependent),
+  distance tolerance, digital adoption (age-dependent), word-of-mouth susceptibility, loyalty, novelty, time preference,
+  category affinity by age and sex, purchase frequency.
+* **Daily dynamics** — awareness of the new business spreads by paid reach (hazard calibrated so that one month of
+  marketing reaches the static model's awareness, scaled by digital adoption), word of mouth from customers in the same
+  zone, and storefront signage nearby; in-market agents decide with their own random utility (price vs their WTP, quality,
+  distance, habit, congestion memory, Gumbel taste noise) including a "none" option; membership agents reconsider monthly
+  with churn/switching; capacity turns people away and they remember it.
+* **Outputs** — daily and weekly series (customers, awareness, competitor volume, turned-away demand), month-by-month
+  units and operating profit during ramp-up, customer composition (segments, travel modes), trip distances, and
+  animation frames for the map. Seeded and reproducible.
+
+## 9. Factor Intelligence Engine (`factors/`)
+
+615 factor definitions across 10 domains (geography, demographics, economics, behaviour, mobility, competition,
+operations, marketing, retention, external). Each declares scope, source and role (agent profile, choice model,
+economics, output, evidence, or future data). Per location and run every factor gets a status: computed (live data),
+user, assumed, simulated, pending, or unavailable. Factors with no connected data source are shown empty — never invented.
