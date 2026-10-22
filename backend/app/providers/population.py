@@ -33,7 +33,10 @@ async def worldpop_total(polygon: list[list[list[float]]], cache: Cache | None =
             try:
                 r = await client().get(f"{s.worldpop_url}/services/stats", params=params, timeout=httpx.Timeout(40.0, connect=15.0))
                 r.raise_for_status()
-                body = r.json()
+                try:
+                    body = r.json()
+                except ValueError as e:
+                    raise ProviderError("worldpop", f"non-JSON response (HTTP {r.status_code}, {len(r.content)} bytes): {r.text[:120]!r}") from e
                 break
             except httpx.TimeoutException:
                 if attempt == 1:

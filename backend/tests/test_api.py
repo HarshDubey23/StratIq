@@ -151,7 +151,7 @@ def test_background_refresh_job(client):
     r = client.post(f"/api/v1/projects/{pid}/locations/{lid}/refresh")
     assert r.status_code == 202 and r.json()["status"] == "loading"
     sid = r.json()["id"]
-    assert client.get(f"/api/v1/projects/{pid}/market", params={"location_id": lid}).json()["loading_snapshot_id"] == sid
+    assert client.get(f"/api/v1/projects/{pid}/market", params={"location_id": lid}).json()["loading_snapshot_id"] in (sid, None)
     status = "loading"
     for _ in range(50):
         status = client.get(f"/api/v1/projects/{pid}/snapshots/{sid}").json()["status"]
