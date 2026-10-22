@@ -1,0 +1,66 @@
+"""Demo scenario: a fully offline, clearly labelled illustrative market.
+
+Used when judges need every feature to work even if live providers are slow.
+All features in it are synthetic and flagged ``is_demo`` everywhere.
+"""
+from __future__ import annotations
+
+import math
+
+import numpy as np
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+
+from ..categories.resolver import from_taxonomy_key
+from ..db import get_db
+from ..engine.geo import circle_polygon, hex_grid
+from ..models import CandidateLocation, Competitor, MarketSnapshot, Project, Scenario, User, utcnow
+from ..security import current_user
+from ..services.runs import point_wkt
+from .serialize import project_out
+
+router = APIRouter(tags=["demo"])
+
+DEMO_LABEL = "DEMO SCENARIO — Illustrative market data; not verified live conditions."
+CENTER = (12.9352, 77.6245)  # placeholder coordinates for the illustrative map only
+
+
+@router.post("/demo", status_code=201)
+def create_demo(user: User = Depends(current_user), db: Session = Depends(get_db)):
+    cat = from_taxonomy_key("gym", "gym").as_dict()
+    p = Project(owner_id=user.id, name="Demo — Neighbourhood gym", objective="start_new", decision_goal="profit", category=cat,
+                profile={"description": "Illustrative demo project", "demo_label": DEMO_LABEL}, status="created", is_demo=True)
+    db.add(p)
+    db.flush()
+    lat, lng = CENTER
+    loc = CandidateLocation(project_id=p.id, label="Location A", address="Demo area (illustrative)", lat=lat, lng=lng,
+                            geog=point_wkt(lat, lng), catchment={"mode": "radius", "radius_km": 3.0, "minutes": None, "profile": "foot-walking"})
+    db.add(loc)
+    db.flush()
+    rng = np.random.default_rng(2024)
+    pts = hex_grid(lat, lng, 3.0, 0.35)
+    # Illustrative density: two synthetic residential clusters.
+    w = np.array([math.exp(-((a - lat - 0.008) ** 2 + (b - lng + 0.006) ** 2) / 0.00018) + 0.8 * math.exp(-((a - lat + 0.01) ** 2 + (b - lng - 0.01) ** 2) / 0.00025) + 0.15 for a, b in pts])
+    total = 85000.0
+    zones = [{"lat": round(a, 6), "lng": round(b, 6), "population": round(float(total * w[i] / w.sum()), 2), "buildings": 0, "activity": int(rng.random() < 0.08)} for i, (a, b) in enumerate(pts)]
+    demo_comps = [("Demo Gym A (illustrative)", 0.011, 0.004, None), ("Demo Gym B (illustrative)", -0.006, 0.013, None),
+                  ("Demo Fitness C (illustrative)", -0.014, -0.009, None), ("Demo Gym D (illustrative)", 0.019, -0.016, None)]
+    for name, dla, dln, price in demo_comps:
+        db.add(Competitor(project_id=p.id, source="demo", source_ref=f"demo/{name}", name=name, lat=lat + dla, lng=lng + dln,
+                          geog=point_wkt(lat + dla, lng + dln), tags={"leisure": "fitness_centre"}, price=price, notes=DEMO_LABEL,
+                          retrieved_at=utcnow()))
+    src = {"source": "demo", "name": "Demo dataset", "kind": "demo", "license": "", "attribution": "", "url": "", "coverage_note": DEMO_LABEL,
+           "retrieved_at": utcnow().isoformat(), "source_updated_at": None, "detail": "Synthetic population and competitors for demonstration.",
+           "status": "ok", "from_cache": False, "layer": "demo"}
+    db.add(MarketSnapshot(project_id=p.id, location_id=loc.id, status="complete", catchment_geojson={"type": "Polygon", "coordinates": [circle_polygon(lat, lng, 3.0)]},
+                          catchment_method="radius", zones=zones, population={"method": "demo_synthetic", "source": "demo", "total": total, "radius_km": 3.0,
+                                                                             "zones": len(zones), "spacing_km": 0.35},
+                          sources=[src], coverage={"level": "unknown", "note": DEMO_LABEL, "signals": [], "method": "demo"}, activity_points=[], errors=[]))
+    base = {"price": 1800, "quality": 0.6, "marketing_spend": 15000, "reference_price": 1600, "variable_cost_per_unit": None,
+            "capacity": {"max_members": 350}, "rent": 65000, "payroll": 90000, "utilities": 18000, "other_fixed": 12000,
+            "startup_cost": 1800000, "param_overrides": {}, "seed": 42}
+    db.add(Scenario(project_id=p.id, location_id=loc.id, name="Baseline", is_baseline=True, inputs=base))
+    db.add(Scenario(project_id=p.id, location_id=loc.id, name="Lower price ₹1,500", inputs=base | {"price": 1500}))
+    db.commit()
+    db.refresh(p)
+    return project_out(p)

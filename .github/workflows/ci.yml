@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      db:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: strataiq
+          POSTGRES_PASSWORD: strataiq
+          POSTGRES_DB: strataiq
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U strataiq" --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      DATABASE_URL: postgresql://strataiq:strataiq@localhost:5432/strataiq
+      JWT_SECRET: ci-secret-not-for-production
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements-dev.txt
+      - run: pip install -r requirements-dev.txt
+      - name: Lint
+        run: ruff check .
+      - name: Migrations apply cleanly
+        run: alembic upgrade head && alembic downgrade base && alembic upgrade head
+      - name: Tests (engine, providers, API + PostGIS)
+        run: pytest -v
+
+  backend-live:
+    # Real calls to OpenStreetMap / WorldPop to prove the live data path works.
+    # Public services can rate-limit, so this job is informative rather than blocking.
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    env:
+      RUN_LIVE: "1"
+      CONTACT_EMAIL: ${{ vars.CONTACT_EMAIL }}
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements-dev.txt
+      - run: pip install -r requirements-dev.txt
+      - run: pytest -v -s -m live tests/test_live.py
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    env:
+      API_URL: http://localhost:8000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm install --no-audit --no-fund
+      - name: Typecheck
+        run: npx tsc --noEmit
+      - name: Lint
+        run: npm run lint
+      - name: Build
+        run: npm run build

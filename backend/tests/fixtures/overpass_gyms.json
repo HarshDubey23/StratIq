@@ -1,0 +1,8 @@
+{"version":0.6,"generator":"Overpass API","osm3s":{"timestamp_osm_base":"2026-10-22T10:00:00Z","copyright":"The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."},
+"elements":[
+{"type":"node","id":1001,"lat":28.6330,"lon":77.2190,"timestamp":"2025-03-01T10:00:00Z","version":3,"user":"someone","uid":42,"changeset":9,"tags":{"leisure":"fitness_centre","name":"Iron Temple Gym","opening_hours":"Mo-Sa 06:00-22:00"}},
+{"type":"way","id":2002,"center":{"lat":28.6280,"lon":77.2120},"timestamp":"2024-07-11T08:00:00Z","version":1,"user":"x","uid":7,"tags":{"leisure":"fitness_centre","name":"FitZone"}},
+{"type":"node","id":1003,"lat":28.6400,"lon":77.2250,"timestamp":"2023-01-05T08:00:00Z","tags":{"amenity":"gym"}},
+{"type":"node","id":1001,"lat":28.6330,"lon":77.2190,"tags":{"leisure":"fitness_centre","name":"Iron Temple Gym"}},
+{"type":"relation","id":3004,"tags":{"leisure":"fitness_centre","name":"No center"}}
+]}
