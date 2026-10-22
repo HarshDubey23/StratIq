@@ -92,7 +92,7 @@ export default function LiveMap(p: LiveMapProps) {
         } });
         m.addLayer({ id: "trails", type: "line", source: "trails", paint: { "line-color": ["get", "c"], "line-width": 0.7, "line-opacity": 0.22 } });
         m.addLayer({ id: "idle", type: "circle", source: "idle", paint: {
-          "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, ["case", ["boolean", ["feature-state", "cust"], false], 1.8, 1.1], 14, ["case", ["boolean", ["feature-state", "cust"], false], 3.2, 2.2], 16, 3.5],
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, ["case", ["boolean", ["feature-state", "cust"], false], 2.2, 1.3], 14, ["case", ["boolean", ["feature-state", "cust"], false], 3.8, 2.5], 16, ["case", ["boolean", ["feature-state", "cust"], false], 5.5, 3.8]],
           "circle-color": ["case", ["boolean", ["feature-state", "cust"], false], "#22d3ee", ["get", "c"]],
           "circle-opacity": ["case", ["boolean", ["feature-state", "cust"], false], 0.95, ["get", "o"]],
         } });
@@ -161,11 +161,11 @@ export default function LiveMap(p: LiveMapProps) {
       if (p.colorMode === "segment") return SEG_COLORS[r[ci.segment]] || "#fb7185";
       if (p.colorMode === "mode") return MODE_COLORS[r[ci.mode]] || "#fb7185";
       if (p.colorMode === "age") return ageColor(r[ci.age]);
-      return r[ci.in_market] ? "#f43f5e" : "#7f1d1d";
+      return r[ci.in_market] ? "#fb3b5c" : "#9f1239";
     };
     (m.getSource("idle") as GeoJSONSource).setData({
       type: "FeatureCollection",
-      features: rows.map((r, i) => ({ type: "Feature", geometry: { type: "Point", coordinates: [r[ci.lng], r[ci.lat]] }, properties: { i, c: color(r), o: r[ci.in_market] ? 0.75 : 0.35 } })),
+      features: rows.map((r, i) => ({ type: "Feature", geometry: { type: "Point", coordinates: [r[ci.lng], r[ci.lat]] }, properties: { i, c: color(r), o: r[ci.in_market] ? 0.95 : 0.45 } })),
     });
     lastFi.current = -1;
   }, [ready, p.abm, p.colorMode, ci]);

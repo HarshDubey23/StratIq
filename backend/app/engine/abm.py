@@ -47,12 +47,13 @@ DEFAULT_AGE = np.array([0.075, 0.080, 0.085, 0.088, 0.092, 0.092, 0.085, 0.077, 
 
 # Category affinity by age group: child (0-14), young (15-29), mid (30-49), senior (50+). Assumptions.
 AFFINITY = {
-    "membership": (0.15, 1.6, 1.0, 0.45),
-    "dine_in": (0.5, 1.4, 1.1, 0.6),
-    "takeaway": (0.4, 1.5, 1.05, 0.45),
-    "retail": (0.5, 1.0, 1.1, 1.0),
-    "appointment": (0.5, 1.1, 1.1, 1.0),
-    "lodging": (0.1, 1.1, 1.25, 0.7),
+    # children (0-14) are not decision-makers: their household's purchases are carried by adult agents (mean is renormalised)
+    "membership": (0.0, 1.6, 1.0, 0.45),
+    "dine_in": (0.0, 1.4, 1.1, 0.6),
+    "takeaway": (0.0, 1.5, 1.05, 0.45),
+    "retail": (0.0, 1.0, 1.1, 1.0),
+    "appointment": (0.0, 1.1, 1.1, 1.0),
+    "lodging": (0.0, 1.1, 1.25, 0.7),
 }
 FEMALE_AFFINITY = {"membership": 0.8, "dine_in": 1.0, "takeaway": 0.95, "retail": 1.05, "appointment": 1.2, "lodging": 0.95}
 MODE_NAMES = [m[0] for m in gm.MODES]
@@ -211,7 +212,7 @@ def _calibrate(pop: Population, arch: Archetype, D: dict, radius_km: float | Non
 
 # ---------------------------------------------------------------- population cache (agent X-ray / DNA matrix)
 _CACHE: OrderedDict = OrderedDict()
-_CACHE_MAX = 3
+_CACHE_MAX = 2
 
 
 def cache_put(key: str, pop: Population) -> None:

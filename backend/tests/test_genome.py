@@ -128,3 +128,10 @@ def test_calibration_raises_participation_when_incumbents_starve():
 def test_overnight_hours_wrap_past_midnight():
     night = pop_for(offer={"open_hour": 18, "close_hour": 2})
     assert night.meta["hours_mask"][0].sum() == 8
+
+
+def test_children_are_never_in_market():
+    arch = ARCHETYPES["dine_in"]
+    r = run_abm(arch, zones(), comps(), biz(price=300.0), ResolvedParams.from_archetype(arch), 300.0, n_agents=3000, days=14)
+    c = r["agents"]["columns"]
+    assert not any(row[c.index("in_market")] and row[c.index("age")] < 15 for row in r["agents"]["rows"])

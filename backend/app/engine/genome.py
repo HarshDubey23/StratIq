@@ -972,10 +972,16 @@ def explain(i: int, gen: Genome, up: UtilityParts, names: list[str], final_choic
 
 def percentiles(G: np.ndarray) -> np.ndarray:
     """Per-parameter population percentile (0-100, uint8) for every agent — used by the X-ray and DNA matrix."""
-    N = G.shape[0]
-    X = np.nan_to_num(G.astype(np.float64), nan=-1e9)
-    ranks = np.argsort(np.argsort(X, 0, kind="stable"), 0, kind="stable")
-    return np.clip(np.round(ranks / max(1, N - 1) * 100), 0, 100).astype(np.uint8)
+    N, P_ = G.shape
+    out = np.empty((N, P_), np.uint8)
+    pos = np.arange(N, dtype=np.int32)
+    for c0 in range(0, P_, 64):  # column chunks keep peak memory low on small servers
+        X = np.nan_to_num(G[:, c0:c0 + 64], nan=-1e9)
+        order = np.argsort(X, 0, kind="stable").astype(np.int32)
+        ranks = np.empty_like(order)
+        np.put_along_axis(ranks, order, pos[:, None], axis=0)
+        out[:, c0:c0 + 64] = np.clip(np.round(ranks / max(1, N - 1) * 100), 0, 100).astype(np.uint8)
+    return out
 
 
 EXPLICIT = {

@@ -193,7 +193,7 @@ export default function LiveMarket() {
             </div>
 
             {/* legend */}
-            <div className="absolute bottom-24 left-3 z-10 max-w-xs rounded-lg border border-ink-700 bg-ink-950/90 p-3 text-[11px] text-ink-300 backdrop-blur">
+            <div className="absolute bottom-32 left-3 z-10 max-w-xs rounded-lg border border-ink-700 bg-ink-950/90 p-3 text-[11px] text-ink-300 backdrop-blur">
               {colorMode === "choice" && (
                 <div className="space-y-1">
                   <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-agent" /> In-market person (not yet your customer)</div>
@@ -229,6 +229,18 @@ export default function LiveMarket() {
 
         {abm && res && (
           <>
+            {(() => {
+              const a = abm.monthly_units[abm.monthly_units.length - 1];
+              const b = res.summary.units_sold;
+              const r = b > 0 ? a / b : 0;
+              const agree = r >= 0.67 && r <= 1.5;
+              return (
+                <div className={`rounded-md border p-2 text-[11px] ${agree ? "border-model/40 bg-model/5 text-ink-300" : "border-warn/40 bg-warn/5 text-ink-300"}`}>
+                  <span className="font-medium text-ink-100">Model agreement: {agree ? "consistent" : "models disagree"}</span> — agent simulation {num(a)} vs aggregate model {num(b)} {unit}
+                  {b > 0 ? ` (${r.toFixed(2)}×)` : ""}. {agree ? "Two independent methods land close together." : "Two independent methods differ; treat demand as highly uncertain and verify with the field survey."}
+                </div>
+              );
+            })()}
             <div className="grid grid-cols-2 gap-2 text-xs">
               {[
                 ["Month 3 " + unit, num(abm.monthly_units[abm.monthly_units.length - 1])],
