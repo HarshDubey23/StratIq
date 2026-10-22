@@ -230,7 +230,8 @@ export default function MapView(props: Props) {
   useEffect(() => {
     const m = map.current;
     if (!ready || !m) return;
-    (m.getSource("siq-catchment") as GeoJSONSource).setData(props.catchment ? fc([{ type: "Feature", geometry: props.catchment, properties: {} }]) : EMPTY);
+    const ok = props.catchment && Array.isArray(props.catchment.coordinates) && props.catchment.coordinates.length > 0;
+    (m.getSource("siq-catchment") as GeoJSONSource).setData(ok ? fc([{ type: "Feature", geometry: props.catchment!, properties: {} }]) : EMPTY);
   }, [ready, props.catchment]);
 
   useEffect(() => {
@@ -328,7 +329,8 @@ export default function MapView(props: Props) {
 
   return (
     <div className={`relative ${props.className || ""}`}>
-      <div ref={el} className="absolute inset-0" />
+      {/* inline style: maplibre's .maplibregl-map sets position:relative, which would override a utility class */}
+      <div ref={el} style={{ position: "absolute", inset: 0 }} />
       {!ready && <div className="absolute inset-0 flex items-center justify-center bg-ink-900 text-sm text-ink-400">Loading map…</div>}
       {styleNote && <div className="absolute left-2 top-2 rounded bg-ink-900/90 px-2 py-1 text-xs text-amber-200">{styleNote}</div>}
     </div>

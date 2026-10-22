@@ -53,8 +53,9 @@ await step("demo project", async () => {
   await page.getByText("Operating profit / mo").first().waitFor({ timeout: 60000 });
   await shot("04-demo-lab-baseline");
   await page.getByRole("tab", { name: /Lower price/ }).click();
-  await page.getByRole("button", { name: /Run simulation|Recalculate/ }).click();
-  await page.waitForTimeout(4000);
+  await page.getByRole("button", { name: /Run simulation|Recalculate/ }).first().click();
+  await page.getByText("vs baseline").first().waitFor({ timeout: 60000 });
+  await page.waitForTimeout(1500);
   await shot("05-demo-lab-lower-price");
   await page.getByRole("radio", { name: "Assumptions" }).click();
   await shot("06-demo-tornado");
@@ -88,9 +89,14 @@ await step("wizard ui", async () => {
   await page.getByRole("button", { name: /Next/ }).click();
   await shot("12-wizard-review");
   await page.getByRole("button", { name: "Create market simulation" }).click();
-  await page.waitForURL(/market/, { timeout: 150000 });
-  await page.waitForTimeout(5000);
+  await page.waitForURL(/market/, { timeout: 60000 });
+  await page.waitForTimeout(3000);
+  await shot("13a-live-market-loading");
+  await page.getByText("Data coverage").waitFor({ timeout: 200000 });
+  await page.waitForTimeout(4000);
   await shot("13-live-market-pizza");
+  await page.getByRole("button", { name: /Competitors/ }).click();
+  await shot("13b-live-pizza-competitors");
 });
 
 // ---------- Live gym project via API (Connaught Place) ----------
@@ -103,8 +109,14 @@ await step("live gym journey", async () => {
   });
   L(`project create ${p.status}`);
   const pid = p.body.id, lid = p.body.locations[0].id;
-  const snap = await api(`/projects/${pid}/locations/${lid}/refresh`, "POST");
-  L(`snapshot ${snap.status} status=${snap.body.status} pop=${JSON.stringify(snap.body.population)} errors=${JSON.stringify(snap.body.errors)}`);
+  const start = await api(`/projects/${pid}/locations/${lid}/refresh`, "POST");
+  L(`refresh start ${start.status} ${start.body.status}`);
+  let st = start.body;
+  for (let i = 0; i < 90 && st.status === "loading"; i++) { await page.waitForTimeout(2500); st = (await api(`/projects/${pid}/snapshots/${start.body.id}`)).body; }
+  const snapFull = await api(`/projects/${pid}/market?location_id=${lid}`);
+  const snap = { body: snapFull.body.snapshot || {} };
+  L(`snapshot status=${snap.body.status} pop=${JSON.stringify(snap.body.population)} errors=${JSON.stringify(snap.body.errors)} sources=${(snap.body.sources || []).map((s) => s.layer + ":" + (s.from_cache ? "cache" : "live")).join(",")}`);
+  L(`coverage=${JSON.stringify(snap.body.coverage)}`);
   const mk = await api(`/projects/${pid}/market?location_id=${lid}`);
   L(`competitors found: ${mk.body.competitors?.length}; first: ${mk.body.competitors?.slice(0, 3).map((c) => c.name).join(" | ")}`);
   await page.goto(`${BASE}/app/projects/${pid}/market`);
@@ -116,7 +128,13 @@ await step("live gym journey", async () => {
   await page.goto(`${BASE}/app/projects/${pid}/simulation`);
   await page.getByRole("button", { name: /Run simulation/ }).first().click();
   await page.getByText("Profit distribution").waitFor({ timeout: 90000 });
+  await page.waitForTimeout(3000);
   await shot("16-live-gym-lab");
+  await page.mouse.wheel(0, 900);
+  await shot("16b-live-gym-lab-scrolled");
+  const runs = await api(`/projects/${pid}/compare`);
+  const m = runs.body.rows[0].metrics;
+  L(`live gym baseline: units=${m.units_sold} profit=${m.operating_profit} p_loss=${m.prob_loss} in_market=${m.in_market_units}`);
   const dec = await api(`/projects/${pid}/decisions`);
   L(`decision: ${dec.body.verdict} — ${dec.body.headline}`);
   await page.goto(`${BASE}/app/projects/${pid}/decisions`);

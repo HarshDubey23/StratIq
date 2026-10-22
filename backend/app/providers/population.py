@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import time
 from datetime import timedelta
 
 import httpx
@@ -30,7 +31,7 @@ async def worldpop_total(polygon: list[list[list[float]]], cache: Cache | None =
         body = None
         for attempt in range(2):
             try:
-                r = await client().get(f"{s.worldpop_url}/services/stats", params=params, timeout=httpx.Timeout(60.0, connect=15.0))
+                r = await client().get(f"{s.worldpop_url}/services/stats", params=params, timeout=httpx.Timeout(40.0, connect=15.0))
                 r.raise_for_status()
                 body = r.json()
                 break
@@ -38,7 +39,8 @@ async def worldpop_total(polygon: list[list[list[float]]], cache: Cache | None =
                 if attempt == 1:
                     raise
                 await asyncio.sleep(2)
-        for _ in range(30):  # asynchronous task: poll until finished (~60 s max)
+        deadline = time.monotonic() + 75
+        while time.monotonic() < deadline:  # asynchronous task: poll until finished
             if body.get("error"):
                 raise ProviderError("worldpop", str(body.get("error_message")))
             if body.get("status") == "finished" and body.get("data"):

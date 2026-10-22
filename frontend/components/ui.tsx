@@ -90,20 +90,30 @@ const kindStyle: Record<EvidenceKind, string> = {
 };
 const kindLabel: Record<EvidenceKind, string> = {
   observed: "Observed",
-  user: "User-entered",
-  assumption: "Assumption",
-  model: "Model estimate",
-  demo: "Demo data",
+  user: "User",
+  assumption: "Assumed",
+  model: "Model",
+  demo: "Demo",
   unknown: "Unknown",
-  official: "Official estimate",
-  ai: "AI-generated text",
+  official: "Official est.",
+  ai: "AI text",
+};
+const kindTitle: Record<EvidenceKind, string> = {
+  observed: "Observed in a data source (e.g. OpenStreetMap)",
+  user: "Entered by you; not independently verified",
+  assumption: "Model assumption with a documented range",
+  model: "Estimated by the StrataIQ simulation",
+  demo: "Illustrative demo data, not real",
+  unknown: "Not available from any source",
+  official: "Official modelled estimate (e.g. WorldPop)",
+  ai: "Written by an AI model from the computed results",
 };
 
 export function Evidence({ kind, label, className, title }: { kind: EvidenceKind; label?: string; className?: string; title?: string }) {
   return (
     <span
-      title={title}
-      className={cn("inline-flex items-center rounded border px-1.5 py-px text-[10px] font-medium uppercase tracking-wide", kindStyle[kind], className)}
+      title={title ?? kindTitle[kind]}
+      className={cn("inline-flex shrink-0 items-center whitespace-nowrap rounded border px-1.5 py-px text-[10px] font-medium uppercase tracking-wide", kindStyle[kind], className)}
     >
       {label ?? kindLabel[kind]}
     </span>
@@ -365,9 +375,9 @@ export function Metric({
 }) {
   return (
     <div className={cn("rounded-md border border-ink-700 bg-ink-850 p-3", className)}>
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-[11px] font-medium uppercase tracking-wide text-ink-300">{label}</span>
-        {kind && <Evidence kind={kind} />}
+      <div className="flex items-start justify-between gap-2">
+        <span className="min-w-0 text-[11px] font-medium leading-tight text-ink-300">{label}</span>
+        {kind && <Evidence kind={kind} className="-mr-1 -mt-0.5 scale-90" />}
       </div>
       <div className="num mt-1.5 text-xl font-semibold text-ink-100">{value}</div>
       <div className="mt-0.5 flex items-center gap-2 text-xs">

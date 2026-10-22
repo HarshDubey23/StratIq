@@ -178,8 +178,9 @@ export function Wizard() {
         },
       };
       const p = await api<Project>("/projects", { method: "POST", json: body });
-      setCreating("Loading live market data (OpenStreetMap, WorldPop)… this can take up to a minute.");
+      setCreating("Starting live market data load…");
       try {
+        // Starts a background job; the market page follows its progress.
         await api(`/projects/${p.id}/locations/${p.locations[0].id}/refresh`, { method: "POST" });
       } catch {
         /* the market page shows the error and a retry */

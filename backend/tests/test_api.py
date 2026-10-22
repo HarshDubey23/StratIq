@@ -75,7 +75,7 @@ def test_full_judge_journey(client):
     r = client.post(f"/api/v1/scenarios/{base['id']}/runs")
     assert r.status_code == 422
 
-    snap = client.post(f"/api/v1/projects/{pid}/locations/{lid}/refresh").json()
+    snap = client.post(f"/api/v1/projects/{pid}/locations/{lid}/refresh", params={"wait": True}).json()
     assert snap["population"]["source"] == "worldpop" and len(snap["zones"]) > 10
     market = client.get(f"/api/v1/projects/{pid}/market", params={"location_id": lid}).json()
     assert len(market["competitors"]) == 3
@@ -141,3 +141,23 @@ def test_demo_project_runs_offline(client):
         assert r.status_code == 201, r.text
     d = client.get(f"/api/v1/projects/{p['id']}/decisions").json()
     assert len(d["ranking"]) == 2
+
+
+def test_background_refresh_job(client):
+    import time
+    signup(client, "bg@example.com")
+    p = client.post("/api/v1/projects", json=project_payload(client)).json()
+    pid, lid = p["id"], p["locations"][0]["id"]
+    r = client.post(f"/api/v1/projects/{pid}/locations/{lid}/refresh")
+    assert r.status_code == 202 and r.json()["status"] == "loading"
+    sid = r.json()["id"]
+    assert client.get(f"/api/v1/projects/{pid}/market", params={"location_id": lid}).json()["loading_snapshot_id"] == sid
+    status = "loading"
+    for _ in range(50):
+        status = client.get(f"/api/v1/projects/{pid}/snapshots/{sid}").json()["status"]
+        if status != "loading":
+            break
+        time.sleep(0.2)
+    assert status in ("complete", "partial")
+    m = client.get(f"/api/v1/projects/{pid}/market", params={"location_id": lid}).json()
+    assert m["snapshot"]["id"] == sid and m["loading_snapshot_id"] is None and len(m["competitors"]) == 3

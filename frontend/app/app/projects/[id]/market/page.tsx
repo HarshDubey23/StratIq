@@ -9,6 +9,7 @@ import { useProject } from "@/components/ProjectContext";
 import { Badge, Button, cn, Dialog, EmptyState, ErrorState, Evidence, Field, Input, Notice, NumberInput, Segmented, Select, Spinner } from "@/components/ui";
 import { api, ApiError } from "@/lib/api";
 import { ago, money, num, pct, when } from "@/lib/format";
+import { refreshLocation, waitForSnapshot } from "@/lib/market";
 import type { CompetitorRec, MarketData, Run, SimResult } from "@/lib/types";
 
 type Tab = "evidence" | "competitors" | "locations";
@@ -54,21 +55,39 @@ export default function MarketPage() {
     api<Run>(`/simulation-runs/${rid}/results`).then((r) => setBaseResult(r.results || null)).catch(() => setBaseResult(null));
   }, [baseline?.latest_run?.id]);
 
+  const [elapsed, setElapsed] = useState(0);
+
+  const finishJob = useCallback(
+    async (job: Promise<{ status: string; errors: { source: string; message: string }[] }>) => {
+      setRefreshing(true);
+      setError(null);
+      setElapsed(0);
+      try {
+        const s = await job;
+        if (s.status === "failed") setError(`Market data could not be loaded: ${s.errors.map((e) => e.message).join("; ") || "unknown error"}`);
+        await load();
+        await reload();
+        setDirty(true);
+      } catch (e) {
+        setError(e instanceof ApiError ? e.message : "Refresh failed");
+      } finally {
+        setRefreshing(false);
+      }
+    },
+    [load, reload],
+  );
+
   async function refresh() {
     if (!locId) return;
-    setRefreshing(true);
-    setError(null);
-    try {
-      await api(`/projects/${p.id}/locations/${locId}/refresh`, { method: "POST" });
-      await load();
-      await reload();
-      setDirty(true);
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Refresh failed");
-    } finally {
-      setRefreshing(false);
-    }
+    await finishJob(refreshLocation(p.id, locId, setElapsed));
   }
+
+  // A load started elsewhere (e.g. right after the wizard) is still running: follow it.
+  const pendingId = data?.loading_snapshot_id;
+  useEffect(() => {
+    if (pendingId && !refreshing) finishJob(waitForSnapshot(p.id, pendingId, setElapsed));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingId]);
 
   async function rerunBaseline() {
     if (!baseline) return;
@@ -156,7 +175,13 @@ export default function MarketPage() {
             Purple = user-entered competitors; white ring = hypothetical. Building heights are shown only where mapped in OSM.
           </div>
         </div>
-        {loading && <div className="absolute right-14 top-3 z-10 rounded bg-ink-900/90 px-2 py-1"><Spinner label="Loading" /></div>}
+        {loading && !refreshing && <div className="absolute right-14 top-3 z-10 rounded bg-ink-900/90 px-2 py-1"><Spinner label="Loading" /></div>}
+        {refreshing && (
+          <div className="absolute inset-x-0 top-14 z-10 mx-auto w-fit max-w-md rounded-md border border-accent/40 bg-ink-900/95 px-4 py-3 text-sm shadow-xl">
+            <Spinner label={`Loading live data from OpenStreetMap and WorldPop… ${elapsed}s`} />
+            <p className="mt-1 text-xs text-ink-400">Competitors, buildings and population for the catchment. Public services can take up to a minute.</p>
+          </div>
+        )}
       </section>
 
       <aside className="flex w-full flex-col border-l border-ink-800 bg-ink-950 lg:w-[400px]">
@@ -197,7 +222,7 @@ export default function MarketPage() {
 
           {tab === "evidence" && (
             <>
-              {!snap && !loading && (
+              {!snap && !loading && !refreshing && (
                 <EmptyState
                   icon={<Building2 className="h-6 w-6" />}
                   title="No market data loaded for this location"
@@ -579,7 +604,7 @@ function LocationsPanel({ currentId, onSelect, onChanged }: { currentId?: string
             onClick={async () => {
               setBusy(true);
               await api(`/projects/${p.id}/locations/${cur.id}`, { method: "PATCH", json: { catchment: { ...cur.catchment, radius_km: editRadius } } });
-              await api(`/projects/${p.id}/locations/${cur.id}/refresh`, { method: "POST" }).catch(() => undefined);
+              await refreshLocation(p.id, cur.id).catch(() => undefined);
               setBusy(false);
               onChanged();
             }}
@@ -611,7 +636,7 @@ function LocationsPanel({ currentId, onSelect, onChanged }: { currentId?: string
                 setErr(null);
                 try {
                   const l = await api<{ id: string }>(`/projects/${p.id}/locations`, { method: "POST", json: { label: "", address: place.address, lat: place.lat, lng: place.lng, catchment: { mode: "radius", radius_km: radius } } });
-                  await api(`/projects/${p.id}/locations/${l.id}/refresh`, { method: "POST" }).catch(() => undefined);
+                  await api(`/projects/${p.id}/locations/${l.id}/refresh`, { method: "POST" }).catch(() => undefined); // loads in the background; the map follows it
                   setAdding(false);
                   setPlace(null);
                   onChanged();

@@ -83,10 +83,12 @@ export function MarketPreview() {
           </div>
           <div>
             <div className="text-[11px] uppercase tracking-wide text-ink-400">Affordability by segment (illustrative)</div>
-            <div className="mt-2 flex h-20 items-end gap-2">
+            <div className="mt-2 flex items-end gap-2">
               {[38, 62, 88].map((h, i) => (
                 <div key={i} className="flex flex-1 flex-col items-center gap-1">
-                  <div className="w-full rounded-t bg-model/70" style={{ height: `${h}%` }} />
+                  <div className="flex h-16 w-full items-end">
+                    <div className="w-full rounded-t bg-model/70" style={{ height: `${h}%` }} />
+                  </div>
                   <span className="text-[10px] text-ink-400">{["Budget", "Mainstream", "Premium"][i]}</span>
                 </div>
               ))}

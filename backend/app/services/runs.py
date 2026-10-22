@@ -1,10 +1,11 @@
 """Snapshot persistence and simulation-run execution."""
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from geoalchemy2.functions import ST_DWithin, ST_GeogFromText
 from sqlalchemy import select
@@ -16,7 +17,7 @@ from ..db import session_factory
 from ..engine import model as em
 from ..engine.simulate import SimulationError, simulate
 from ..models import CandidateLocation, Competitor, MarketSnapshot, Project, Scenario, SimulationRun, utcnow
-from ..providers.http import Cache
+from ..providers.http import Cache, ProviderError
 from .market import build_snapshot
 
 log = logging.getLogger("strataiq.runs")
@@ -26,12 +27,67 @@ def point_wkt(lat: float, lng: float) -> str:
     return f"SRID=4326;POINT({lng:.7f} {lat:.7f})"
 
 
+LOADING_STALE_AFTER = timedelta(minutes=5)
+_background: set[asyncio.Task] = set()
+
+
 def latest_snapshot(db: Session, location_id: str) -> MarketSnapshot | None:
-    return db.scalars(select(MarketSnapshot).where(MarketSnapshot.location_id == location_id)
+    """Latest *usable* snapshot (complete, partial or failed — never one still loading)."""
+    return db.scalars(select(MarketSnapshot).where(MarketSnapshot.location_id == location_id, MarketSnapshot.status != "loading")
                       .order_by(MarketSnapshot.retrieved_at.desc()).limit(1)).first()
 
 
-async def refresh_snapshot(db: Session, project: Project, loc: CandidateLocation) -> MarketSnapshot:
+def loading_snapshot(db: Session, location_id: str) -> MarketSnapshot | None:
+    row = db.scalars(select(MarketSnapshot).where(MarketSnapshot.location_id == location_id, MarketSnapshot.status == "loading")
+                     .order_by(MarketSnapshot.retrieved_at.desc()).limit(1)).first()
+    if row and datetime.now(timezone.utc) - row.retrieved_at > LOADING_STALE_AFTER:
+        row.status = "failed"
+        row.errors = [{"source": "job", "message": "Loading was interrupted (server restart or timeout). Please refresh again."}]
+        db.commit()
+        return None
+    return row
+
+
+def _placeholder(project: Project, loc: CandidateLocation) -> MarketSnapshot:
+    return MarketSnapshot(project_id=project.id, location_id=loc.id, status="loading", catchment_geojson={}, catchment_method=loc.catchment.get("mode", "radius"),
+                          zones=[], population={"method": "unavailable", "source": None, "total": None},
+                          sources=[], coverage={"level": "unknown", "note": "Loading…", "signals": [], "method": ""}, activity_points=[], errors=[])
+
+
+def start_refresh(db: Session, project: Project, loc: CandidateLocation) -> MarketSnapshot:
+    """Create a 'loading' snapshot and fill it in the background (live providers can take a minute)."""
+    existing = loading_snapshot(db, loc.id)
+    if existing:
+        return existing
+    ms = _placeholder(project, loc)
+    db.add(ms)
+    db.commit()
+    db.refresh(ms)
+    task = asyncio.create_task(_refresh_job(ms.id))
+    _background.add(task)
+    task.add_done_callback(_background.discard)
+    return ms
+
+
+async def _refresh_job(snapshot_id: str) -> None:
+    with session_factory()() as db:
+        ms = db.get(MarketSnapshot, snapshot_id)
+        if ms is None:
+            return
+        project, loc = db.get(Project, ms.project_id), db.get(CandidateLocation, ms.location_id)
+        try:
+            await refresh_snapshot(db, project, loc, into=ms)
+        except Exception as e:  # never leave a job hanging in 'loading'
+            log.exception("snapshot job failed %s", snapshot_id)
+            db.rollback()
+            ms = db.get(MarketSnapshot, snapshot_id)
+            ms.status = "failed"
+            ms.errors = [{"source": "job", "message": (e.message if isinstance(e, ProviderError) else type(e).__name__)[:300]}]
+            ms.retrieved_at = datetime.now(timezone.utc)
+            db.commit()
+
+
+async def refresh_snapshot(db: Session, project: Project, loc: CandidateLocation, into: MarketSnapshot | None = None) -> MarketSnapshot:
     snap = await build_snapshot(lat=loc.lat, lng=loc.lng, catchment=loc.catchment, category=project.category,
                                 manual_population=loc.manual_population, cache=Cache(session_factory()))
     now = datetime.now(timezone.utc)
@@ -54,10 +110,13 @@ async def refresh_snapshot(db: Session, project: Project, loc: CandidateLocation
             row.name, row.lat, row.lng, row.tags = name[:200], c["lat"], c["lng"], c["tags"]
             row.geog = point_wkt(c["lat"], c["lng"])
             row.source_updated_at, row.retrieved_at = updated, retrieved
-    ms = MarketSnapshot(project_id=project.id, location_id=loc.id, status=snap["status"], catchment_geojson=snap["catchment_geojson"],
-                        catchment_method=snap["catchment_method"], zones=snap["zones"], population=snap["population"] | {"radius_km": snap["radius_km"]},
-                        sources=snap["sources"], coverage=snap["coverage"], activity_points=snap["activity_points"], errors=snap["errors"])
-    db.add(ms)
+    ms = into or MarketSnapshot(project_id=project.id, location_id=loc.id)
+    ms.status, ms.catchment_geojson, ms.catchment_method = snap["status"], snap["catchment_geojson"], snap["catchment_method"]
+    ms.zones, ms.population = snap["zones"], snap["population"] | {"radius_km": snap["radius_km"]}
+    ms.sources, ms.coverage, ms.activity_points, ms.errors = snap["sources"], snap["coverage"], snap["activity_points"], snap["errors"]
+    ms.retrieved_at = now
+    if into is None:
+        db.add(ms)
     db.commit()
     db.refresh(ms)
     return ms

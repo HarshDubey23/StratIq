@@ -182,6 +182,7 @@ export interface CompetitorRec {
 export interface MarketData {
   location: Location;
   snapshot: Snapshot | null;
+  loading_snapshot_id: string | null;
   competitors: CompetitorRec[];
   locations: Location[];
   category: Category;

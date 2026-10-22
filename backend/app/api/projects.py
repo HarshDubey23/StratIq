@@ -13,7 +13,7 @@ from ..models import CandidateLocation, Competitor, MarketSnapshot, Project, Sce
 from ..providers.http import ProviderError
 from ..schemas import CompetitorIn, CompetitorPatch, LocationIn, LocationPatch, ProjectCreate, ProjectPatch
 from ..security import current_user, owned_project
-from ..services.runs import competitors_for, latest_runs, latest_snapshot, point_wkt, refresh_snapshot
+from ..services.runs import competitors_for, latest_runs, latest_snapshot, loading_snapshot, point_wkt, refresh_snapshot, start_refresh
 from .serialize import competitor_out, location_out, project_out, scenario_out, snapshot_out
 
 router = APIRouter(tags=["projects"])
@@ -159,16 +159,34 @@ def delete_location(project_id: str, location_id: str, user: User = Depends(curr
 
 # ---------------- market evidence ----------------
 @router.post("/projects/{project_id}/locations/{location_id}/refresh")
-async def refresh_market(project_id: str, location_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)):
+async def refresh_market(project_id: str, location_id: str, response: Response, wait: bool = Query(default=False),
+                         user: User = Depends(current_user), db: Session = Depends(get_db)):
+    """Start loading live evidence. Returns 202 + a 'loading' snapshot to poll, or the finished snapshot with wait=true."""
     p = owned_project(project_id, user, db)
     loc = db.get(CandidateLocation, location_id)
     if not loc or loc.project_id != p.id:
         raise HTTPException(404, "Location not found")
-    try:
-        snap = await refresh_snapshot(db, p, loc)
-    except ProviderError as e:
-        raise HTTPException(502, f"Market data could not be loaded: {e.message[:200]}") from e
+    if wait:
+        try:
+            snap = await refresh_snapshot(db, p, loc)
+        except ProviderError as e:
+            raise HTTPException(502, f"Market data could not be loaded: {e.message[:200]}") from e
+        return snapshot_out(snap)
+    snap = start_refresh(db, p, loc)
+    response.status_code = 202
     return snapshot_out(snap)
+
+
+@router.get("/projects/{project_id}/snapshots/{snapshot_id}")
+def snapshot_status(project_id: str, snapshot_id: str, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    p = owned_project(project_id, user, db)
+    s = db.get(MarketSnapshot, snapshot_id)
+    if s is None or s.project_id != p.id:
+        raise HTTPException(404, "Snapshot not found")
+    if s.status == "loading":
+        loading_snapshot(db, s.location_id)  # marks stale jobs as failed
+        db.refresh(s)
+    return {"id": s.id, "status": s.status, "errors": s.errors, "location_id": s.location_id}
 
 
 @router.get("/projects/{project_id}/market")
@@ -188,7 +206,9 @@ def market(project_id: str, location_id: str | None = Query(default=None), user:
         d["distance_km"] = round(float(haversine_km(loc.lat, loc.lng, c.lat, c.lng)), 3)
         out_comps.append(d)
     out_comps.sort(key=lambda x: x["distance_km"])
+    loading = loading_snapshot(db, loc.id)
     return {"location": location_out(loc), "snapshot": snapshot_out(snap) if snap else None, "competitors": out_comps,
+            "loading_snapshot_id": loading.id if loading else None,
             "locations": [location_out(l) for l in p.locations], "category": p.category}
 
 
