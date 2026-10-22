@@ -29,7 +29,7 @@ CENTER = (12.9352, 77.6245)  # placeholder coordinates for the illustrative map 
 def create_demo(user: User = Depends(current_user), db: Session = Depends(get_db)):
     cat = from_taxonomy_key("gym", "gym").as_dict()
     p = Project(owner_id=user.id, name="Demo — Neighbourhood gym", objective="start_new", decision_goal="profit", category=cat,
-                profile={"description": "Illustrative demo project", "demo_label": DEMO_LABEL}, status="created", is_demo=True)
+                profile={"description": "Illustrative demo project", "demo_label": DEMO_LABEL, "positioning": ["Premium experience", "Better service"], "operating_hours": "5:30am–10:30pm"}, status="created", is_demo=True)
     db.add(p)
     db.flush()
     lat, lng = CENTER

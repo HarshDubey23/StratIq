@@ -15,7 +15,8 @@ from ..categories.archetypes import get_archetype
 from ..config import get_settings
 from ..db import session_factory
 from ..engine import model as em
-from ..engine.abm import run_abm
+from ..engine import genome as gm
+from ..engine.abm import build_population, cache_get, cache_put, run_abm
 from ..engine.simulate import SimulationError, simulate
 from ..models import CandidateLocation, Competitor, MarketSnapshot, Project, Scenario, SimulationRun, utcnow
 from ..providers.http import Cache, ProviderError
@@ -172,8 +173,10 @@ def execute_run(db: Session, project: Project, scenario: Scenario) -> Simulation
     ecomps = [em.Competitor(c.id, c.name, c.lat, c.lng, price=c.price, quality=c.quality, source="user" if c.source == "user" else "osm") for c in comps]
     snapshot_inputs = {
         "scenario": inputs, "category": project.category, "location": {"lat": loc.lat, "lng": loc.lng, "catchment": loc.catchment},
-        "snapshot_id": snap.id, "competitors": [{"id": c.id, "price": c.price, "quality": c.quality, "lat": c.lat, "lng": c.lng} for c in comps],
+        "snapshot_id": snap.id, "competitors": [{"id": c.id, "name": c.name, "price": c.price, "quality": c.quality, "lat": c.lat, "lng": c.lng} for c in comps],
         "reference_price_filled": ref_fill, "model_version": em.MODEL_VERSION,
+        "profile": {k: (project.profile or {}).get(k) for k in ("positioning", "operating_hours")}, "month0": gm.month_now(), "radius_km": radius,
+        "n_agents": get_settings().abm_agents,
     }
     run.inputs_snapshot = snapshot_inputs
     run.input_hash = _hash(snapshot_inputs)
@@ -188,8 +191,10 @@ def execute_run(db: Session, project: Project, scenario: Scenario) -> Simulation
             res["summary"]["reference_price_status"] = "assumption_baseline_price"
         # Agent-based "live market": synthetic people at real density, simulated day by day.
         params = em.ResolvedParams.from_archetype(arch, inputs.get("param_overrides") or {})
-        abm = run_abm(arch, zones, ecomps, biz, params, float(res["summary"]["reference_price"]), n_agents=get_settings().abm_agents,
-                      days=84, seed=seed, age_sex=snap.population.get("age_sex"), spacing_km=float(snap.population.get("spacing_km") or 0.35))
+        abm = run_abm(arch, zones, ecomps, biz, params, float(res["summary"]["reference_price"]), n_agents=snapshot_inputs["n_agents"],
+                      days=84, seed=seed, age_sex=snap.population.get("age_sex"), spacing_km=float(snap.population.get("spacing_km") or 0.35),
+                      overrides=inputs.get("param_overrides") or {}, profile=snapshot_inputs["profile"], offer=inputs.get("offer"),
+                      radius_km=radius, month0=snapshot_inputs["month0"], cache_key=run.id)
         vcu, fixed = float(res["summary"]["variable_cost_per_unit"] or 0), float(res["finance"]["fixed_cost"] or 0)
         cap = float(res["summary"]["capacity_units"] or 0)
         abm["monthly_finance"] = [{"month": i + 1, "units": u, "capped_units": min(u, cap) if cap else u,
@@ -224,3 +229,33 @@ def latest_runs(db: Session, project: Project) -> dict[str, SimulationRun]:
     for r in rows:
         out.setdefault(r.scenario_id, r)
     return out
+
+
+def population_for_run(db: Session, run: SimulationRun):
+    """Rebuild (or fetch from cache) the exact synthetic population of a finished run: same inputs + seed => same 615-parameter genomes."""
+    pop = cache_get(run.id)
+    abm = (run.results or {}).get("abm") or {}
+    if pop is None:
+        snap = db.get(MarketSnapshot, run.snapshot_id) if run.snapshot_id else None
+        if snap is None or not abm:
+            raise SimulationError("This run cannot be re-inspected (market snapshot missing).")
+        ins = run.inputs_snapshot or {}
+        sc = ins.get("scenario") or {}
+        project = db.get(Project, run.project_id)
+        arch = get_archetype((ins.get("category") or project.category)["archetype"])
+        loc = ins.get("location") or {}
+        biz = em.BusinessInputs(lat=loc["lat"], lng=loc["lng"], price=float(sc["price"]), quality=float(sc.get("quality", 0.55)),
+                                marketing_spend=float(sc.get("marketing_spend", 0)), capacity=sc.get("capacity") or {})
+        comps = [em.Competitor(c["id"], c.get("name") or "Competitor", c["lat"], c["lng"], price=c.get("price"), quality=c.get("quality"))
+                 for c in ins.get("competitors", [])]
+        zones = [em.Zone(z["lat"], z["lng"], z["population"], z.get("activity", 0)) for z in snap.zones if z["population"] > 0]
+        params = em.ResolvedParams.from_archetype(arch, sc.get("param_overrides") or {})
+        pop = build_population(arch, zones, comps, biz, params, float(run.results["summary"]["reference_price"]), n_agents=int(abm["n_agents"]),
+                               seed=int(run.seed), age_sex=snap.population.get("age_sex"), spacing_km=float(snap.population.get("spacing_km") or 0.35),
+                               profile=ins.get("profile") or project.profile, offer=sc.get("offer"), overrides=sc.get("param_overrides") or {},
+                               month0=int(ins.get("month0", gm.month_now())), days=int(abm.get("days", 84)))
+        cols = abm["agents"]["columns"]
+        im = cols.index("in_market")
+        pop.gen.G[:, gm.KI["ev_in_market"]] = [r[im] for r in abm["agents"]["rows"]]
+        cache_put(run.id, pop)
+    return pop, abm
