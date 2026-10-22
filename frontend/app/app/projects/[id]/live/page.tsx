@@ -200,6 +200,9 @@ export default function LiveMarket() {
         </div>
         {error && <ErrorState message={error} />}
         {sc.latest_run?.stale && <Notice tone="warn">Inputs changed since this run. Re-run to update the live market.</Notice>}
+        {res?.evidence?.failed_layers?.includes("competitors") && (res?.competitors?.length || 0) === 0 && (
+          <Notice tone="warn">Competitor data failed to load for this location, so this run has no competitors and is optimistic. Refresh live data on the Market map, then re-run.</Notice>
+        )}
 
         {ag && abm && (
           <div className="rounded-lg border border-accent/40 bg-accent/5 p-3 text-xs">

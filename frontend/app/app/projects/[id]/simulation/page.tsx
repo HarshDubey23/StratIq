@@ -288,6 +288,9 @@ export default function SimulationLab() {
         {/* CENTER: map + analysis */}
         <section className="min-w-0 space-y-4 p-4 xl:max-h-[calc(100vh-150px)] xl:overflow-y-auto">
           {error && <ErrorState message={error} />}
+          {res?.evidence?.failed_layers?.includes("competitors") && res.competitors.length === 0 && (
+            <Notice tone="warn">Competitor data failed to load for this location, so this run assumes no competitors and is optimistic. Refresh live data on the Market map, then re-run.</Notice>
+          )}
           <div className="relative h-[380px] overflow-hidden rounded-lg border border-ink-700">
             <MarketMap
               fill

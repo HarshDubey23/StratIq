@@ -74,7 +74,10 @@ def _gaps(evidence: dict, result: dict) -> list[dict]:
     gaps = []
     comps = result.get("competitors", [])
     n_unknown_price = sum(1 for c in comps if c["price_status"] == "assumed")
-    if not comps:
+    if "competitors" in (evidence.get("failed_layers") or []) and not comps:
+        gaps.append({"key": "competitor_load_failed", "severity": "high", "text": "Competitor data failed to load from OpenStreetMap, so this run assumes no mapped competitors. The result is optimistic until competitors are loaded.",
+                     "action": "Refresh live data on the Market map (public map servers are sometimes busy), or add competitors you know manually."})
+    elif not comps:
         gaps.append({"key": "no_competitors", "severity": "high", "text": "No competitors were found in the data sources for this catchment. Either the market is unserved or the map data is incomplete.",
                      "action": "Walk or drive the catchment and add every competitor you see. An empty map is more often a data gap than an empty market."})
     if n_unknown_price:

@@ -202,6 +202,7 @@ def execute_run(db: Session, project: Project, scenario: Scenario) -> Simulation
             "coverage": snap.coverage, "n_competitors": len(ecomps),
             "n_user_competitors": sum(1 for c in comps if c.source == "user"),
             "n_hypothetical": sum(1 for c in comps if c.is_hypothetical),
+            "failed_layers": sorted({e.get("source") for e in (snap.errors or []) if e.get("source")}),
         }
         run.results, run.status = res, "succeeded"
         run.duration_ms = res.get("duration_ms")

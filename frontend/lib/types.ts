@@ -278,6 +278,7 @@ export interface SimResult {
     n_competitors: number;
     n_user_competitors: number;
     n_hypothetical: number;
+    failed_layers?: string[];
   };
 }
 

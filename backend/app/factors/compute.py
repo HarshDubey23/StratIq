@@ -50,6 +50,7 @@ def compute(project, arch: Archetype, loc, snap, competitors: list, scenario_inp
 
     lat, lng = loc.lat, loc.lng
     # ---------------- geography / context POIs ----------------
+    failed = {e.get("source") for e in ((snap.errors or []) if snap is not None else [])}
     if snap is not None:
         pts = snap.activity_points or []
         by_kind: dict[str, list] = {}
@@ -57,7 +58,7 @@ def compute(project, arch: Archetype, loc, snap, competitors: list, scenario_inp
             by_kind.setdefault(p.get("kind"), []).append(p)
         radius = float(snap.population.get("radius_km") or 1)
         area = math.pi * radius ** 2
-        for k, _ in POI_TYPES:
+        for k, _ in ([] if "context" in failed else POI_TYPES):
             arr = by_kind.get(k, [])
             if arr:
                 d = haversine_km(lat, lng, np.array([a["lat"] for a in arr]), np.array([a["lng"] for a in arr]))
@@ -72,7 +73,7 @@ def compute(project, arch: Archetype, loc, snap, competitors: list, scenario_inp
         put("geo_catchment_radius", radius)
         put("geo_zone_count", len(snap.zones))
         put("geo_zone_spacing", snap.population.get("spacing_km"))
-        put("geo_poi_density", len(pts) / area if area else None)
+        put("geo_poi_density", (len(pts) / area if area else None) if "context" not in failed else None)
         if pts:
             commercial = sum(1 for p in pts if p["kind"] in ("restaurant", "cafe", "fast_food", "mall", "supermarket", "convenience", "office", "hotel", "marketplace"))
             civic = sum(1 for p in pts if p["kind"] in ("school", "college", "university", "hospital", "clinic", "place_of_worship", "library", "police", "post_office"))
@@ -134,9 +135,10 @@ def compute(project, arch: Archetype, loc, snap, competitors: list, scenario_inp
             if not arr:
                 return 0
             return int((haversine_km(lat, lng, np.array([a["lat"] for a in arr]), np.array([a["lng"] for a in arr])) <= km).sum())
-        put("mob_bus_stops_500m", within(bs, 0.5))
-        put("mob_rail_1500m", within(rs, 1.5))
-        put("mob_parking_500m", within(pk, 0.5))
+        if "context" not in failed:
+            put("mob_bus_stops_500m", within(bs, 0.5))
+            put("mob_rail_1500m", within(rs, 1.5))
+            put("mob_parking_500m", within(pk, 0.5))
         if snap.zones:
             zl = np.array([z["lat"] for z in snap.zones])
             zg = np.array([z["lng"] for z in snap.zones])
@@ -149,7 +151,8 @@ def compute(project, arch: Archetype, loc, snap, competitors: list, scenario_inp
 
         # ---------------- competition ----------------
         act = [c for c in competitors if c.active]
-        put("cmp_count", len(act))
+        comp_ok = "competitors" not in failed or bool(act)
+        put("cmp_count", len(act) if comp_ok else None)
         put("cmp_user_added", sum(1 for c in act if c.source == "user"))
         put("cmp_hypothetical", sum(1 for c in act if c.is_hypothetical))
         put("cmp_excluded", sum(1 for c in competitors if not c.active))
@@ -184,7 +187,7 @@ def compute(project, arch: Archetype, loc, snap, competitors: list, scenario_inp
                 put("eco_competitor_price_min", min(prices))
                 put("eco_competitor_price_max", max(prices))
             put("cmp_quality_known_share", sum(1 for c in act if c.quality is not None) / len(act))
-        else:
+        elif comp_ok:
             for key in ("0_5", "1", "2", "3"):
                 put(f"cmp_count_{key}km", 0)
         put("cmp_coverage_level", (snap.coverage or {}).get("level"))

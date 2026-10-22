@@ -34,7 +34,8 @@ def _decision(db: Session, p: Project, goal: str | None) -> dict:
     if scen:
         best_ev = scen[0]["result"].get("evidence") or {}
         evidence = {"population_method": best_ev.get("population_method"), "population_source": best_ev.get("population_source"),
-                    "catchment_method": best_ev.get("catchment_method"), "coverage": best_ev.get("coverage")}
+                    "catchment_method": best_ev.get("catchment_method"), "coverage": best_ev.get("coverage"),
+                    "failed_layers": best_ev.get("failed_layers") or []}
     d = decide(scen, goal, evidence, ARCHETYPES[p.category["archetype"]].label)
     d["stale_scenarios"] = [s["name"] for s in scen if s["stale"]]
     d["not_run"] = [s.name for s in p.scenarios if s.id not in runs]

@@ -31,6 +31,7 @@ class Settings:
         "https://overpass-api.de/api/interpreter",
         "https://overpass.private.coffee/api/interpreter",
         "https://overpass.kumi.systems/api/interpreter",
+        "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
     ]))
     worldpop_url: str = field(default_factory=lambda: os.getenv("WORLDPOP_URL", "https://api.worldpop.org/v1"))
     worldpop_year: int = field(default_factory=lambda: int(os.getenv("WORLDPOP_YEAR", "2020")))
