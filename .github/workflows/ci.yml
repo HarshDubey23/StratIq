@@ -34,11 +34,27 @@ jobs:
           cache-dependency-path: backend/requirements-dev.txt
       - run: pip install -r requirements-dev.txt
       - name: Lint
-        run: ruff check .
+        run: ruff check --output-format=github .
       - name: Migrations apply cleanly
         run: alembic upgrade head && alembic downgrade base && alembic upgrade head
       - name: Tests (engine, providers, API + PostGIS)
-        run: pytest -v
+        run: |
+          set -o pipefail
+          pytest -v -rfE --tb=short 2>&1 | tee pytest.log
+      - name: Surface test failures as annotations
+        if: failure()
+        run: |
+          [ -f pytest.log ] || exit 0
+          python3 - <<'PY'
+          import re
+          log = open("pytest.log").read()
+          blocks = re.split(r"\n_{5,} ", log)
+          for b in blocks[1:9]:
+              msg = b[:3500].replace("%", "%25").replace("\r", "").replace("\n", "%0A")
+              print(f"::error title=pytest::{msg}")
+          tail = log[-3000:].replace("%", "%25").replace("\n", "%0A")
+          print(f"::error title=pytest-summary::{tail}")
+          PY
 
   backend-live:
     # Real calls to OpenStreetMap / WorldPop to prove the live data path works.
@@ -59,7 +75,12 @@ jobs:
           cache: pip
           cache-dependency-path: backend/requirements-dev.txt
       - run: pip install -r requirements-dev.txt
-      - run: pytest -v -s -m live tests/test_live.py
+      - run: |
+          set -o pipefail
+          pytest -v -s -rA -m live tests/test_live.py 2>&1 | tee live.log
+      - if: always()
+        run: |
+          [ -f live.log ] && python3 -c "import sys;l=open('live.log').read()[-3500:];print('::notice title=live-results::'+l.replace('%','%25').replace(chr(10),'%0A'))" || true
 
   frontend:
     runs-on: ubuntu-latest
@@ -75,8 +96,16 @@ jobs:
           node-version: "22"
       - run: npm install --no-audit --no-fund
       - name: Typecheck
-        run: npx tsc --noEmit
+        run: |
+          set -o pipefail
+          npx tsc --noEmit 2>&1 | tee tsc.log
       - name: Lint
         run: npm run lint
       - name: Build
-        run: npm run build
+        run: |
+          set -o pipefail
+          npm run build 2>&1 | tee build.log
+      - name: Surface frontend errors as annotations
+        if: failure()
+        run: |
+          for f in tsc.log build.log; do [ -f $f ] && python3 -c "import sys;l=open('$f').read()[-3800:];print('::error title=$f::'+l.replace('%','%25').replace(chr(10),'%0A'))"; done; true

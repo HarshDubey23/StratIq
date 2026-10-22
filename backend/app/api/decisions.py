@@ -10,7 +10,7 @@ from .. import ai
 from ..categories.archetypes import ARCHETYPES
 from ..db import get_db
 from ..engine.recommend import decide
-from ..models import ActualOutcome, CandidateLocation, Competitor, Project, Report, User, utcnow
+from ..models import ActualOutcome, Competitor, Project, Report, User, utcnow
 from ..schemas import OutcomeIn
 from ..security import current_user, owned_project
 from ..services.runs import latest_runs, latest_snapshot
