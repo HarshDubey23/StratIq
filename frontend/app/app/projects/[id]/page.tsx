@@ -2,6 +2,7 @@
 
 import { ArrowRight, CheckCircle2, Circle } from "lucide-react";
 import Link from "next/link";
+import MarketGlance from "@/components/MarketGlance";
 import { useProject } from "@/components/ProjectContext";
 import { Badge, Card, CardHeader, Evidence, Select } from "@/components/ui";
 import { api } from "@/lib/api";
@@ -33,9 +34,10 @@ export default function Overview() {
 
   const profile = p.profile as Record<string, unknown>;
   return (
-    <main className="mx-auto w-full max-w-6xl space-y-5 p-4 md:p-6">
+    <main className="mx-auto w-full max-w-7xl space-y-5 p-4 md:p-8">
+      <MarketGlance project={p} />
       {next && (
-        <Link href={next.href} className="flex items-center justify-between rounded-lg border border-accent/40 bg-accent/5 px-4 py-3 text-sm hover:bg-accent/10">
+        <Link href={next.href} className="flex items-center justify-between rounded-2xl border border-accent/40 bg-accent/[0.06] px-5 py-4 text-sm transition-colors hover:bg-accent/10">
           <span><span className="text-ink-300">Next step:</span> <span className="font-medium text-ink-100">{next.t}</span></span>
           <ArrowRight className="h-4 w-4 text-accent" />
         </Link>
