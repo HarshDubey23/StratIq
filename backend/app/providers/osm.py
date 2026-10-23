@@ -382,7 +382,7 @@ async def fetch_competitors(lat: float, lng: float, radius_m: int, filters: list
     if not filters:
         return [], provenance("osm_overpass", status="skipped", detail="No category filters.")
     q = build_poi_query(lat, lng, radius_m, filters, timeout=int(timeout_s) - 5, limit=limit)
-    key = cache_key("osm_merged_v3", {"q": q, "t": terms or [], "fsq": bool(get_settings().fsq_api_key)})
+    key = cache_key("osm_merged_v4", {"q": q, "t": terms or [], "fsq": bool(get_settings().fsq_api_key)})
     if cache and (hit := cache.get(key)):
         pois = hit[0]["pois"]
         prov = provenance("osm_overpass", retrieved_at=hit[1], cached=True, source_updated_at=hit[0].get("osm_base"),
