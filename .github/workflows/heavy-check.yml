@@ -1,0 +1,18 @@
+name: Dense market check
+on:
+  workflow_dispatch:
+    inputs:
+      idea:
+        description: Idea sentence
+        default: "A café in Koramangala, Bengaluru, coffee at ₹250"
+jobs:
+  heavy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: node e2e/heavy.mjs
+        env:
+          IDEA: ${{ github.event.inputs.idea }}
