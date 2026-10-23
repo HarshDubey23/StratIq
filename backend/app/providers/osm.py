@@ -382,11 +382,14 @@ async def fetch_competitors(lat: float, lng: float, radius_m: int, filters: list
     if not filters:
         return [], provenance("osm_overpass", status="skipped", detail="No category filters.")
     q = build_poi_query(lat, lng, radius_m, filters, timeout=int(timeout_s) - 5, limit=limit)
-    key = cache_key("osm_merged_v2", {"q": q, "t": terms or []})
+    key = cache_key("osm_merged_v3", {"q": q, "t": terms or [], "fsq": bool(get_settings().fsq_api_key)})
     if cache and (hit := cache.get(key)):
         pois = hit[0]["pois"]
-        return pois, provenance("osm_overpass", retrieved_at=hit[1], cached=True, source_updated_at=hit[0].get("osm_base"),
-                                detail=hit[0].get("detail") or f"{len(pois)} features")
+        prov = provenance("osm_overpass", retrieved_at=hit[1], cached=True, source_updated_at=hit[0].get("osm_base"),
+                          detail=hit[0].get("detail") or f"{len(pois)} features")
+        if hit[0].get("fq"):
+            prov["also"] = [provenance("foursquare", retrieved_at=hit[1], cached=True, detail=hit[0]["fq"])]
+        return pois, prov
 
     async def ov():
         try:
@@ -403,7 +406,17 @@ async def fetch_competitors(lat: float, lng: float, radius_m: int, filters: list
             log.warning("photon failed: %s", e)
             return []
 
-    (ov_pois, osm_base, host), ph_pois = await asyncio.gather(ov(), ph())
+    async def fq():
+        from . import foursquare
+        if not foursquare.enabled():
+            return []
+        try:
+            return await asyncio.wait_for(foursquare.fsq_pois(lat, lng, radius_m, terms or []), timeout_s)
+        except Exception as e:  # noqa: BLE001 — optional commercial source must never break the snapshot
+            log.warning("foursquare failed: %s", e)
+            return []
+
+    (ov_pois, osm_base, host), ph_pois, fq_pois = await asyncio.gather(ov(), ph(), fq())
     merged = _merge_pois(ov_pois or [], ph_pois)
     used = (["Overpass" + (f" ({host})" if host else "")] if ov_pois is not None else []) + (["Photon"] if ph_pois else [])
     if len(merged) < 5:
@@ -414,10 +427,20 @@ async def fetch_competitors(lat: float, lng: float, radius_m: int, filters: list
         if nm:
             merged = _merge_pois(merged, nm)
             used.append("Nominatim")
+    n_osm = len(merged)
+    fq_added = 0
+    if fq_pois:
+        from .foursquare import merge_with_osm
+        merged, fq_added = merge_with_osm(merged, fq_pois)
     if not merged and ov_pois is None:
         raise ProviderError("overpass", "Overpass mirrors busy and the search indexes returned nothing")
-    detail = (f"{len(merged)} competitors within {radius_m} m, merged from OpenStreetMap servers: {', '.join(used) or 'none'}"
-              f" (Overpass {len(ov_pois or [])}, Photon {len(ph_pois)})")
+    detail = (f"{len(merged)} competitors within {radius_m} m: {n_osm} from OpenStreetMap ({', '.join(used) or 'none'}; "
+              f"Overpass {len(ov_pois or [])}, Photon {len(ph_pois)})"
+              + (f" + {fq_added} more from Foursquare Places ({len(fq_pois)} found, {len(fq_pois) - fq_added} already in OSM)" if fq_pois else ""))
+    fq_detail = f"{len(fq_pois)} places found, {fq_added} not in OpenStreetMap added" if fq_pois else ""
     if cache and merged:
-        cache.put(key, "osm_merged", {"pois": merged, "osm_base": osm_base, "detail": detail}, timedelta(hours=12))
-    return merged, provenance("osm_overpass", source_updated_at=osm_base, detail=detail)
+        cache.put(key, "osm_merged", {"pois": merged, "osm_base": osm_base, "detail": detail, "fq": fq_detail}, timedelta(hours=12))
+    prov = provenance("osm_overpass", source_updated_at=osm_base, detail=detail)
+    if fq_detail:
+        prov["also"] = [provenance("foursquare", detail=fq_detail)]
+    return merged, prov

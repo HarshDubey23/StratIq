@@ -131,7 +131,7 @@ export default function MarketPage() {
   const center: [number, number] = loc ? [loc.lng, loc.lat] : [78.96, 22.59];
 
   const mapComps = useMemo(
-    () => comps.map((c) => ({ id: c.id, name: c.name, lat: c.lat, lng: c.lng, kind: (c.source === "user" ? (c.is_hypothetical ? "hypothetical" : "user") : c.source) as "osm" | "user" | "hypothetical" | "demo", inactive: !c.active })),
+    () => comps.map((c) => ({ id: c.id, name: c.name, lat: c.lat, lng: c.lng, kind: (c.source === "user" ? (c.is_hypothetical ? "hypothetical" : "user") : c.source === "foursquare" ? "fsq" : c.source) as "osm" | "fsq" | "user" | "hypothetical" | "demo", inactive: !c.active })),
     [comps],
   );
   const zones = useMemo(() => (snap?.zones || []).map((z) => ({ lat: z.lat, lng: z.lng, value: z.population })), [snap]);
@@ -473,7 +473,7 @@ function CompetitorPanel({
         <Row k="Distance from site" v={`${num(c.distance_km, 2)} km (straight line)`} />
         {c.category_tag && <Row k="Map category" v={c.category_tag} />}
         {attrs.map(([k, v]) => <Row key={k} k={k} v={v} />)}
-        <Row k="Source" v={c.source === "osm" ? "OpenStreetMap" : c.source === "user" ? "Entered by you" : "Demo dataset"} />
+        <Row k="Source" v={c.source === "osm" ? "OpenStreetMap" : c.source === "foursquare" ? "Foursquare Places" : c.source === "user" ? "Entered by you" : "Demo dataset"} />
         {c.source_updated_at && <Row k="Record last edited" v={when(c.source_updated_at)} />}
         {c.retrieved_at && <Row k="Retrieved" v={ago(c.retrieved_at)} />}
         {c.osm_url && (

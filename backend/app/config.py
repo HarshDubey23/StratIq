@@ -35,6 +35,7 @@ class Settings:
     ]))
     worldpop_url: str = field(default_factory=lambda: os.getenv("WORLDPOP_URL", "https://api.worldpop.org/v1"))
     worldpop_year: int = field(default_factory=lambda: int(os.getenv("WORLDPOP_YEAR", "2020")))
+    fsq_api_key: str = field(default_factory=lambda: os.getenv("FSQ_API_KEY", ""))
     ors_api_key: str = field(default_factory=lambda: os.getenv("ORS_API_KEY", ""))
     ors_url: str = field(default_factory=lambda: os.getenv("ORS_URL", "https://api.openrouteservice.org"))
     anthropic_api_key: str = field(default_factory=lambda: os.getenv("ANTHROPIC_API_KEY", ""))

@@ -11,7 +11,7 @@ export interface MapCompetitor {
   name: string;
   lat: number;
   lng: number;
-  kind: "osm" | "user" | "hypothetical" | "demo";
+  kind: "osm" | "fsq" | "user" | "hypothetical" | "demo";
   inactive?: boolean;
 }
 
@@ -181,7 +181,7 @@ export default function MapView(props: Props) {
           const f = e.features?.[0];
           if (f && f.geometry.type === "Point") {
             const k = String(f.properties?.k);
-            const tag = k === "osm" ? "Observed (OpenStreetMap)" : k === "user" ? "User-entered" : k === "hypothetical" ? "Hypothetical" : "Demo";
+            const tag = k === "osm" ? "Observed (OpenStreetMap)" : k === "fsq" ? "Observed (Foursquare Places)" : k === "user" ? "User-entered" : k === "hypothetical" ? "Hypothetical" : "Demo";
             const div = document.createElement("div");
             const b = document.createElement("div");
             b.style.fontWeight = "600";
@@ -252,7 +252,7 @@ export default function MapView(props: Props) {
   useEffect(() => {
     const m = map.current;
     if (!ready || !m) return;
-    const col = { osm: "#6F8CFF", user: "#C59BFF", hypothetical: "#C59BFF", demo: "#fbbf24" };
+    const col = { osm: "#6F8CFF", fsq: "#6F8CFF", user: "#C59BFF", hypothetical: "#C59BFF", demo: "#fbbf24" };
     (m.getSource("siq-comps") as GeoJSONSource).setData(
       fc(
         (props.competitors || []).map((c) =>
@@ -323,17 +323,17 @@ export default function MapView(props: Props) {
         }),
       depth && L.competitors !== false &&
         new DL.ColumnLayer({
-          id: "comp-pillars", data: comps.map((c) => ({ ...c, tip: `${c.name || "Unnamed"} — ${c.kind === "osm" ? "observed in OpenStreetMap" : c.kind === "user" ? "entered by you" : c.kind}${w[c.id] ? `\nmodeled ${Math.round(w[c.id])} customers/mo` : ""}` })),
+          id: "comp-pillars", data: comps.map((c) => ({ ...c, tip: `${c.name || "Unnamed"} — ${c.kind === "osm" ? "observed in OpenStreetMap" : c.kind === "fsq" ? "observed in Foursquare Places" : c.kind === "user" ? "entered by you" : c.kind}${w[c.id] ? `\nmodeled ${Math.round(w[c.id])} customers/mo` : ""}` })),
           diskResolution: 24, radius: 24, extruded: true,
           getPosition: (c: MapCompetitor) => [c.lng, c.lat], getElevation: (c: MapCompetitor) => 120 + ((w[c.id] || 0) / wmax) * 520,
-          getFillColor: (c: MapCompetitor) => (c.kind === "osm" ? [...C.comp, 235] : [...C.user, 235]) as [number, number, number, number],
+          getFillColor: (c: MapCompetitor) => (c.kind === "osm" || c.kind === "fsq" ? [...C.comp, 235] : [...C.user, 235]) as [number, number, number, number],
           pickable: true, onClick: (info: { object?: MapCompetitor }) => { if (info.object) handlers.current.onCompetitorClick?.(info.object.id); },
           transitions: { getElevation: { duration: 900 } }, updateTriggers: { getElevation: [wmax, Object.keys(w).length] },
         }),
       depth && L.competitors !== false &&
         new DL.ScatterplotLayer({
           id: "comp-glow", data: comps, getPosition: (c: MapCompetitor) => [c.lng, c.lat], getRadius: 70, radiusUnits: "meters",
-          getFillColor: (c: MapCompetitor) => (c.kind === "osm" ? [...C.comp, 55] : [...C.user, 55]) as [number, number, number, number], stroked: false,
+          getFillColor: (c: MapCompetitor) => (c.kind === "osm" || c.kind === "fsq" ? [...C.comp, 55] : [...C.user, 55]) as [number, number, number, number], stroked: false,
         }),
       depth && L.competitors !== false &&
         new DL.TextLayer({

@@ -111,3 +111,15 @@ async def preview(spot: str = Query(default="cp-delhi"), category: str = Query(d
             "competitors": [{"name": p["name"] or "Unnamed", "lat": p["lat"], "lng": p["lng"], "ref": p["ref"]} for p in pois],
             "source": {"name": prov.get("name"), "retrieved_at": prov.get("retrieved_at"), "detail": prov.get("detail"),
                        "from_cache": prov.get("from_cache"), "attribution": prov.get("attribution")}}
+
+
+@router.get("/market/sources-check")
+async def sources_check():
+    """Public diagnostic: is the optional Foursquare source configured and answering? (Never returns the key.)"""
+    from ..providers import foursquare
+    if not foursquare.enabled():
+        return {"foursquare": {"enabled": False}}
+    pois = await foursquare.fsq_pois(28.6315, 77.2167, 1200, ["pizza"])
+    return {"foursquare": {"enabled": True, "results_near_cp_delhi_pizza": len(pois), "api": foursquare.STATUS["api"],
+                           "last_http": foursquare.STATUS["last_http"], "last_error": foursquare.STATUS["last_error"],
+                           "sample": [p["name"] for p in pois[:8]]}}

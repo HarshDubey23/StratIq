@@ -29,6 +29,14 @@ SOURCES: dict[str, dict] = {
         "url": "https://photon.komoot.io/",
         "coverage_note": "Same OpenStreetMap features as Overpass, from a search index. Used when Overpass mirrors are busy; edit dates are not available.",
     },
+    "foursquare": {
+        "name": "Foursquare Places",
+        "kind": "observed",
+        "license": "Foursquare Places API terms",
+        "attribution": "Places data © Foursquare",
+        "url": "https://foursquare.com/products/places-api/",
+        "coverage_note": "Commercial places database. Adds businesses not yet mapped in OpenStreetMap; a place found in both is counted once.",
+    },
     "worldpop": {
         "name": "WorldPop Global population (100 m, unconstrained)",
         "kind": "official_aggregate_estimate",

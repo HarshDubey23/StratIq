@@ -178,8 +178,10 @@ async def build_snapshot(*, lat: float, lng: float, catchment: dict, category: d
             vals[nm] = data
             if prov:
                 prov = dict(prov)
+                also = prov.pop("also", None) or []
                 prov["layer"] = nm
                 sources.append(prov)
+                sources.extend({**a, "layer": nm} for a in also)
     comps = vals["competitors"] or []
     context = []
     for c in vals["context"] or []:

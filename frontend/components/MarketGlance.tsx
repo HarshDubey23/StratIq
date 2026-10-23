@@ -25,7 +25,7 @@ export default function MarketGlance({ project: p }: { project: Project }) {
   }, [baseline?.latest_run?.id]);
 
   const snap = data?.snapshot;
-  const comps = useMemo(() => (data?.competitors || []).filter((c) => c.active).map((c) => ({ id: c.id, name: c.name, lat: c.lat, lng: c.lng, kind: (c.source === "user" ? "user" : c.source) as "osm" | "user" | "demo" })), [data]);
+  const comps = useMemo(() => (data?.competitors || []).filter((c) => c.active).map((c) => ({ id: c.id, name: c.name, lat: c.lat, lng: c.lng, kind: (c.source === "user" ? "user" : c.source === "foursquare" ? "fsq" : c.source) as "osm" | "fsq" | "user" | "demo" })), [data]);
   const zones = useMemo(() => (snap?.zones || []).map((z) => ({ lat: z.lat, lng: z.lng, value: z.population })), [snap]);
   const weight = useMemo(() => Object.fromEntries((res?.competitors || []).map((c) => [c.id, c.modeled_units])), [res]);
   if (!loc) return null;

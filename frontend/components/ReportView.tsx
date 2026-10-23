@@ -97,7 +97,7 @@ export function ReportView({ c }: { c: ReportContent }) {
         <thead><tr className="text-left text-ink-400"><th className="py-1 font-normal">Name</th><th className="font-normal">Source</th><th className="text-right font-normal">Price</th><th className="text-right font-normal">Last edited</th></tr></thead>
         <tbody>
           {c.competitors.slice(0, 30).map((x) => (
-            <tr key={x.id} className="border-t border-white/[0.06]"><td className="py-1">{x.name}{!x.active && " (excluded)"}</td><td>{x.source === "osm" ? "OpenStreetMap" : x.source === "user" ? (x.is_hypothetical ? "Hypothetical" : "User-observed") : "Demo"}</td><td className="text-right">{x.price ? money(x.price) : "unknown"}</td><td className="text-right">{x.source_updated_at ? when(x.source_updated_at).split(",")[0] : "—"}</td></tr>
+            <tr key={x.id} className="border-t border-white/[0.06]"><td className="py-1">{x.name}{!x.active && " (excluded)"}</td><td>{x.source === "osm" ? "OpenStreetMap" : x.source === "foursquare" ? "Foursquare Places" : x.source === "user" ? (x.is_hypothetical ? "Hypothetical" : "User-observed") : "Demo"}</td><td className="text-right">{x.price ? money(x.price) : "unknown"}</td><td className="text-right">{x.source_updated_at ? when(x.source_updated_at).split(",")[0] : "—"}</td></tr>
           ))}
         </tbody>
       </table>

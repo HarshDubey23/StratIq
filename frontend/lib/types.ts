@@ -160,7 +160,7 @@ export interface Snapshot {
 
 export interface CompetitorRec {
   id: string;
-  source: "osm" | "user" | "demo";
+  source: "osm" | "foursquare" | "user" | "demo";
   source_ref: string | null;
   name: string;
   lat: number;

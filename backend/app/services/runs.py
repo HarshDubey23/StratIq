@@ -95,7 +95,7 @@ async def refresh_snapshot(db: Session, project: Project, loc: CandidateLocation
     now = datetime.now(timezone.utc)
     comp_src = next((s for s in snap["sources"] if s.get("layer") == "competitors"), None)
     retrieved = datetime.fromisoformat(comp_src["retrieved_at"]) if comp_src else now
-    existing = {c.source_ref: c for c in db.scalars(select(Competitor).where(Competitor.project_id == project.id, Competitor.source == "osm"))}
+    existing = {c.source_ref: c for c in db.scalars(select(Competitor).where(Competitor.project_id == project.id, Competitor.source.in_(("osm", "foursquare"))))}
     for c in snap["competitors"]:
         row = existing.get(c["ref"])
         updated = None
@@ -106,7 +106,7 @@ async def refresh_snapshot(db: Session, project: Project, loc: CandidateLocation
                 updated = None
         name = c["name"] or f"Unnamed {project.category.get('label', 'business').lower()}"
         if row is None:
-            db.add(Competitor(project_id=project.id, source="osm", source_ref=c["ref"], name=name[:200], lat=c["lat"], lng=c["lng"],
+            db.add(Competitor(project_id=project.id, source="foursquare" if c["ref"].startswith("fsq/") else "osm", source_ref=c["ref"], name=name[:200], lat=c["lat"], lng=c["lng"],
                               geog=point_wkt(c["lat"], c["lng"]), tags=c["tags"], source_updated_at=updated, retrieved_at=retrieved))
         else:  # refresh observed fields, keep user-entered price/quality/active
             row.name, row.lat, row.lng, row.tags = name[:200], c["lat"], c["lng"], c["tags"]

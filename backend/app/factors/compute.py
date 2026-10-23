@@ -168,7 +168,7 @@ def compute(project, arch: Archetype, loc, snap, competitors: list, scenario_inp
                 put(f"cmp_count_{key}km", int((d <= km).sum()))
             put("cmp_nearest_km", d.min())
             put("cmp_mean_distance_km", d.mean())
-            osm_c = [c for c in act if c.source == "osm"]
+            osm_c = [c for c in act if c.source in ("osm", "foursquare")]
             if osm_c:
                 put("cmp_named_share", sum(1 for c in osm_c if not c.name.startswith("Unnamed")) / len(osm_c))
                 put("cmp_hours_known_share", sum(1 for c in osm_c if (c.tags or {}).get("opening_hours")) / len(osm_c))
