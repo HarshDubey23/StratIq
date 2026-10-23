@@ -29,7 +29,7 @@ def _e(key, label, archetype, filters, synonyms=()):
 
 TAXONOMY: tuple[TaxonomyEntry, ...] = (
     # --- membership ---
-    _e("gym", "Gym / fitness centre", "membership", ['["leisure"="fitness_centre"]', '["amenity"="gym"]', '["sport"="fitness"]'], ("fitness", "workout", "crossfit", "bodybuilding", "health club", "jim")),
+    _e("gym", "Gym / fitness centre", "membership", ['["leisure"="fitness_centre"]', '["amenity"="gym"]', '["sport"="fitness"]', '["name"~"(^| )gym( |$)|fitness|cult.?fit|gold.?s gym|anytime fitness|snap fitness|talwalkar|crossfit|f45",i]["leisure"!="pitch"]'], ("fitness", "workout", "crossfit", "bodybuilding", "health club", "jim")),
     _e("yoga_studio", "Yoga studio", "membership", ['["sport"="yoga"]', '["leisure"="fitness_centre"]["sport"~"yoga"]', '["name"~"yoga",i]'], ("yoga", "pilates", "meditation centre")),
     _e("dance_school", "Dance school", "membership", ['["leisure"="dance"]', '["amenity"="dancing_school"]', '["name"~"dance",i]'], ("dance class", "dance academy", "zumba")),
     _e("martial_arts", "Martial arts dojo", "membership", ['["sport"~"karate|judo|taekwondo|martial_arts|boxing"]'], ("karate", "boxing", "mma", "taekwondo", "judo")),
@@ -44,7 +44,7 @@ TAXONOMY: tuple[TaxonomyEntry, ...] = (
     _e("sports_club", "Sports academy / turf", "membership", ['["leisure"="sports_centre"]', '["leisure"="pitch"]["access"!="private"]'], ("turf", "cricket academy", "football academy", "badminton court", "sports academy")),
     _e("pg_hostel", "PG / hostel (monthly)", "membership", ['["tourism"="hostel"]', '["name"~"paying guest| pg|hostel",i]'], ("paying guest", "pg", "student hostel")),
     # --- dine in ---
-    _e("cafe", "Café", "dine_in", ['["amenity"="cafe"]'], ("coffee shop", "coffee", "tea house", "chai", "cafe")),
+    _e("cafe", "Café", "dine_in", ['["amenity"="cafe"]', '["amenity"]["name"~"coffee|chaayos|chai point|starbucks|barista|blue tokai|third wave|costa coffee|tim hortons|caf[eé]( |$)",i]', '["shop"="coffee"]'], ("coffee shop", "coffee", "tea house", "chai", "cafe")),
     _e("restaurant", "Restaurant", "dine_in", ['["amenity"="restaurant"]'], ("dhaba", "eatery", "dining", "family restaurant", "fine dining")),
     _e("bar", "Bar / pub", "dine_in", ['["amenity"~"^(bar|pub|biergarten)$"]'], ("pub", "brewery", "lounge", "bar")),
     _e("ice_cream", "Ice cream / dessert parlour", "dine_in", ['["amenity"="ice_cream"]', '["shop"="ice_cream"]', '["cuisine"~"ice_cream|dessert",i]'], ("ice cream", "dessert", "gelato", "kulfi")),
@@ -53,7 +53,7 @@ TAXONOMY: tuple[TaxonomyEntry, ...] = (
     _e("tea_stall", "Tea / snack stall", "dine_in", ['["cuisine"~"tea|chai",i]', '["shop"="tea"]'], ("chai stall", "tea stall", "tapri")),
     _e("bakery_cafe", "Bakery café", "dine_in", ['["shop"="bakery"]'], ("patisserie", "cake shop")),
     # --- takeaway ---
-    _e("pizza", "Pizza outlet", "takeaway", ['["cuisine"~"pizza",i]', '["name"~"pizza",i]'], ("pizza", "pizzeria", "pizza shop")),
+    _e("pizza", "Pizza outlet", "takeaway", ['["cuisine"~"pizza",i]', '["name"~"pizza|pizzeria|domino|la pino|oven story|papa john|sbarro",i]', '["brand"~"domino|pizza hut|la pino|papa john|oven story|mojo pizza|chicago pizza|us pizza|smokin|pizza express|sbarro|little caesars",i]'], ("pizza", "pizzeria", "pizza shop")),
     _e("fast_food", "Fast food / QSR", "takeaway", ['["amenity"="fast_food"]'], ("burger", "qsr", "fast food", "fries", "shawarma", "momos", "rolls")),
     _e("cloud_kitchen", "Cloud kitchen / tiffin", "takeaway", ['["amenity"="fast_food"]', '["cuisine"~"indian|north_indian|south_indian|chinese",i]["amenity"~"restaurant|fast_food"]'], ("cloud kitchen", "tiffin", "dabba", "home food", "ghost kitchen")),
     _e("bakery", "Bakery (takeaway)", "takeaway", ['["shop"~"^(bakery|pastry|confectionery)$"]'], ("cakes", "bakery", "pastry", "sweets", "mithai", "halwai")),
@@ -61,8 +61,8 @@ TAXONOMY: tuple[TaxonomyEntry, ...] = (
     _e("chinese_takeaway", "Chinese / momos takeaway", "takeaway", ['["cuisine"~"chinese|momo|tibetan",i]'], ("chinese", "momos", "noodles")),
     _e("street_food", "Street food / chaat", "takeaway", ['["cuisine"~"chaat|street_food|indian_street",i]', '["name"~"chaat|pani puri|golgappa",i]'], ("chaat", "pani puri", "golgappa", "vada pav", "street food")),
     # --- retail ---
-    _e("pharmacy", "Pharmacy / chemist", "retail", ['["amenity"="pharmacy"]', '["shop"="chemist"]', '["healthcare"="pharmacy"]'], ("chemist", "medical store", "medicine shop", "drugstore")),
-    _e("grocery", "Grocery / kirana", "retail", ['["shop"~"^(convenience|supermarket|grocery|general)$"]'], ("kirana", "grocery", "supermarket", "general store", "provision store", "mart")),
+    _e("pharmacy", "Pharmacy / chemist", "retail", ['["amenity"="pharmacy"]', '["shop"="chemist"]', '["healthcare"="pharmacy"]', '["shop"]["name"~"pharma|chemist|medical|apollo|medplus|wellness forever|netmeds|frank ross|guardian",i]'], ("chemist", "medical store", "medicine shop", "drugstore")),
+    _e("grocery", "Grocery / kirana", "retail", ['["shop"~"^(convenience|supermarket|grocery|general|greengrocer)$"]', '["shop"]["name"~"kirana|general store|provision|reliance (fresh|smart)|more (supermarket|retail)|d-?mart|big bazaar|spencer|easyday|star bazaar|nature.?s basket",i]'], ("kirana", "grocery", "supermarket", "general store", "provision store", "mart")),
     _e("fruit_veg", "Fruit & vegetable shop", "retail", ['["shop"="greengrocer"]'], ("vegetables", "sabzi", "fruits", "greengrocer")),
     _e("butcher", "Meat / fish shop", "retail", ['["shop"~"^(butcher|seafood)$"]'], ("chicken shop", "meat", "mutton", "fish", "butcher")),
     _e("dairy", "Dairy / milk booth", "retail", ['["shop"="dairy"]'], ("milk", "dairy", "paneer")),
@@ -83,7 +83,7 @@ TAXONOMY: tuple[TaxonomyEntry, ...] = (
     _e("fuel", "Fuel station", "retail", ['["amenity"="fuel"]'], ("petrol pump", "gas station", "fuel")),
     _e("ev_charging", "EV charging station", "retail", ['["amenity"="charging_station"]'], ("ev charging", "charging station")),
     # --- appointment ---
-    _e("salon", "Hair salon / barber", "appointment", ['["shop"~"^(hairdresser|barber)$"]'], ("barber", "haircut", "salon", "parlour", "unisex salon", "hair")),
+    _e("salon", "Hair salon / barber", "appointment", ['["shop"~"^(hairdresser|barber|beauty)$"]', '["shop"]["name"~"salon|parlou?r|barber|naturals|lakme|jawed habib|toni|looks|enrich|green trends|hair",i]'], ("barber", "haircut", "salon", "parlour", "unisex salon", "hair")),
     _e("beauty_salon", "Beauty parlour / spa", "appointment", ['["shop"~"^(beauty|massage)$"]', '["leisure"="spa"]', '["amenity"="spa"]'], ("beauty parlour", "spa", "massage", "nail art", "makeup artist", "facial")),
     _e("clinic", "General clinic", "appointment", ['["amenity"~"^(clinic|doctors)$"]', '["healthcare"~"^(clinic|doctor)$"]'], ("clinic", "doctor", "gp", "general physician", "polyclinic")),
     _e("dentist", "Dental clinic", "appointment", ['["amenity"="dentist"]', '["healthcare"="dentist"]'], ("dentist", "dental")),

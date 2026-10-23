@@ -136,7 +136,8 @@ async def build_snapshot(*, lat: float, lng: float, catchment: dict, category: d
     async def comp_task():
         terms = [w for w in [category.get("query"), category.get("label")] if w]
         terms = [t.split("/")[0].strip() for t in terms]
-        return await osm.fetch_pois(lat, lng, comp_radius_m, category.get("filters") or [], cache, fallback=True, timeout_s=35, terms=terms)
+        return await osm.fetch_competitors(lat, lng, comp_radius_m, category.get("filters") or [], cache, terms=terms,
+                                           timeout_s=30 if get_settings().serverless else 40)
 
     async def bld_task():
         return await osm.fetch_buildings(lat, lng, radius_m, cache)

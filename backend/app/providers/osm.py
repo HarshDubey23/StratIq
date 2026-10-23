@@ -355,3 +355,69 @@ async def fetch_buildings(lat, lng, radius_m, cache=None) -> tuple[list[tuple[fl
     osm_base = data.get("osm3s", {}).get("timestamp_osm_base")
     return pts, provenance("osm_overpass", retrieved_at=fetched, source_updated_at=osm_base, cached=cached,
                            detail=f"{len(pts)} mapped buildings used to place population within the catchment")
+
+
+def _merge_pois(*groups: list[dict]) -> list[dict]:
+    """Union of POI lists from several OpenStreetMap servers: same OSM id, or same name within ~40 m, is one place."""
+    out: list[dict] = []
+    seen_ref: set[str] = set()
+    for g in groups:
+        for p in g:
+            if p["ref"] in seen_ref:
+                continue
+            nm = (p.get("name") or "").strip().lower()
+            if nm and any((q.get("name") or "").strip().lower() == nm and _dist_m(p["lat"], p["lng"], q["lat"], q["lng"]) < 40 for q in out):
+                continue
+            seen_ref.add(p["ref"])
+            out.append(p)
+    return out
+
+
+async def fetch_competitors(lat: float, lng: float, radius_m: int, filters: list[str], cache: Cache | None = None,
+                            terms: list[str] | None = None, timeout_s: float = 38.0, limit: int = 600) -> tuple[list[dict], dict]:
+    """Competitors from every OpenStreetMap server at once, merged for maximum coverage.
+
+    Overpass (full tag query, raced across mirrors) and the Photon search index run in parallel; Nominatim fills in
+    when both are thin. All three serve OpenStreetMap data, so the union is still one licensed, attributable source."""
+    if not filters:
+        return [], provenance("osm_overpass", status="skipped", detail="No category filters.")
+    q = build_poi_query(lat, lng, radius_m, filters, timeout=int(timeout_s) - 5, limit=limit)
+    key = cache_key("osm_merged_v2", {"q": q, "t": terms or []})
+    if cache and (hit := cache.get(key)):
+        pois = hit[0]["pois"]
+        return pois, provenance("osm_overpass", retrieved_at=hit[1], cached=True, source_updated_at=hit[0].get("osm_base"),
+                                detail=hit[0].get("detail") or f"{len(pois)} features")
+
+    async def ov():
+        try:
+            data, fetched, _cached, ep = await overpass(q, None, timeout_s=timeout_s, rounds=1)
+            return parse_pois(data), data.get("osm3s", {}).get("timestamp_osm_base"), ep.split("/")[2] if "/" in ep else ep
+        except ProviderError as e:
+            log.warning("overpass competitors failed: %s", e.message)
+            return None, None, None
+
+    async def ph():
+        try:
+            return await photon_pois(lat, lng, radius_m, filters, terms=terms)
+        except Exception as e:  # noqa: BLE001 — a fallback index must never break the snapshot
+            log.warning("photon failed: %s", e)
+            return []
+
+    (ov_pois, osm_base, host), ph_pois = await asyncio.gather(ov(), ph())
+    merged = _merge_pois(ov_pois or [], ph_pois)
+    used = (["Overpass" + (f" ({host})" if host else "")] if ov_pois is not None else []) + (["Photon"] if ph_pois else [])
+    if len(merged) < 5:
+        try:
+            nm = await nominatim_pois(lat, lng, radius_m, filters)
+        except Exception:  # noqa: BLE001
+            nm = []
+        if nm:
+            merged = _merge_pois(merged, nm)
+            used.append("Nominatim")
+    if not merged and ov_pois is None:
+        raise ProviderError("overpass", "Overpass mirrors busy and the search indexes returned nothing")
+    detail = (f"{len(merged)} competitors within {radius_m} m, merged from OpenStreetMap servers: {', '.join(used) or 'none'}"
+              f" (Overpass {len(ov_pois or [])}, Photon {len(ph_pois)})")
+    if cache and merged:
+        cache.put(key, "osm_merged", {"pois": merged, "osm_base": osm_base, "detail": detail}, timedelta(hours=12))
+    return merged, provenance("osm_overpass", source_updated_at=osm_base, detail=detail)

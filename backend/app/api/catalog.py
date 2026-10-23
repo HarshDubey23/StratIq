@@ -91,7 +91,7 @@ PREVIEW_SPOTS = {
     "bandra": {"label": "Bandra West, Mumbai", "lat": 19.0596, "lng": 72.8295},
     "koramangala": {"label": "Koramangala, Bengaluru", "lat": 12.9352, "lng": 77.6245},
 }
-PREVIEW_CATS = {"gym", "cafe", "restaurant", "pharmacy", "salon", "bakery_cafe", "grocery", "clothing"}
+PREVIEW_CATS = {"gym", "cafe", "pizza", "restaurant", "pharmacy", "salon", "bakery_cafe", "grocery", "clothing"}
 
 
 @router.get("/market/preview")
@@ -103,8 +103,8 @@ async def preview(spot: str = Query(default="cp-delhi"), category: str = Query(d
     if entry is None:
         raise HTTPException(404, "Unknown category")
     try:
-        pois, prov = await osm.fetch_pois(sp["lat"], sp["lng"], radius_m, list(entry.filters), Cache(session_factory()), limit=250,
-                                          fallback=True, timeout_s=30, terms=[entry.label.split("/")[0].strip(), *entry.synonyms[:2]])
+        pois, prov = await osm.fetch_competitors(sp["lat"], sp["lng"], radius_m, list(entry.filters), Cache(session_factory()), limit=400,
+                                                 timeout_s=30, terms=[entry.label.split("/")[0].strip(), *entry.synonyms[:2]])
     except ProviderError as e:
         raise HTTPException(502, f"OpenStreetMap is busy right now ({e.message[:100]})") from e
     return {"spot": {**sp, "key": spot}, "category": {"key": entry.key, "label": entry.label}, "radius_m": radius_m,

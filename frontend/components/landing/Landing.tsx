@@ -13,6 +13,7 @@ const HeroMap = dynamic(() => import("./HeroMap"), { ssr: false, loading: () => 
 
 const CATS = [
   { key: "cafe", label: "Cafés" },
+  { key: "pizza", label: "Pizza" },
   { key: "gym", label: "Gyms" },
   { key: "pharmacy", label: "Pharmacies" },
   { key: "salon", label: "Salons" },
@@ -141,7 +142,8 @@ export default function Landing() {
         router.push("/app/projects/new");
         return;
       }
-      const r = await fetch(`/api/v1/demo/live?spot=${spot.key === "bandra" || spot.key === "indiranagar" ? spot.key : "cp-delhi"}`, { method: "POST", credentials: "include" });
+      const kind = ["cafe", "pizza", "gym"].includes(cat) ? cat : "cafe";
+      const r = await fetch(`/api/v1/demo/live?spot=${spot.key}&kind=${kind}`, { method: "POST", credentials: "include" });
       if (!r.ok) throw new Error("Could not start the live demo. Try again in a moment.");
       const p = await r.json();
       router.push(`/app/projects/${p.id}/market`);
@@ -209,6 +211,9 @@ export default function Landing() {
                 </button>
                 <span className="flex items-center gap-2 pl-2 text-[13px] text-ink-400"><Mic className="h-3.5 w-3.5 text-accent" /> or press V and just ask</span>
               </div>
+              <p data-reveal style={{ transitionDelay: "640ms" }} className="mt-4 text-[13px] text-ink-400">
+                Live demo opens a {["cafe", "pizza", "gym"].includes(cat) ? (cat === "cafe" ? "specialty café" : cat === "pizza" ? "pizza outlet" : "gym") : "specialty café"} in {spot.label.split(",")[0]} with real competitors. Change the business or city in the panel.
+              </p>
               {goErr && <p className="mt-4 text-sm text-warn">{goErr}</p>}
             </div>
 

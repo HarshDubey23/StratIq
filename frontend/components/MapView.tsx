@@ -316,19 +316,34 @@ export default function MapView(props: Props) {
       depth && L.zones !== false && zs.length > 0 &&
         new DL.ColumnLayer({
           id: "pop-columns", data: zs, diskResolution: 6, radius, extruded: true, coverage: 0.92, angle: 30,
-          getPosition: (z: MapZone) => [z.lng, z.lat], getElevation: (z: MapZone) => 15 + (z.value / max) * 520,
-          getFillColor: (z: MapZone) => popColor(z.value / max, 120), pickable: true, material: { ambient: 0.5, diffuse: 0.6, shininess: 20 },
+          getPosition: (z: MapZone) => [z.lng, z.lat], getElevation: (z: MapZone) => 6 + (z.value / max) * 240,
+          getFillColor: (z: MapZone) => popColor(z.value / max, 85), pickable: true, material: { ambient: 0.5, diffuse: 0.6, shininess: 20 },
           transitions: { getElevation: { duration: 900 } },
           updateTriggers: { getElevation: [max], getFillColor: [max] },
         }),
       depth && L.competitors !== false &&
         new DL.ColumnLayer({
           id: "comp-pillars", data: comps.map((c) => ({ ...c, tip: `${c.name || "Unnamed"} — ${c.kind === "osm" ? "observed in OpenStreetMap" : c.kind === "user" ? "entered by you" : c.kind}${w[c.id] ? `\nmodeled ${Math.round(w[c.id])} customers/mo` : ""}` })),
-          diskResolution: 20, radius: 16, extruded: true,
-          getPosition: (c: MapCompetitor) => [c.lng, c.lat], getElevation: (c: MapCompetitor) => 90 + ((w[c.id] || 0) / wmax) * 760,
+          diskResolution: 24, radius: 24, extruded: true,
+          getPosition: (c: MapCompetitor) => [c.lng, c.lat], getElevation: (c: MapCompetitor) => 120 + ((w[c.id] || 0) / wmax) * 520,
           getFillColor: (c: MapCompetitor) => (c.kind === "osm" ? [...C.comp, 235] : [...C.user, 235]) as [number, number, number, number],
           pickable: true, onClick: (info: { object?: MapCompetitor }) => { if (info.object) handlers.current.onCompetitorClick?.(info.object.id); },
           transitions: { getElevation: { duration: 900 } }, updateTriggers: { getElevation: [wmax, Object.keys(w).length] },
+        }),
+      depth && L.competitors !== false &&
+        new DL.ScatterplotLayer({
+          id: "comp-glow", data: comps, getPosition: (c: MapCompetitor) => [c.lng, c.lat], getRadius: 70, radiusUnits: "meters",
+          getFillColor: (c: MapCompetitor) => (c.kind === "osm" ? [...C.comp, 55] : [...C.user, 55]) as [number, number, number, number], stroked: false,
+        }),
+      depth && L.competitors !== false &&
+        new DL.TextLayer({
+          id: "comp-labels",
+          data: [...comps].filter((c) => c.name && !/^unnamed/i.test(c.name)).sort((a, b) => (w[b.id] || 0) - (w[a.id] || 0)).slice(0, 30),
+          getPosition: (c: MapCompetitor) => [c.lng, c.lat, 120 + ((w[c.id] || 0) / wmax) * 520 + 30],
+          getText: (c: MapCompetitor) => (c.name.length > 26 ? `${c.name.slice(0, 25)}…` : c.name),
+          getSize: 12, sizeUnits: "pixels", getColor: [236, 239, 245, 235], getTextAnchor: "middle", getAlignmentBaseline: "bottom",
+          background: true, getBackgroundColor: [12, 17, 28, 210], backgroundPadding: [6, 3], fontFamily: "Geist, system-ui, sans-serif",
+          characterSet: "auto", updateTriggers: { getPosition: [wmax, Object.keys(w).length] },
         }),
       depth && (props.candidates || []).length > 0 &&
         new DL.ColumnLayer({

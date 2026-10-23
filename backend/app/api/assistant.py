@@ -189,6 +189,8 @@ def _run_price(project_id: str, price: float) -> dict:
         run = execute_run(db, p, s)
         if run.status != "succeeded":
             raise HTTPException(422, run.error or "Simulation failed")
+        db.expire_all()
+        p = db.get(Project, project_id)
         f = build_facts(db, p)
         new = next((x for x in f["scenarios"] if x["name"] == name), None)
         return {"scenario": name, "scenario_id": s.id, "run_id": run.id, "baseline": f["baseline"], "what_if": new}

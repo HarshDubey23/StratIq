@@ -57,12 +57,12 @@ export default function MarketGlance({ project: p }: { project: Project }) {
         ) : (
           <Skeleton className="h-full rounded-none" />
         )}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-ink-950 to-transparent" />
-        <Link href={`/app/projects/${p.id}/market`} className="panel absolute right-4 top-4 rounded-full px-4 py-2 text-xs text-ink-100 hover:border-accent/50">Open market map</Link>
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-ink-950/80 to-transparent" />
+        <Link href={`/app/projects/${p.id}/market`} className="panel absolute left-4 top-4 z-10 rounded-full px-4 py-2 text-xs text-ink-100 hover:border-accent/50">Open market map</Link>
       </div>
-      <div className="relative -mt-24 grid grid-cols-2 gap-px px-4 pb-4 sm:grid-cols-5">
+      <div className="relative grid grid-cols-2 gap-3 p-4 sm:grid-cols-5">
         {stats.map(([l, v, k]) => (
-          <div key={l} className="panel rounded-2xl p-4">
+          <div key={l} className="rounded-2xl border border-white/[0.07] bg-white/[0.025] p-4">
             <div className="flex items-center justify-between gap-2 text-[11.5px] text-ink-400">{l}<Evidence kind={k} className="scale-90" /></div>
             <div className="num font-display mt-2 text-[26px] font-semibold leading-none tracking-tight">{v}</div>
           </div>
