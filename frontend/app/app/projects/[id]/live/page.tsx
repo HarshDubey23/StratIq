@@ -4,8 +4,10 @@ import { Activity, Dna, Pause, Play, RotateCcw, Users } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Area, AreaChart, CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Area, CartesianGrid, ComposedChart, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import AgentXray from "@/components/AgentXray";
+import { CompareCard, HowAgentsDecide, runStrategy, StrataRead, StrategyLab, type Changes, type StrategyOut } from "@/components/StrategyLab";
+import { publishScreen, takePendingStrategy } from "@/lib/screen";
 import { useProject } from "@/components/ProjectContext";
 import { Badge, Button, EmptyState, ErrorState, Evidence, Notice, Segmented, Select, Spinner } from "@/components/ui";
 import { api, ApiError } from "@/lib/api";
@@ -35,6 +37,8 @@ export default function LiveMarket() {
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [compare, setCompare] = useState<StrategyOut | null>(null);
+  const [testing, setTesting] = useState(false);
 
   const load = useCallback(async () => {
     if (!sc) return;
@@ -86,14 +90,78 @@ export default function LiveMarket() {
     }
   }
 
+  const testStrategy = useCallback(
+    async (changes: Changes) => {
+      if (!sc) return;
+      setTesting(true);
+      setError(null);
+      try {
+        const out = await runStrategy(p.id, sc.id, changes);
+        setCompare(out);
+        await reload();
+        setSid(out.scenario.id);
+        setAgent(null);
+        setPlaying(true);
+      } catch (e) {
+        setError(e instanceof ApiError ? e.message : "Strategy test failed");
+      } finally {
+        setTesting(false);
+      }
+    },
+    [p.id, sc, reload],
+  );
+  // the voice analyst can run a strategy too; it tells this page which scenario to show and what to compare with
+  useEffect(() => {
+    const h = () => {
+      const d = takePendingStrategy<{ scenario_id?: string; result?: StrategyOut }>();
+      if (!d) return;
+      void (async () => {
+        await reload();
+        if (d.result) setCompare(d.result);
+        if (d.scenario_id) setSid(d.scenario_id);
+        setAgent(null);
+        setPlaying(true);
+      })();
+    };
+    h(); // a strategy may have been run (by voice) before this page mounted
+    window.addEventListener("strataiq:strategy", h);
+    return () => window.removeEventListener("strataiq:strategy", h);
+  }, [reload]);
+
   const abm = res?.abm;
   const day = abm ? abm.frames[frame]?.day ?? 0 : 0;
   const unit = res?.unit_label || "units";
   const membership = res?.archetype === "membership";
+  const cmp = compare && compare.scenario.id === sid ? compare : null;
   const dailyChart = useMemo(
-    () => (abm ? abm.daily.units_you.map((u, d) => ({ d: d + 1, you: u, aware: Math.round(abm.daily.aware_share[d] * 100), cust: abm.daily.customers_you[d] })) : []),
-    [abm],
+    () =>
+      abm
+        ? abm.daily.units_you.map((u, d) => ({
+            d: d + 1,
+            you: Math.round(u),
+            before: cmp ? Math.round(cmp.before.daily_units[d] ?? 0) : undefined,
+            aware: Math.round(abm.daily.aware_share[d] * 100),
+            cust: abm.daily.customers_you[d],
+          }))
+        : [],
+    [abm, cmp],
   );
+  const capDay = abm?.capacity_per_day || null;
+
+  // tell the voice analyst what is on screen (numbers only)
+  useEffect(() => {
+    if (!abm || !sc) return;
+    const mf = abm.monthly_finance || [];
+    publishScreen({
+      page: "live", project_id: p.id, scenario_id: sc.id, scenario: sc.name, day: day + 1, week: Math.floor(day / 7) + 1,
+      orders_today: Math.round(abm.daily.units_you[day] || 0), unit, capacity_per_day: capDay,
+      turned_away_today: Math.round(abm.daily.turned_away[day] || 0), customers_so_far: Math.round(abm.daily.customers_you[day] || 0),
+      aware: abm.daily.aware_share[day], competitor_sales_today: Math.round(abm.daily.units_comp[day] || 0),
+      month_units: abm.monthly_units.map((x) => Math.round(x)), month_profit: mf.map((m) => Math.round(m.profit)),
+      colour_mode: colorMode, selected_agent: agent,
+      compare: cmp ? { name: cmp.from.name, before_month3: cmp.before.month3_units, after_month3: cmp.after.month3_units, verdict: cmp.comparison.verdict } : null,
+    });
+  }, [abm, sc, day, unit, capDay, colorMode, agent, cmp, p.id]);
 
   if (!sc) return <div className="p-6"><EmptyState title="No scenario" /></div>;
 
@@ -142,7 +210,7 @@ export default function LiveMarket() {
                 <div className="num mt-0.5 text-2xl font-semibold text-ink-100">Day {day + 1}<span className="ml-2 text-sm text-ink-400">week {Math.floor(day / 7) + 1} of {Math.ceil(abm.days / 7)}</span></div>
               </div>
               {[
-                [membership ? "Your members" : `Your ${unit} today`, num(membership ? abm.daily.units_you[day] : abm.daily.units_you[day])],
+                [membership ? "Your members" : `Your ${unit} today`, `${num(abm.daily.units_you[day])}${capDay ? ` / ${num(capDay)}` : ""}${cmp ? `  (was ${num(cmp.before.daily_units[day])})` : ""}`],
                 ["Customers so far", num(abm.daily.customers_you[day])],
                 ["Aware of you", pct(abm.daily.aware_share[day])],
                 [membership ? "Competitor members" : "Competitor sales today", num(abm.daily.units_comp[day])],
@@ -227,6 +295,11 @@ export default function LiveMarket() {
           <Notice tone="warn">Competitor data failed to load for this location, so this run has no competitors and is optimistic. Refresh live data on the Market map, then re-run.</Notice>
         )}
 
+        {abm && res && p.archetype && (
+          <StrategyLab projectId={p.id} scenario={sc} arch={p.archetype} unit={unit} busy={testing} onRun={testStrategy} />
+        )}
+        {cmp && <CompareCard out={cmp} unit={unit} />}
+        {abm && res && <StrataRead projectId={p.id} scenarioId={sc.id} runId={runId} busy={testing} onTest={testStrategy} />}
         {abm && res && (
           <>
             {(() => {
@@ -259,16 +332,18 @@ export default function LiveMarket() {
               ))}
             </div>
             <div className="rounded-2xl border border-white/[0.07] bg-white/[0.025] p-2">
-              <div className="mb-1 flex items-center justify-between text-xs"><span className="font-medium text-ink-200">{membership ? "Members" : `Daily ${unit}`} — you</span><Evidence kind="model" label="Simulated" /></div>
+              <div className="mb-1 flex items-center justify-between text-xs"><span className="font-medium text-ink-200">{membership ? "Members" : `Daily ${unit}`} — you{cmp ? <span className="ml-1.5 font-normal text-ink-400">(dashed = before)</span> : null}</span><Evidence kind="model" label="Simulated" /></div>
               <ResponsiveContainer width="100%" height={120}>
-                <AreaChart data={dailyChart} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
+                <ComposedChart data={dailyChart} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
                   <CartesianGrid stroke="#192233" vertical={false} />
                   <XAxis dataKey="d" stroke="#64718A" fontSize={10} />
                   <YAxis stroke="#64718A" fontSize={10} width={36} />
                   <Tooltip {...TT} />
                   <ReferenceLine x={day + 1} stroke="#FF9F2E" />
-                  <Area dataKey="you" stroke="#FF9F2E" fill="#FF9F2E" fillOpacity={0.15} />
-                </AreaChart>
+                  {capDay && <ReferenceLine y={capDay} stroke="#ff6a6a" strokeDasharray="4 3" label={{ value: "capacity", fill: "#ff6a6a", fontSize: 9, position: "insideTopRight" }} />}
+                  <Area dataKey="you" name="this strategy" stroke="#FF9F2E" fill="#FF9F2E" fillOpacity={0.15} isAnimationActive={false} />
+                  {cmp && <Line dataKey="before" name="before" stroke="#939eb3" strokeDasharray="4 3" dot={false} strokeWidth={1.5} isAnimationActive={false} />}
+                </ComposedChart>
               </ResponsiveContainer>
             </div>
             <div className="rounded-2xl border border-white/[0.07] bg-white/[0.025] p-2">
@@ -307,6 +382,7 @@ export default function LiveMarket() {
                 ))}
               </div>
             </div>
+            <HowAgentsDecide abm={abm} price={res.summary.price} />
             <div className="text-[11px] text-ink-500">
               <Badge className="mb-1">{abm.age_source === "worldpop" ? "Age–sex: WorldPop" : "Age–sex: default assumption"}</Badge>
               <p>{abm.note} Seed {abm.seed}; {num(abm.metrics.decision_events as number)} purchase decisions simulated in {num(abm.duration_ms)} ms{abm.timing_ms ? ` (genomes built in ${num(abm.timing_ms.genome)} ms)` : ""}.</p>

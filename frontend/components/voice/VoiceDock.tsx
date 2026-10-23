@@ -16,6 +16,7 @@ import { AudioLines, Keyboard, Mic, MicOff, Send, X } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from "react";
 import { cn } from "@/components/ui";
+import { readScreen, sendStrategy } from "@/lib/screen";
 
 const AGENT_ID = process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID || "agent_3201m5jvb75gfymtmw8m34wck59b";
 
@@ -48,7 +49,7 @@ async function jfetch<T>(url: string, init?: RequestInit & { json?: unknown }): 
 }
 
 const SUGGESTIONS = {
-  project: ["Kitne competitors hain?", "What's my break-even?", "Try price ₹1,500", "Is it risky?", "Show me the live market"],
+  project: ["What do you see on this screen?", "How can I grow?", "Double the marketing", "How do agents decide?", "Kitne competitors hain?", "Try price ₹399"],
   general: ["What does StrataIQ do?", "Open the live demo", "Is the data real?"],
 };
 
@@ -58,6 +59,8 @@ function VoiceDockInner() {
   const projectId = projectIdFrom(path);
   const pidRef = useRef(projectId);
   pidRef.current = projectId;
+  const pathRef = useRef(path);
+  pathRef.current = path;
 
   const [open, setOpen] = useState(false);
   const [engine, setEngine] = useState<Engine>("realtime");
@@ -85,6 +88,34 @@ function VoiceDockInner() {
           return JSON.stringify(await jfetch(`/api/v1/projects/${pid}/assistant/facts`));
         } catch (e) {
           return JSON.stringify({ error: e instanceof Error ? e.message : "facts unavailable" });
+        }
+      },
+      get_screen: async () => JSON.stringify(readScreen() || { page: pathRef.current, note: "This page publishes no numbers; use get_market_facts." }),
+      get_insights: async () => {
+        const pid = pidRef.current;
+        if (!pid) return JSON.stringify({ error: "Open a project first." });
+        const sc = readScreen();
+        try {
+          return JSON.stringify(await jfetch(`/api/v1/projects/${pid}/insights${sc?.scenario_id ? `?scenario_id=${sc.scenario_id}` : ""}`));
+        } catch (e) {
+          return JSON.stringify({ error: e instanceof Error ? e.message : "insights unavailable" });
+        }
+      },
+      test_strategy: async (args: { price?: number; marketing_spend?: number; quality?: number; capacity_scale?: number; open_hour?: number; close_hour?: number }) => {
+        const pid = pidRef.current;
+        if (!pid) return JSON.stringify({ error: "Open a project first." });
+        const sc = readScreen();
+        const body: Record<string, number | string> = {};
+        for (const [k, v] of Object.entries(args || {})) if (v !== null && v !== undefined && v !== "" && !Number.isNaN(Number(v))) body[k] = Number(v);
+        if (sc?.scenario_id) body.from_scenario_id = String(sc.scenario_id);
+        try {
+          const out = await jfetch<{ scenario: { id: string } }>(`/api/v1/projects/${pid}/strategy`, { method: "POST", json: body });
+          const onLive = pathRef.current.endsWith("/live");
+          if (!onLive) router.push(`/app/projects/${pid}/live`);
+          sendStrategy({ scenario_id: out.scenario.id, result: out });
+          return JSON.stringify(out);
+        } catch (e) {
+          return JSON.stringify({ error: e instanceof Error ? e.message : "simulation failed" });
         }
       },
       test_price: async ({ price }: { price: number }) => {
@@ -183,12 +214,18 @@ function VoiceDockInner() {
       setPhase("thinking");
       const pid = pidRef.current;
       try {
-        const out = await jfetch<{ answer: string; actions?: { type: string; to?: string }[] }>(pid ? `/api/v1/projects/${pid}/assistant/ask` : `/api/v1/assistant/ask`, {
+        const out = await jfetch<{ answer: string; result?: unknown; actions?: { type: string; to?: string; scenario_id?: string }[] }>(pid ? `/api/v1/projects/${pid}/assistant/ask` : `/api/v1/assistant/ask`, {
           method: "POST",
-          json: { question: q, page: path },
+          json: { question: q, page: path, screen: readScreen() },
         });
         push("strata", out.answer);
+        const onLive = path.endsWith("/live");
         for (const a of out.actions || []) {
+          if (a.type === "strategy") {
+            sendStrategy({ scenario_id: a.scenario_id, result: out.result });
+            continue;
+          }
+          if (a.type === "navigate" && a.to === "live" && onLive) continue;
           if (a.type === "refresh") window.dispatchEvent(new CustomEvent("strataiq:refresh"));
           if (a.type === "navigate" && a.to) router.push(a.to.startsWith("/") ? a.to : pid ? `/app/projects/${pid}/${a.to}` : "/app");
           if (a.type === "demo") void tools.start_demo();

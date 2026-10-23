@@ -135,3 +135,17 @@ def test_children_are_never_in_market():
     r = run_abm(arch, zones(), comps(), biz(price=300.0), ResolvedParams.from_archetype(arch), 300.0, n_agents=3000, days=14)
     c = r["agents"]["columns"]
     assert not any(row[c.index("in_market")] and row[c.index("age")] < 15 for row in r["agents"]["rows"])
+
+
+def test_daily_orders_are_not_quantised_by_agent_scale():
+    """One agent can stand for hundreds of residents; daily orders must still be smooth real-unit counts, not 0 / N / 2N steps."""
+    arch = ARCHETYPES["takeaway"]
+    big = [Zone(z.lat, z.lng, 12000.0, 0.0) for z in zones()]  # ~1.7 M people -> ~170 residents per agent
+    r = run_abm(arch, big, comps(8), biz(price=450.0, capacity={"max_orders_per_day": 125}), ResolvedParams.from_archetype(arch), 450.0,
+                n_agents=10000, days=42)
+    assert r["scale"] > 100
+    later = np.array(r["daily"]["units_you"][14:])
+    assert (later > 0).all()                      # no empty days once trading
+    assert later.max() <= 125 * 1.12 + 1e-6       # never above the kitchen's capacity
+    assert len(set(np.round(later).tolist())) > 5  # not a few repeated steps
+    assert r["capacity_per_day"] == 125.0

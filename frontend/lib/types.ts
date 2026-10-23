@@ -404,7 +404,10 @@ export interface Abm {
   peak_weekly_units: number;
   ramp_up_week: number | null;
   weekly: { week: number; units: number; aware_share: number; customers_cum: number; turned_away: number; comp_units: number }[];
-  daily: { units_you: number[]; units_comp: number[]; aware_share: number[]; customers_you: number[]; turned_away: number[] };
+  daily: { units_you: number[]; units_comp: number[]; aware_share: number[]; customers_you: number[]; turned_away: number[]; demand_you?: number[] };
+  capacity_per_day?: number | null;
+  weekday_pattern?: number[];
+  accounting?: string;
   frames: { day: number; a: number[]; c: number[] }[];
   frame_every: number;
   businesses: { idx: number; name: string; lat: number; lng: number }[];

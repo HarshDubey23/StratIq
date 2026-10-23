@@ -82,6 +82,27 @@ await step("live agents", async () => {
   await shot("13-live", 9000);
 });
 
+await step("live: smooth daily orders + strategy lab", async () => {
+  const proj = (await api(`/projects/${pid}`)).body;
+  const base = proj.scenarios.find((s) => s.is_baseline);
+  const run = (await api(`/simulation-runs/${base.latest_run.id}/results`)).body.results.abm;
+  const later = run.daily.units_you.slice(14);
+  L(`daily orders (wk3+): min=${Math.min(...later)} max=${Math.max(...later)} distinct=${new Set(later.map((x) => Math.round(x))).size} zeros=${later.filter((x) => x === 0).length} scale=${run.scale} cap/day=${run.capacity_per_day}`);
+  const ins = await api(`/projects/${pid}/insights?scenario_id=${base.id}`);
+  L(`insights [${ins.status}]: ${(ins.body.insights || []).map((i) => i.title).join(" | ")}`);
+  L(`suggested: ${JSON.stringify(ins.body.suggested)}`);
+  await page.goto(`${BASE}/app/projects/${pid}/live`);
+  await page.getByText("Change your strategy").waitFor({ timeout: 90000 });
+  await page.getByRole("button", { name: "+50%" }).first().click();
+  const mk = page.getByRole("slider", { name: "Marketing spend per month" });
+  await mk.focus();
+  for (let i = 0; i < 20; i++) await page.keyboard.press("ArrowRight");
+  await shot("13b-strategy-lab", 800);
+  await page.getByRole("button", { name: /Run \d change/ }).click();
+  await page.getByText(/Growing — this strategy works|More profit, similar volume|More sales, less profit|Not better/).first().waitFor({ timeout: 180000 });
+  await shot("13c-strategy-compare", 6000);
+});
+
 await step("decisions", async () => {
   await page.goto(`${BASE}/app/projects/${pid}/decisions`);
   await page.getByText("What could make this result wrong?").waitFor({ timeout: 60000 });
@@ -89,8 +110,8 @@ await step("decisions", async () => {
 });
 
 await step("voice analyst (grounded answers)", async () => {
-  for (const q of ["kitne competitors hain?", "what is my profit", "what is the break even", "try price 300"]) {
-    const r = await api(`/projects/${pid}/assistant/ask`, "POST", { question: q });
+  for (const q of ["kitne competitors hain?", "what is my profit", "what is the break even", "try price 300", "how do agents decide whom to choose?", "what insights do you see on this map?", "double the marketing"]) {
+    const r = await api(`/projects/${pid}/assistant/ask`, "POST", { question: q, screen: await page.evaluate(() => window.__strataScreen || null) });
     L(`Q: ${q} -> [${r.status}] ${typeof r.body === "object" ? r.body.answer : r.body}`);
   }
   const f = await api(`/projects/${pid}/assistant/facts`);

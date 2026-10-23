@@ -222,6 +222,7 @@ def compare_sentence(b: dict | None, w: dict | None, unit: str) -> str:
 class Ask(BaseModel):
     question: str = Field(min_length=1, max_length=600)
     page: str | None = None
+    screen: dict | None = None  # what the user is looking at right now (published by the page)
 
 
 NAV = {
@@ -236,6 +237,14 @@ NAV = {
 }
 
 INTENTS: list[tuple[str, list[str]]] = [
+    ("apply_suggestion", [r"^(ok |okay |haan |yes |ha )?(test|run|try|do|apply|karo|kar do|chalao) (it|that|this|ye|yeh|wo|woh)\b", r"^(test|run) (the )?suggestion", r"\bsuggestion (test|run|chalao)"]),
+    ("strategy", [r"\b(try|test|simulate|run|what if|kya hoga|check|increase|double|badha\w*|raise|cut|reduce|spend|add)\b.*\b(marketing|ads?|advertis\w*|promotion|capacity|kitchen|staff|quality|hours|timing|open|close)\b",
+                  r"\b(marketing|ads?|capacity|quality)\b.*\b(double|badha\w*|\d{2,})",
+                  r"\bopen\w*\s+(from\s+)?\d{1,2}\s*(am|pm)?\s*(to|till|until|-)\s*\d", r"\b(close|band)\w*\s+(at\s+)?\d{1,2}\s*(am|pm)"]),
+    ("explain_agents", [r"how (do|does|did) (the )?(agents?|people|customers) (decide|choose|pick)", r"agents? .*\b(decide|choose|chunte|select)", r"\b615\b", r"kaise (decide|choose|chun)", r"\bgenome\b.*\bwork", r"why (did|does) (this|an?) agent"]),
+    ("screen", [r"what (am i|are we|is) (looking|seeing|on)", r"\bthis (page|screen|map|chart|graph)\b", r"(yeh|ye|is) (page|map|screen|chart)", r"explain (this|the map|the screen|the chart|what)", r"what do you see", r"kya dikh", r"where am i"]),
+    ("insights", [r"insight", r"suggest", r"advice", r"advise", r"improve", r"\bgrow", r"badh", r"sujhav", r"what should i change", r"how (can|do) i (get|increase|make|win)",
+                  r"what('s| is) wrong", r"problem", r"why (so )?(low|less|few)", r"kam kyu", r"analy[sz]"]),
     ("try_price", [r"\b(try|test|simulate|run|what if|kya hoga|check)\b.*\b(price|fee|charge|₹|rs|rupees?|\d{3,})", r"\bprice (of|at|to) \d"]),
     ("navigate", [r"\b(open|show|go to|take me|navigate|dikhao|kholo)\b"]),
     ("competitors", [r"compet", r"rival", r"\bnearby\b", r"\baround\b", r"kitne .*(gym|shop|cafe|store)", r"other (gyms|shops|cafes|stores)"]),
@@ -361,6 +370,100 @@ def answer_from_facts(intent: str, f: dict, q: str) -> str | None:
     return None
 
 
+_NUM = r"(\d[\d,]*(?:\.\d+)?)\s*(k|thousand|hazaar|hazar|lakh|l)?\b"
+
+
+def _val(m) -> float:
+    v = float(m.group(1).replace(",", ""))
+    u = (m.group(2) or "").lower()
+    return v * (1e5 if u in ("lakh", "l") else 1e3 if u else 1)
+
+
+def parse_strategy(q: str, cur: dict, cap_now: float | None) -> dict:
+    """Turn 'double the marketing and open till 11' into input changes. Only what the user said is changed."""
+    ql = q.lower()
+    ch: dict = {}
+    m = re.search(r"(?:marketing|ads?|advertis\w*|promotion)\D{0,25}" + _NUM, ql) or re.search(_NUM + r"\D{0,12}(?:on |for |in )?(?:marketing|ads?|advertis)", ql)
+    if m:
+        ch["marketing_spend"] = _val(m)
+    elif re.search(r"(double|2x|twice|dugna|dogun\w*).{0,20}(marketing|ads?)|(marketing|ads?).{0,20}(double|2x|twice|dugna)", ql):
+        ch["marketing_spend"] = max(2 * float(cur.get("marketing_spend") or 0), 20000)
+    elif re.search(r"(increase|more|badha\w*|raise).{0,20}(marketing|ads?)", ql):
+        ch["marketing_spend"] = max(1.5 * float(cur.get("marketing_spend") or 0), float(cur.get("marketing_spend") or 0) + 15000)
+    m = re.search(r"capacity\D{0,20}" + _NUM, ql) or re.search(_NUM + r"\s*(?:orders?|covers?|seats?|members?)\s*(?:a|per)\s*day", ql)
+    if m and cap_now:
+        ch["capacity_scale"] = round(max(0.2, min(10.0, _val(m) / cap_now)), 2)
+    elif re.search(r"(double|2x|twice|dugna).{0,20}(capacity|kitchen|staff)|(capacity|kitchen|staff).{0,20}(double|2x|twice)", ql):
+        ch["capacity_scale"] = 2.0
+    elif re.search(r"(\d{2,3})\s*%\s*more.{0,12}(capacity|kitchen|staff)", ql):
+        ch["capacity_scale"] = 1 + float(re.search(r"(\d{2,3})\s*%", ql).group(1)) / 100
+    elif re.search(r"(increase|more|badha\w*|add|raise).{0,20}(capacity|kitchen|staff)", ql):
+        ch["capacity_scale"] = 1.5
+    m = re.search(r"quality\D{0,15}(\d{1,3})", ql)
+    if m:
+        qv = float(m.group(1))
+        ch["quality"] = min(1.0, qv / 100 if qv > 1 else qv)
+    elif re.search(r"(better|improve|increase|raise|badha\w*).{0,15}quality", ql):
+        ch["quality"] = min(1.0, float(cur.get("quality") or 0.55) + 0.12)
+    m = re.search(r"open\D{0,10}(\d{1,2})\s*(am|pm)?\D{1,12}(\d{1,2})\s*(am|pm)?", ql)
+    if m:
+        o, c = float(m.group(1)), float(m.group(3))
+        o += 12 if m.group(2) == "pm" and o < 12 else 0
+        c += 12 if (m.group(4) == "pm" or (not m.group(4) and c < o)) and c < 12 else 0
+        ch["open_hour"], ch["close_hour"] = o, min(24.0, c)
+    else:
+        m = re.search(r"(?:close|till|until|tak)\D{0,8}(\d{1,2})\s*(am|pm)?", ql)
+        if m and re.search(r"close|till|until|tak|hours|open", ql):
+            c = float(m.group(1))
+            c += 12 if (m.group(2) == "pm" or not m.group(2)) and c < 12 else 0
+            ch["close_hour"] = min(24.0, c)
+    m = re.search(r"(?:price|fee|charge|rate)\D{0,12}(?:₹|rs\.?|inr)?\s*(\d[\d,]*)", ql)
+    if m:
+        ch["price"] = float(m.group(1).replace(",", ""))
+    return ch
+
+
+def describe_screen(sc: dict | None, unit: str) -> str:
+    if not sc or not sc.get("page"):
+        return ""
+    pg = sc.get("page")
+    if pg == "live":
+        s = f"You're on the live market, day {sc.get('day')}, week {sc.get('week')}, scenario {sc.get('scenario')}. "
+        if sc.get("orders_today") is not None:
+            s += f"Today the simulation shows {num(sc['orders_today'])} {unit} for you"
+            if sc.get("capacity_per_day"):
+                s += f" against a limit of {num(sc['capacity_per_day'])} a day"
+            s += f", {num(sc.get('customers_so_far'))} customers so far, {pct(sc.get('aware'))} of the market aware of you, and competitors sold {num(sc.get('competitor_sales_today'))}. "
+        if sc.get("compare"):
+            c = sc["compare"]
+            s += f"You're comparing against {c.get('name')}: month 3 is {num(c.get('after_month3'))} versus {num(c.get('before_month3'))} {unit}. "
+        if sc.get("selected_agent") is not None:
+            s += f"Agent {sc['selected_agent']} is open in the X-ray. "
+        return s
+    if pg == "market":
+        s = f"You're on the market map with {num(sc.get('competitors'))} competitors and about {num(sc.get('population'))} people in the catchment. "
+        if sc.get("selected_competitor"):
+            s += f"You've selected {sc['selected_competitor']}. "
+        return s
+    return f"You're on the {pg} page. "
+
+
+def explain_agents(f: dict, view: dict | None, unit: str) -> str:
+    s = ("Each of the ten thousand agents is a synthetic person placed where WorldPop says people live, with 615 personal parameters: "
+         "age, income, how far and how they travel, which hours they're free, 40 things they care about and the minimum they expect on each, "
+         "how they react to 16 media channels, and how price-sensitive they are. "
+         "Every day, an agent first has to be in the market and aware of you, through ads, word of mouth or your signboard. "
+         "Then it scores every option it can reach — you, each competitor, or buying nothing — on price against its own budget, travel time, "
+         "opening hours, quality and its own tastes, adds a little personal randomness, and picks the highest score. "
+         "Habits build when it returns, and a bad experience like being turned away is remembered. ")
+    if view:
+        s += (f"In this run, {pct(view.get('afford_share'))} of in-market people can afford your price, {pct(view.get('awareness_week12'))} knew you by week 12, "
+              f"and {pct(view.get('repeat_share'))} of customers came back. ")
+    s += ("Daily orders are the sum of every agent's probability of choosing you times the residents it stands for, "
+          "so one agent never jumps the total by hundreds.")
+    return s
+
+
 GENERAL = ("StrataIQ lets you test a business before you invest. Pick any business and any place in India or the world. "
            "It loads real competitors from OpenStreetMap and real population from WorldPop, then simulates ten thousand synthetic customers "
            "choosing between you, your competitors, or nothing, and turns that into profit, risk and break-even. "
@@ -385,6 +488,33 @@ async def ask(project_id: str, body: Ask, user: User = Depends(current_user), db
     q = body.question.strip()
     intent = detect(q)
     actions: list[dict] = []
+    sc = body.screen or {}
+    arch = ARCHETYPES[p.category["archetype"]]
+    unit = arch.unit_label
+    from .insights import _run_strategy, _scenario_run, build_insights, run_view
+    if intent in ("apply_suggestion", "strategy", "insights", "screen", "explain_agents"):
+        s_obj, r_obj = _scenario_run(db, p, sc.get("scenario_id"))
+        ins = build_insights(r_obj.results, s_obj.inputs, unit, arch.price_label) if r_obj else None
+        if intent in ("apply_suggestion", "strategy"):
+            if intent == "strategy":
+                cap_now = (ins or {}).get("view", {}).get("capacity_per_day")
+                changes = parse_strategy(q, s_obj.inputs, cap_now)
+            else:
+                changes = ((ins or {}).get("suggested") or {}).get("changes") or {}
+            if not changes:
+                return {"answer": ("Tell me what to change — for example 'double the marketing', 'capacity 200 a day', 'price 399', "
+                                   "or 'open 8 am to 11 pm' — and I'll run it on the map."), "intent": intent, "actions": [], "grounded": True}
+            out = await run_in_threadpool(_run_strategy, p.id, {**changes, "from_scenario_id": s_obj.id})
+            return {"answer": f"I ran {out['scenario']['name'].replace('Strategy: ', '')} on the map. " + out["spoken"], "intent": intent, "grounded": True,
+                    "actions": [{"type": "refresh"}, {"type": "strategy", "scenario_id": out["scenario"]["id"], "from_scenario_id": out["from"]["id"]},
+                                {"type": "navigate", "to": "live"}], "result": out}
+        if intent == "explain_agents":
+            return {"answer": explain_agents({}, (ins or {}).get("view"), unit), "intent": intent, "actions": [], "grounded": True}
+        lead = describe_screen(sc, unit) if intent == "screen" else ""
+        if not ins:
+            return {"answer": lead + "Run this scenario first and I'll read the results for you.", "intent": intent, "actions": [], "grounded": True}
+        return {"answer": (lead + ins["spoken"]).strip(), "intent": intent, "grounded": True, "suggested": ins.get("suggested"),
+                "actions": [{"type": "suggest", "action": ins["suggested"]}] if ins.get("suggested") else []}
     if intent == "try_price":
         price = parse_price(q)
         if price:

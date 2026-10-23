@@ -43,3 +43,42 @@ def test_age_sex_accepts_18_bands():
     rows = [{"class": i, "age": str(i), "male": 10, "female": 10} for i in range(18)]
     out = parse_age_sex({"agesexpyramid": rows})
     assert len(out["bands"]) == 17 and out["bands"][0]["male"] == 20 and out["bands"][-1]["male"] == 10
+
+
+def test_strategy_intents_and_parsing():
+    from app.api.assistant import detect, parse_strategy
+    cur = {"marketing_spend": 20000, "quality": 0.55}
+    assert detect("double the marketing") == "strategy"
+    assert parse_strategy("double the marketing", cur, 125) == {"marketing_spend": 40000.0}
+    assert parse_strategy("capacity 200 orders a day", cur, 125) == {"capacity_scale": 1.6}
+    assert parse_strategy("open 8 am to 11 pm", cur, 125) == {"open_hour": 8.0, "close_hour": 23.0}
+    assert detect("open 8 am to 11 pm") == "strategy"
+    assert detect("how do agents decide whom to choose") == "explain_agents"
+    assert detect("kya dikh raha hai is map me") == "screen"
+    assert detect("what should i change to grow") == "insights"
+    assert detect("test it") == "apply_suggestion"
+    assert detect("try price 399") == "try_price"
+    assert detect("kitne competitors hain?") == "competitors"
+
+
+def test_insights_flag_capacity_and_awareness():
+    from app.api.insights import build_insights, compare, run_view
+    res = {
+        "summary": {"price": 450, "units_sold": 3750, "variable_cost_per_unit": 180},
+        "finance": {"operating_profit": 300000, "break_even_units": 1700},
+        "monte_carlo": {"prob_loss": 0.1},
+        "sensitivity": {"price_curve": [{"price": 400, "units": 3900, "profit": 280000}, {"price": 450, "units": 3750, "profit": 300000}],
+                        "marketing_curve": [{"spend": 20000, "profit": 300000}, {"spend": 60000, "profit": 340000}]},
+        "competitors": [{"name": "Domino's", "distance_km": 0.1, "modeled_units": 4000}],
+        "abm": {"capacity_per_day": 125, "monthly_units": [3000, 3700, 3750], "monthly_finance": [{"profit": 1e5}, {"profit": 2.8e5}, {"profit": 3e5}],
+                "daily": {"units_you": [125] * 30, "turned_away": [300] * 30, "demand_you": [425] * 30},
+                "metrics": {"aware_final": 0.33, "trial_rate": 0.4, "repeat_share": 0.19, "afford_share": 0.52}},
+    }
+    out = build_insights(res, {"price": 450, "marketing_spend": 20000, "quality": 0.55}, "orders")
+    keys = [i["key"] for i in out["insights"]]
+    assert "capacity" in keys and "awareness" in keys and "retention" in keys
+    assert out["suggested"]["changes"]
+    v = run_view(res)
+    better = dict(v, month3_units=4500, month3_profit=4e5)
+    c = compare(v, better, "orders")
+    assert c["grows"] and c["verdict"] == "better"

@@ -61,6 +61,17 @@ MODE_NAMES = [m[0] for m in gm.MODES]
 MODE_BASE = [0.30, 0.30, 0.08, 0.10, 0.12, 0.05, 0.05]
 MODES = [(m[0], b, b, b, m[2], m[1]) for m, b in zip(gm.MODES, MODE_BASE)]
 
+# Day-of-week demand pattern (Mon..Sun), mean 1. Assumption from typical Indian urban retail/food footfall:
+# food peaks Fri-Sun, salons/appointments on Saturday, hotels at weekends. Launch day is a Monday.
+DOW = {
+    "takeaway": (0.88, 0.86, 0.90, 0.95, 1.10, 1.21, 1.10),
+    "dine_in": (0.85, 0.84, 0.88, 0.94, 1.12, 1.25, 1.12),
+    "retail": (0.95, 0.93, 0.95, 0.98, 1.03, 1.12, 1.04),
+    "appointment": (0.90, 0.92, 0.95, 1.00, 1.05, 1.20, 0.98),
+    "lodging": (0.85, 0.85, 0.90, 0.95, 1.15, 1.25, 1.05),
+    "membership": (1, 1, 1, 1, 1, 1, 1),
+}
+
 DEFAULTS = {
     "wom_rate": 0.015, "signage_radius": 0.35, "signage_daily": 0.04, "noise_scale": 0.6, "habit_build": 0.25, "habit_cap": 1.2,
     "congestion_penalty": 1.0, "congestion_memory": 14, "monthly_churn": 0.08, "switch_threshold": 0.35,
@@ -308,6 +319,24 @@ def run_abm(arch: Archetype, zones: list[Zone], comps: list[Competitor], biz: Bu
         bu = u[np.arange(idx.size), best]
         return np.where(bu > u0, best, -1)
 
+    def probs(idx: np.ndarray) -> np.ndarray:
+        """Each agent's own multinomial-logit choice probabilities (you, competitors..., outside option last).
+
+        Same utilities and personal noise scale as ``choose``; used to count demand in real units without the
+        "one agent = N residents" rounding that makes sampled daily counts jump in big steps."""
+        v = v_static[idx] + habit[idx] - np.where(np.arange(J)[None, :] == 0, (cong[idx] > 0)[:, None] * D["congestion_penalty"], 0)
+        v[:, 0] = np.where(aware[idx], v[:, 0], -np.inf)
+        vv = np.concatenate([v, outside[idx][:, None]], 1) / noise[idx][:, None]
+        vv = np.where(np.isfinite(vv), vv, -np.inf)
+        mx = np.max(vv, 1, keepdims=True)
+        e = np.exp(vv - mx)
+        return e / e.sum(1, keepdims=True)
+
+    dow = np.array(DOW.get(arch.key, DOW["retail"]), float)
+    dow = dow / dow.mean()
+    in_idx = np.where(in_market)[0]
+    cap_units_day = arch.capacity_units(biz.capacity) / 30.0 if not membership else None
+
     for day in range(days):
         cust_zone = np.bincount(zi[purchases_you > 0], weights=wom_send[purchases_you > 0], minlength=len(zones)).astype(float)
         wom_pressure = np.divide(cust_zone, zone_count, out=np.zeros_like(cust_zone), where=zone_count > 0)[zi]
@@ -340,7 +369,7 @@ def run_abm(arch: Archetype, zones: list[Zone], comps: list[Competitor], biz: Bu
             choice = np.where(keep, cur, choice)
             joining = due[(choice == 0) & (cur != 0)]
             current_members = int((member_of == 0).sum())
-            room = int(max(0, math.floor(daily_cap) - current_members))
+            room = int(max(0, math.floor(daily_cap + rng.random()) - current_members))
             if joining.size > room:
                 rejected = rng.choice(joining, size=joining.size - room, replace=False)
                 choice[np.isin(due, rejected)] = -1
@@ -367,19 +396,30 @@ def run_abm(arch: Archetype, zones: list[Zone], comps: list[Competitor], biz: Bu
             series["units_none"].append(int((in_market & (member_of < 0)).sum()))
             frame_events = np.where((member_of >= 0) & (rng.random(N) < 3 / 7))[0]
         else:
-            buyers = np.where(in_market & (rng.random(N) < freq / 30.0))[0]
+            m_day = float(dow[day % 7])
+            # demand in real units: every in-market agent's purchase rate x its own choice probabilities x residents it stands for
+            pr = probs(in_idx) if in_idx.size else np.zeros((0, J + 1))
+            w = freq[in_idx] / 30.0 * m_day
+            exp_you = scale * float(w @ pr[:, 0]) if in_idx.size else 0.0
+            exp_comp = scale * float(w @ pr[:, 1:J].sum(1)) if in_idx.size and J > 1 else 0.0
+            exp_none = scale * float(w @ pr[:, J]) if in_idx.size else 0.0
+            orders = float(rng.poisson(exp_you)) if exp_you < 1e7 else exp_you  # day-to-day randomness of real orders
+            served = min(orders, cap_units_day * float(np.clip(rng.normal(1.0, 0.04), 0.85, 1.12)))  # staffing / rush variation
+            turned = orders - served
+            # agent-level events (who buys, from whom) drive habits, word of mouth and the dots on the map
+            buyers = np.where(in_market & (rng.random(N) < freq / 30.0 * m_day))[0]
             choice = choose(buyers)
             decisions += buyers.size
             to_you = buyers[choice == 0]
-            cap_today = rng.poisson(daily_cap) if daily_cap < 50 else int(round(daily_cap))
-            if to_you.size > cap_today:
-                rejected = rng.choice(to_you, size=to_you.size - cap_today, replace=False)
+            if turned > 0 and to_you.size:
+                k = int(np.floor(to_you.size * turned / max(orders, 1e-9) + rng.random()))
+                rejected = rng.choice(to_you, size=min(k, to_you.size), replace=False) if k > 0 else to_you[:0]
+            else:
+                rejected = to_you[:0]
+            if rejected.size:
                 choice[np.isin(buyers, rejected)] = -1
                 cong[rejected] = D["congestion_memory"]
                 turned_away[rejected] += 1
-                n_rej = rejected.size
-            else:
-                n_rej = 0
             got = choice >= 0
             b = buyers[got]
             habit[b, choice[got]] = np.minimum(habit[b, choice[got]] + habit_rate[b], habit_cap[b])
@@ -389,11 +429,13 @@ def run_abm(arch: Archetype, zones: list[Zone], comps: list[Competitor], biz: Bu
             first_you[fy] = day
             purchases_you[buyers[choice == 0]] += 1
             last_choice[b] = choice[got]
-            series["units_you"].append(int((choice == 0).sum()))
-            series["units_comp"].append(int((choice > 0).sum()))
-            series["units_none"].append(int((choice < 0).sum()))
-            series["turned_away"].append(n_rej)
+            # series are kept in "agent units" (x scale on output) so the downstream code is unchanged
+            series["units_you"].append(served / scale)
+            series["units_comp"].append(float(rng.poisson(exp_comp)) / scale if exp_comp < 1e7 else exp_comp / scale)
+            series["units_none"].append(exp_none / scale)
+            series["turned_away"].append(turned / scale)
             series["members_you"].append(0)
+            series.setdefault("demand_you", []).append(exp_you)
             frame_events = b
         series["customers_you"].append(int((purchases_you > 0).sum()))
         series["aware_share"].append(float(aware[in_market].mean()) if in_market.any() else 0.0)
@@ -509,7 +551,13 @@ def run_abm(arch: Archetype, zones: list[Zone], comps: list[Competitor], biz: Bu
         "ramp_up_week": ramp_week, "weekly": weekly, "frames": frames, "frame_every": frame_every,
         "daily": {"units_you": [round(x * scale, 1) for x in series["units_you"]], "units_comp": [round(x * scale, 1) for x in series["units_comp"]],
                   "aware_share": [round(x, 4) for x in series["aware_share"]], "customers_you": [round(x * scale, 1) for x in series["customers_you"]],
-                  "turned_away": [round(x * scale, 1) for x in series["turned_away"]]},
+                  "turned_away": [round(x * scale, 1) for x in series["turned_away"]],
+                  "demand_you": [round(x, 1) for x in series.get("demand_you", [])]},
+        "capacity_per_day": None if membership else round(float(cap_units_day), 1),
+        "weekday_pattern": [round(float(x), 3) for x in dow],
+        "accounting": ("Daily orders are counted in real units from every in-market agent's own choice probabilities "
+                       "(purchase rate x probability of choosing you x residents per agent), then real-order randomness and your daily "
+                       "capacity are applied. Dots on the map are individual sampled decisions."),
         "businesses": [{"idx": 0, "name": "Your business", "lat": float(biz.lat), "lng": float(biz.lng)}]
                       + [{"idx": j + 1, "name": c.name, "lat": c.lat, "lng": c.lng} for j, c in enumerate(comps)],
         "agents": agents,
@@ -537,7 +585,9 @@ def run_abm(arch: Archetype, zones: list[Zone], comps: list[Competitor], biz: Bu
             "share_within_2km": round(float((trip <= 2).mean()), 4) if trip.size else None,
             "customer_modes": cust_modes, "customer_segments": cust_segs,
             "competitor_shares": [round(x, 4) for x in comp_shares],
-            "none_share": round(float(np.sum(series["units_none"]) / max(1, decisions)), 4) if not membership else None,
+            "none_share": (round(float(np.sum(series["units_none"]) / max(1e-9, np.sum(series["units_none"]) + np.sum(series["units_comp"])
+                                                                          + np.sum(series["units_you"]) + np.sum(series["turned_away"]))), 4)
+                           if not membership else None),
             "aware_channels": {k: round(v * scale, 1) for k, v in channel_counts.items()},
             "mean_age": round(float(age.mean()), 1), "female_share": round(float(female.mean()), 4),
             "afford_share": round(float(afford[in_market].mean()) if in_market.any() else 0.0, 4),

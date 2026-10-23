@@ -3,6 +3,7 @@
 import { Building2, ExternalLink, Layers, MapPinPlus, Plus, RefreshCw, Trash2, Users } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { publishScreen } from "@/lib/screen";
 import { LocationPicker, type PickedPlace } from "@/components/LocationPicker";
 import { Map as MarketMap, } from "@/components/Map";
 import type { LayerKey } from "@/components/MapView";
@@ -136,6 +137,19 @@ export default function MarketPage() {
   );
   const zones = useMemo(() => (snap?.zones || []).map((z) => ({ lat: z.lat, lng: z.lng, value: z.population })), [snap]);
   const compWeight = useMemo(() => Object.fromEntries((baseResult?.competitors || []).map((c) => [c.id, c.modeled_units])), [baseResult]);
+  useEffect(() => {
+    if (!snap) return;
+    const top = [...(baseResult?.competitors || [])].sort((x, y) => y.modeled_units - x.modeled_units).slice(0, 3);
+    publishScreen({
+      page: "market", project_id: p.id, scenario_id: p.scenarios?.find((s) => s.is_baseline)?.id || null,
+      competitors: comps.filter((c) => c.active).length, population: snap.population?.total ?? null,
+      population_source: snap.population?.source ?? null,
+      selected_competitor: selected ? selected.name : null,
+      selected_competitor_modeled_units: modelComp ? Math.round(modelComp.modeled_units) : null,
+      strongest_competitors: top.map((c) => ({ name: c.name, modeled_units: Math.round(c.modeled_units) })),
+      layers,
+    });
+  }, [snap, comps, selected, modelComp, baseResult, layers, p.id, p.scenarios]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
