@@ -11,10 +11,10 @@
  *
  * Neither engine invents numbers: every figure comes from /assistant/facts or a real simulation run.
  */
-import { useConversation } from "@elevenlabs/react";
+import { ConversationProvider, useConversation } from "@elevenlabs/react";
 import { AudioLines, Keyboard, Mic, MicOff, Send, X } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from "react";
 import { cn } from "@/components/ui";
 
 const AGENT_ID = process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID || "agent_3201m5jvb75gfymtmw8m34wck59b";
@@ -52,7 +52,7 @@ const SUGGESTIONS = {
   general: ["What does StrataIQ do?", "Open the live demo", "Is the data real?"],
 };
 
-export default function VoiceDock() {
+function VoiceDockInner() {
   const path = usePathname() || "/";
   const router = useRouter();
   const projectId = projectIdFrom(path);
@@ -519,5 +519,17 @@ function Orb({ level, phase, size }: { level: number; phase: Phase; size: number
         }}
       />
     </span>
+  );
+}
+
+/** Newer ElevenLabs SDKs require every conversation hook to live inside a ConversationProvider. */
+export default function VoiceDock() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const Provider = ConversationProvider as unknown as ComponentType<{ children: ReactNode }> | undefined;
+  if (!Provider) return <VoiceDockInner />;
+  return (
+    <Provider>
+      <VoiceDockInner />
+    </Provider>
   );
 }
