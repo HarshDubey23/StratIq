@@ -250,7 +250,7 @@ INTENTS: list[tuple[str, list[str]]] = [
                    r"\b(location|site) (finder|scan|suggest)", r"\bmove (the )?(shop|store|outlet|site)\b", r"which (location|area|site|spot) is best", r"konsi jagah"]),
     ("optimize", [r"\b(best|optimal|ideal|optimum|right) (strategy|price|plan|pricing|combination|marketing)", r"\boptimi[sz]", r"maximi[sz]e (my )?profit", r"most profit", r"sabse (zyada|jyada) (profit|munafa)",
                   r"what (price|strategy) (should|maximi)"]),
-    ("explain_term", [r"\bwhat (is|are|does) (a |an |the )?(catchment|p10|p90|break.?even|awareness|capacity|wtp|willingness to pay|monte carlo|outside option|trial rate|repeat share|payback|utili[sz]ation|scenario|baseline|genome|agent|turned away|reference price|variable cost|fixed cost|operating profit)",
+    ("explain_term", [r"\bwhat (is|are|does) (a |an )?(catchment|p10|p90|break.?even|awareness|capacity|wtp|willingness to pay|monte carlo|outside option|trial rate|repeat share|payback|utili[sz]ation|scenario|baseline|genome|agent|turned away|reference price|variable cost|fixed cost|operating profit)",
                       r"\b(catchment|p10|p90|break.?even|monte carlo|wtp|payback|utili[sz]ation|genome|awareness|capacity) (ka |ki |ke )?(kya|matlab|means?|meaning)", r"\bmeaning of\b", r"\bexplain (the )?(term|word)"]),
     ("tour", [r"\b(tour|guide me|walk me through|show me around|how (do i|to) use|where do i start|what do i do( first| now| next)?|next step|samjhao|kaise use|kya karu ab|aage kya)\b"]),
     ("insights", [r"insight", r"suggest", r"advice", r"advise", r"improve", r"\bgrow", r"badh", r"sujhav", r"what should i change", r"how (can|do) i (get|increase|make|win)",
