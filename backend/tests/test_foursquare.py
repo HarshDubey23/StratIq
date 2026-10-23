@@ -10,3 +10,9 @@ def test_merge_dedupes_same_place_and_keeps_new():
     out, added = merge_with_osm(osm, fsq)
     assert added == 1
     assert [p["ref"] for p in out] == ["node/1", "fsq/b"]
+
+
+def test_keywords_drop_generic_words():
+    from app.providers.foursquare import _keywords
+    assert _keywords(["pizza", "Pizza outlet"]) == ["pizza"]
+    assert _keywords(["Gym / fitness centre"]) == ["gym", "fitness"]

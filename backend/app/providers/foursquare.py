@@ -100,31 +100,50 @@ async def _search(lat: float, lng: float, radius_m: int, query: str, pages: int 
     return []
 
 
+GENERIC = {"outlet", "shop", "store", "place", "centre", "center", "studio", "parlour", "parlor", "joint", "house", "the", "and", "&"}
+
+
+def _keywords(terms: list[str]) -> list[str]:
+    out: list[str] = []
+    for t in terms:
+        for w in re.split(r"[^a-zA-Z\u00C0-\u024F]+", (t or "").lower()):
+            if len(w) >= 3 and w not in GENERIC and w not in out:
+                out.append(w)
+    return out
+
+
 async def fsq_pois(lat: float, lng: float, radius_m: int, terms: list[str]) -> list[dict]:
-    """Search Foursquare with a few everyday words for the category; returns POI dicts shaped like the OSM ones."""
+    """Search Foursquare by category id and by the category's key words; returns POI dicts shaped like the OSM ones.
+
+    Text search is fuzzy ("pizza outlet" also matches a phone shop called "… Outlet"), so a text hit is kept only
+    when the key word appears in its name or its Foursquare categories. Category-id hits are kept as they are."""
     if not enabled():
         return []
-    queries = list(dict.fromkeys(t.strip().lower() for t in terms if t and len(t.strip()) >= 3))[:3]
-    cats = sorted({c for q in queries for w, ids in CATEGORY_IDS.items() if w in q for c in ids})
-    jobs = [_search(lat, lng, radius_m, q) for q in queries]
+    words = _keywords(terms)[:3]
+    cats = sorted({c for w in words for k, ids in CATEGORY_IDS.items() if k in w for c in ids})
+    jobs = [_search(lat, lng, radius_m, w) for w in words]
     if cats:
         jobs.append(_search(lat, lng, radius_m, "", categories=cats))
     results = await asyncio.gather(*jobs)
     seen: dict[str, dict] = {}
-    for batch in results:
+    for i, batch in enumerate(results):
+        by_category = cats and i == len(results) - 1
         for p in batch:
             pid = p.get("fsq_place_id") or p.get("fsq_id")
             plat, plng = p.get("latitude"), p.get("longitude")
             if plat is None and isinstance(p.get("geocodes"), dict):
                 main = p["geocodes"].get("main") or {}
                 plat, plng = main.get("latitude"), main.get("longitude")
-            if not pid or plat is None or plng is None:
+            if not pid or plat is None or plng is None or pid in seen:
                 continue
             if _dist_m(lat, lng, float(plat), float(plng)) > radius_m:
                 continue
-            cats = [c.get("name") for c in (p.get("categories") or []) if c.get("name")]
+            cat_names = [c.get("name") for c in (p.get("categories") or []) if c.get("name")]
+            hay = ((p.get("name") or "") + " " + " ".join(cat_names)).lower()
+            if not by_category and words and not any(w in hay or (w.endswith("s") and w[:-1] in hay) for w in words):
+                continue
             loc = p.get("location") or {}
-            tags = {"name": p.get("name") or "", "fsq:categories": "; ".join(cats)[:200]}
+            tags = {"name": p.get("name") or "", "fsq:categories": "; ".join(cat_names)[:200]}
             if loc.get("formatted_address"):
                 tags["addr:full"] = str(loc["formatted_address"])[:200]
             seen[pid] = {"ref": f"fsq/{pid}"[:80], "lat": float(plat), "lng": float(plng), "tags": tags, "name": p.get("name") or "",
