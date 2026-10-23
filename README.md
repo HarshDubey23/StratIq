@@ -15,7 +15,7 @@ scenario comparisons and a list of what to verify next.
 - **Strata, the voice analyst** — press **V** anywhere. Realtime full-duplex voice (ElevenLabs agent) with client tools that read the live project facts, run what-if prices through the real engine, and navigate the app. Falls back to browser speech (Web Speech API) + a grounded intent router if realtime is unavailable. It never speaks a number that isn't in the project facts or a model run.
 - **Competitors that actually load** — Overpass mirrors are raced in parallel (first non-empty answer wins); if all are busy, the same OpenStreetMap data comes from the Photon index, then Nominatim. The source used is recorded in provenance.
 - **Live landing page** — the hero city queries real OpenStreetMap businesses around Connaught Place, Indiranagar or Bandra in real time.
-- **One-click live demo** — a gym near Connaught Place with live competitors and WorldPop population (business inputs are labelled example assumptions), plus guest access so judges skip sign-up.
+- **One-click live demo** — a café near Connaught Place with live competitors and WorldPop population (business inputs are labelled example assumptions), plus guest access so judges skip sign-up.
 - **Serverless-ready** — `SERVERLESS=1` (auto on Vercel) loads market data inside the request, uses a NullPool behind a pooler, and `AUTO_MIGRATE=1` applies migrations on first request. The frontend proxies `/api/*` through a route handler with a 300 s budget.
 
 ## What works

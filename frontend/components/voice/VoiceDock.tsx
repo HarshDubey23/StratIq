@@ -109,7 +109,7 @@ function VoiceDockInner() {
         try {
           const p = await jfetch<{ id: string }>(`/api/v1/demo/live`, { method: "POST" });
           router.push(`/app/projects/${p.id}/market`);
-          return "Opened a live demo: a gym near Connaught Place with real OpenStreetMap competitors. Market data is loading.";
+          return "Opened a live demo: a specialty café near Connaught Place with real OpenStreetMap competitors and WorldPop population.";
         } catch {
           router.push(`/sign-up?next=${encodeURIComponent("/app")}`);
           return "The user needs to create a free account first; I opened the sign-up page.";

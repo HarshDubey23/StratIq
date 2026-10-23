@@ -72,7 +72,7 @@ export default function Dashboard() {
         <div className="flex flex-wrap gap-2">
           <Button variant="secondary" onClick={liveDemo} loading={liveBusy}>
             <span className="relative flex h-2 w-2"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-model opacity-70" /><span className="relative inline-flex h-2 w-2 rounded-full bg-model" /></span>
-            Live demo: gym in Connaught Place
+            Live demo: café in Connaught Place
           </Button>
           <ButtonLink href="/app/projects/new" variant="primary">New analysis <ArrowRight className="h-4 w-4" /></ButtonLink>
         </div>
