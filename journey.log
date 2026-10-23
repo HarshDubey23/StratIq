@@ -1,0 +1,68 @@
+shot 01-hero @ /
+shot 02-chapter-real @ /
+shot 03-chapter-agents @ /
+shot 05-chapter-voice @ /
+OK   landing (47s)
+shot 06-hero-pizza @ /
+[http 401] GET /api/v1/auth/me
+[console.error] Failed to load resource: the server responded with a status of 401 ()
+shot 10-market @ /app/projects/d40bd963-3591-42be-99dc-b8abfcc42f67/market
+snapshot status=complete pop=422454.88 competitors=32 sources=competitors:OpenStreetMap (via Overpass API) | competitors:Foursquare Places | buildings:OpenStreetMap (via Overpass API) | context:OpenStreetMap (via Overpass API) | population:WorldPop Global population (100 m, unconstrained) | age_sex:WorldPop Global population (100 m, unconstrained)
+errors=[]
+first competitors: Domino's | Chicago Pizza | Eagle Boys Pizza | Chicago Pizza | Sbarro | Sbarro
+OK   open live demo (guest) (66s)
+FAIL competitor list: TimeoutError: locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for getByRole('button', { name: /Competitors/ }).first()
+    - locator resolved to <button class="flex-1 rounded px-2 py-1.5 text-xs capitalize text-ink-400 hover:text-ink-100">Competitors (32)</button>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is visible, en
+shot 11-overview @ /app/projects/d40bd963-3591-42be-99dc-b8abfcc42f67
+OK   overview (38s)
+run Lower price ₹399: 201
+shot 12-lab @ /app/projects/d40bd963-3591-42be-99dc-b8abfcc42f67/simulation
+scenario Baseline: units=6600 profit=624000 p_loss=0.06
+scenario Lower price ₹399: units=6600 profit=287400 p_loss=0.0433
+OK   simulation (44s)
+shot 13-live @ /app/projects/d40bd963-3591-42be-99dc-b8abfcc42f67/live
+OK   live agents (34s)
+daily orders (wk3+): min=195.3 max=220 distinct=21 zeros=0 scale=50.23 cap/day=220
+insights [200]: Capacity is the bottleneck | Flat | Strongest rival: Pizza Hut
+suggested: {"label":"Test 50% more capacity","changes":{"capacity_scale":1.5}}
+FAIL live: smooth daily orders + strategy lab: TimeoutError: locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for getByRole('radio', { name: '+50%' }).first()
+    - locator resolved to <button role="radio" aria-checked="false" class="rounded-full px-3 py-1 text-xs transition-colors text-ink-300 hover:text-ink-100">+50%</button>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - eleme
+sites [200]: current profit=624000 demand=7160.6; top=624000@1.34km, 624000@1.86km, 624000@0.88km, 624000@1.45km, 624000@0.89km; scanned=145
+optimize [200]: tested=360 current=624000 best={"p":505,"m":80000,"c":1,"profit":839560,"loss":0.047}
+shot 10c-best-sites @ /app/projects/d40bd963-3591-42be-99dc-b8abfcc42f67/market?tab=sites
+FAIL best sites + optimizer: TimeoutError: locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for getByRole('button', { name: /Find the best combination/ })
+    - locator resolved to <button class="inline-flex items-center justify-center gap-2 rounded-full text-sm font-medium transition-[background,color,box-shadow,transform] duration-300 ease-out active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed
+shot 14-decisions @ /app/projects/d40bd963-3591-42be-99dc-b8abfcc42f67/decisions
+OK   decisions (8s)
+Q: kitne competitors hain? -> [200] There are 32 competitors mapped within about 4.0 kilometres. The nearest are Domino's at 0.06 kilometres; Chicago Pizza at 0.13 kilometres; Eagle Boys Pizza at 0.21 kilometres. In the simulation the strongest is Pizza Hut, with about 9,976 orders a month.
+Q: what is my profit -> [200] For the baseline at ₹450, the model estimates about 6,600 orders a month, revenue of ₹29.70 lakh, and operating profit of ₹6.24 lakh a month. The realistic range is ₹94,927 to ₹6.24 lakh.
+Q: what is the break even -> [200] You need about 3,698 orders a month to break even. The baseline is at 6,600. Startup cost pays back in about 7.2 months under these assumptions.
+Q: try price 300 -> [200] At ₹300 instead of ₹450, the model gives about 6,600 orders a month (+0 versus baseline) and an operating profit of minus ₹3.66 lakh a month, which is ₹9.90 lakh lower than the baseline. Modeled chance of a monthly loss goes from 6% to 100%.
+Q: how do agents decide whom to choose? -> [200] Each of the ten thousand agents is a synthetic person placed where WorldPop says people live, with 615 personal parameters: age, income, how far and how they travel, which hours they're free, 40 things they care about and the minimum they expect on each, how they react to 16 media channels, and how price-sensitive they are. Every day, an agent first has to be in the market and aware of you, through ads, word of mouth or your signboard. Then it scores every option it can reach — you, each competitor, or buying nothing — on price against its own budget, travel time, opening hours, quality and its own tastes, adds a little personal randomness, and picks the highest score. Habits build when it returns, and a bad experience like being turned away is remembered. In this run, 52% of in-market people can afford your price, 93% knew you by week 12, and 37% of customers came back. Daily orders are the sum of every agent's probability of choosing you times the residents it stands for, so one agent never jumps the total by hundreds.
+Q: what insights do you see on this map? -> [200] Capacity is the bottleneck: In the last four simulated weeks you served about 211 orders a day — your limit is 220 — and about 552 more a day wanted you but were turned away. Flat: Agent simulation: month 1 about 6,051 orders, month 3 about 6,335 (+5%). Growth stops at your capacity. Strongest rival: Pizza Hut: Pizza Hut at 0.15 km wins about 9,976 orders a month in the model. Among people who chose someone else, the factors that hurt you most: Relies on online reviews, Perceived risk of a new place, Willingness to try a new business. My suggestion: test 50% more capacity — say 'test it' or press the button and I'll run it on the map.
+Q: double the marketing -> [200] I ran ads ₹80,000 on the map. Month 3 in the agent simulation: 6,376 orders versus 6,335 before (+41), and profit ₹5.36 lakh versus ₹5.67 lakh. Awareness 93% to 98%. You are still turning away about 562 orders a day. This strategy does not help; I'd keep the earlier one.
+Q: where should I open? -> [200] Your current site is already the best in this catchment by the model: about 7,161 orders of demand a month. The nearest alternative gives ₹6.24 lakh versus your ₹6.24 lakh.
+Q: find the best strategy -> [200] I tested 360 combinations. The most profitable: price ₹505, marketing ₹80,000 a month. That gives about 6,202 orders and ₹8.40 lakh a month versus ₹6.24 lakh now, and the chance of a loss month goes from 5% to 5%. Say 'test it' and I'll check it with the ten thousand agents on the map.
+Q: P10 ka matlab kya hai -> [200] P10 is the bad-but-realistic case: in 10% of the uncertainty runs profit was this low or lower. P90 is the good case. The truth is likely between them.
+Q: give me a tour -> [200] Your baseline has run. Next, open the Live market to watch ten thousand people decide day by day. Then read my insights on the right, test a strategy with the sliders, ask me for the best location or the best strategy, and finally check Decisions for the verdict and what to verify.
+facts: competitors=32 pop=422455 baseline_profit=624000
+FAIL voice analyst (grounded answers): TimeoutError: locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for getByRole('button', { name: /Talk to Strata/ })
+    - locator resolved to <button aria-label="Talk to Strata, the voice analyst" class="group pointer-events-auto flex items-center gap-3 rounded-full border border-white/10 bg-ink-900/80 py-2 pl-2 pr-5 shadow-[0_20px_60px_-20px_rgba(0,0,0,.9)] backdrop-blur-xl transitio
+shot 20-quickstart-plan @ /app
+shot 21-quickstart-welcome @ /app/projects/407030dd-fc90-4579-9569-9e29872781e7/market?welcome=1
+shot 22-quickstart-market @ /app/projects/407030dd-fc90-4579-9569-9e29872781e7/market?welcome=1
+OK   quick start from one sentence (96s)
