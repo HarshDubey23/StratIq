@@ -45,10 +45,28 @@ def _parse_next(r: httpx.Response) -> str | None:
     return m.group(1) if m else None
 
 
-async def _search(lat: float, lng: float, radius_m: int, query: str, pages: int = 3) -> list[dict]:
+# Foursquare category ids (stable since v2) for the categories the demo leans on; a category search finds places
+# whose names don't contain the search word ("Sbarro", "La Pino'z"). Unknown words just fall back to text search.
+CATEGORY_IDS = {
+    "pizza": ["4bf58dd8d48988d1ca941735"],
+    "cafe": ["4bf58dd8d48988d16d941735", "4bf58dd8d48988d1e0931735"], "café": ["4bf58dd8d48988d16d941735", "4bf58dd8d48988d1e0931735"],
+    "coffee": ["4bf58dd8d48988d1e0931735"],
+    "gym": ["4bf58dd8d48988d175941735"], "fitness": ["4bf58dd8d48988d175941735"],
+    "pharmacy": ["4bf58dd8d48988d10f951735"], "chemist": ["4bf58dd8d48988d10f951735"],
+    "salon": ["4bf58dd8d48988d110951735"], "barber": ["4bf58dd8d48988d110951735"],
+    "bakery": ["4bf58dd8d48988d16a941735"],
+    "restaurant": ["4d4b7105d754a06374d81259"],
+}
+
+
+async def _search(lat: float, lng: float, radius_m: int, query: str, pages: int = 3, categories: list[str] | None = None) -> list[dict]:
     """New Places API first (service key, Bearer); legacy v3 (key in Authorization) if the key is an older one."""
     key = get_settings().fsq_api_key
-    params = {"ll": f"{lat:.6f},{lng:.6f}", "radius": min(int(radius_m), 100_000), "query": query, "limit": 50}
+    params = {"ll": f"{lat:.6f},{lng:.6f}", "radius": min(int(radius_m), 100_000), "limit": 50}
+    if categories:
+        params["fsq_category_ids" if STATUS["api"] != "v3" else "categories"] = ",".join(categories)
+    else:
+        params["query"] = query
     apis = [("places", URL, {"Authorization": f"Bearer {key}", "X-Places-Api-Version": VERSION, "Accept": "application/json"}),
             ("v3", LEGACY_URL, {"Authorization": key, "Accept": "application/json"})]
     if STATUS["api"] == "v3":
@@ -87,7 +105,11 @@ async def fsq_pois(lat: float, lng: float, radius_m: int, terms: list[str]) -> l
     if not enabled():
         return []
     queries = list(dict.fromkeys(t.strip().lower() for t in terms if t and len(t.strip()) >= 3))[:3]
-    results = await asyncio.gather(*(_search(lat, lng, radius_m, q) for q in queries))
+    cats = sorted({c for q in queries for w, ids in CATEGORY_IDS.items() if w in q for c in ids})
+    jobs = [_search(lat, lng, radius_m, q) for q in queries]
+    if cats:
+        jobs.append(_search(lat, lng, radius_m, "", categories=cats))
+    results = await asyncio.gather(*jobs)
     seen: dict[str, dict] = {}
     for batch in results:
         for p in batch:
