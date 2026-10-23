@@ -491,7 +491,7 @@ async def ask(project_id: str, body: Ask, user: User = Depends(current_user), db
     sc = body.screen or {}
     arch = ARCHETYPES[p.category["archetype"]]
     unit = arch.unit_label
-    from .insights import _run_strategy, _scenario_run, build_insights, run_view
+    from .insights import _run_strategy, _scenario_run, build_insights
     if intent in ("apply_suggestion", "strategy", "insights", "screen", "explain_agents"):
         s_obj, r_obj = _scenario_run(db, p, sc.get("scenario_id"))
         ins = build_insights(r_obj.results, s_obj.inputs, unit, arch.price_label) if r_obj else None

@@ -106,7 +106,7 @@ function VoiceDockInner() {
         if (!pid) return JSON.stringify({ error: "Open a project first." });
         const sc = readScreen();
         const body: Record<string, number | string> = {};
-        for (const [k, v] of Object.entries(args || {})) if (v !== null && v !== undefined && v !== "" && !Number.isNaN(Number(v))) body[k] = Number(v);
+        for (const [k, v] of Object.entries(args || {})) if (v !== null && v !== undefined && !Number.isNaN(Number(v))) body[k] = Number(v);
         if (sc?.scenario_id) body.from_scenario_id = String(sc.scenario_id);
         try {
           const out = await jfetch<{ scenario: { id: string } }>(`/api/v1/projects/${pid}/strategy`, { method: "POST", json: body });
