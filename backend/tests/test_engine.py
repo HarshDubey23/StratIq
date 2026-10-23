@@ -155,3 +155,27 @@ def test_decision_layer_ranks_and_flags_gaps():
     assert d["verdict"] in {"potentially_viable", "financially_challenging", "high_uncertainty", "more_evidence_required"}
     d2 = decide(s, "low_risk", {}, arch.label)
     assert d2["ranking"][0]["prob_loss"] <= d2["ranking"][-1]["prob_loss"]
+
+
+def test_monte_carlo_is_batched_for_dense_markets():
+    """300+ rivals x 800 draws must not build one multi-GB array; batching gives identical numbers."""
+    import numpy as np
+    from app.categories.archetypes import ARCHETYPES
+    from app.engine import model as em
+    arch = ARCHETYPES["dine_in"]
+    r = np.random.default_rng(1)
+    zones = [em.Zone(12.97 + a, 77.64 + b, 1200.0, 0.0) for a in np.linspace(-.02, .02, 10) for b in np.linspace(-.02, .02, 10)]
+    comps = [em.Competitor(f"c{i}", "x", 12.97 + r.uniform(-.02, .02), 77.64 + r.uniform(-.02, .02)) for i in range(150)]
+    biz = em.BusinessInputs(lat=12.97, lng=77.64, price=250.0)
+    params = em.ResolvedParams.from_archetype(arch)
+    m = em.build_arrays(arch, zones, comps, biz, params)
+    pd = params.draws(200, np.random.default_rng(5))
+    old = em.MAX_BLOCK
+    try:
+        em.MAX_BLOCK = 10**12
+        whole = em.run_choice(arch, m, biz, pd)["units_by_alt"]
+        em.MAX_BLOCK = 50_000
+        batched = em.run_choice(arch, m, biz, pd)["units_by_alt"]
+    finally:
+        em.MAX_BLOCK = old
+    assert np.allclose(whole, batched)

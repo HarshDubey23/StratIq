@@ -162,9 +162,26 @@ def awareness(spend: float, base: np.ndarray, half_sat: np.ndarray) -> np.ndarra
     return base + (1 - base) * (1 - np.exp(-np.log(2) * spend / np.maximum(half_sat, 1.0)))
 
 
+# Largest D x Z x S x J block evaluated at once (~48 MB per float64 array). Dense markets (300+ rivals, 250 zones)
+# with 800 Monte Carlo draws would otherwise need several GB; draws are independent, so they are run in batches.
+MAX_BLOCK = 6_000_000
+
+
 def run_choice(arch: Archetype, m: MarketArrays, biz: BusinessInputs, p: dict[str, np.ndarray],
                keep_detail: bool = False) -> dict:
     """Evaluate the choice model for D parameter draws. Returns arrays with leading draw axis."""
+    D = len(p["participation"])
+    Z, J = m.dist_km.shape
+    per_draw = Z * len(arch.segments) * J
+    if not keep_detail and D > 1 and D * per_draw > MAX_BLOCK:
+        step = max(1, MAX_BLOCK // per_draw)
+        parts = [_run_choice(arch, m, biz, {k: v[i:i + step] for k, v in p.items()}, False) for i in range(0, D, step)]
+        return {k: np.concatenate([q[k] for q in parts], axis=0) for k in parts[0]}
+    return _run_choice(arch, m, biz, p, keep_detail)
+
+
+def _run_choice(arch: Archetype, m: MarketArrays, biz: BusinessInputs, p: dict[str, np.ndarray],
+                keep_detail: bool = False) -> dict:
     D = len(p["participation"])
     Z, J = m.dist_km.shape
     seg_share = np.array([s.share for s in arch.segments])  # [S]

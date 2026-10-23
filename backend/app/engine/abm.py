@@ -80,6 +80,21 @@ DEFAULTS = {
 }
 
 
+# Each agent scores every rival individually; memory grows ~7 MB per rival at 10,000 agents. In dense markets
+# (300+ cafés from OpenStreetMap + Foursquare) the agents weigh the nearest rivals individually; far ones barely
+# matter to anyone's choice. The aggregate choice model still uses every rival.
+MAX_AGENT_COMPETITORS = 80
+
+
+def agent_competitors(biz: BusinessInputs, comps: list[Competitor], k: int = MAX_AGENT_COMPETITORS) -> list[Competitor]:
+    if len(comps) <= k:
+        return list(comps)
+    from .geo import haversine_km
+    d = haversine_km(biz.lat, biz.lng, np.array([c.lat for c in comps]), np.array([c.lng for c in comps]))
+    keep = set(np.argsort(d)[:k].tolist())
+    return [c for i, c in enumerate(comps) if i in keep]  # original order, so indices are stable across rebuilds
+
+
 def _age_dist(age_sex: dict | None) -> tuple[np.ndarray, np.ndarray, str]:
     """Return (P(band), P(female | band), source)."""
     if age_sex and age_sex.get("bands"):
@@ -114,6 +129,7 @@ class Population:
     freq: np.ndarray
     age_src: str
     names: list[str]
+    comps: list
 
 
 def build_population(arch: Archetype, zones: list[Zone], comps: list[Competitor], biz: BusinessInputs, params: ResolvedParams,
@@ -121,6 +137,7 @@ def build_population(arch: Archetype, zones: list[Zone], comps: list[Competitor]
                      offer: dict | None, overrides: dict | None, month0: int, days: int) -> Population:
     P = params.values
     D = {**DEFAULTS, **{k: v for k, v in (overrides or {}).items() if k in DEFAULTS}}
+    comps = agent_competitors(biz, comps)
     rng = np.random.default_rng(seed + 101)
     pop = np.array([max(0.0, z.population) for z in zones])
     act = np.array([max(0.0, z.activity) for z in zones])
@@ -181,7 +198,7 @@ def build_population(arch: Archetype, zones: list[Zone], comps: list[Competitor]
             f0 *= (gen.G[:, gm.KI["ev_household_size"]] / 4.2) ** 0.3
         freq = np.clip(f0 * (P["frequency"] / max(f0.mean(), 1e-9)), 0.1, 30)
     names = ["Your business"] + [c.name for c in comps]
-    return Population(N, scale, zi, lat, lng, age, female, seg, gen, F, meta, up, p_in, freq, age_src, names)
+    return Population(N, scale, zi, lat, lng, age, female, seg, gen, F, meta, up, p_in, freq, age_src, names, comps)
 
 
 def _calibrate(pop: Population, arch: Archetype, D: dict, radius_km: float | None) -> dict:
@@ -559,7 +576,8 @@ def run_abm(arch: Archetype, zones: list[Zone], comps: list[Competitor], biz: Bu
                        "(purchase rate x probability of choosing you x residents per agent), then real-order randomness and your daily "
                        "capacity are applied. Dots on the map are individual sampled decisions."),
         "businesses": [{"idx": 0, "name": "Your business", "lat": float(biz.lat), "lng": float(biz.lng)}]
-                      + [{"idx": j + 1, "name": c.name, "lat": c.lat, "lng": c.lng} for j, c in enumerate(comps)],
+                      + [{"idx": j + 1, "name": c.name, "lat": c.lat, "lng": c.lng} for j, c in enumerate(pop.comps)],
+        "competitors_simulated": len(pop.comps), "competitors_total": len(comps),
         "agents": agents,
         "genome": {"size": gm.GENOME_SIZE, "per_agent": gm.GENOME_SIZE, "total_parameters": int(N * gm.GENOME_SIZE), "by_block": by_block,
                    "blocks": gm.BLOCKS, "audit": gm.audit(), "hours_source": pop.meta["hours_source"], "attr_sources": pop.meta["attr_sources"],
