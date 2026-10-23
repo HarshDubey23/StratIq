@@ -41,6 +41,9 @@ await step("landing", async () => {
 });
 
 await step("open live demo (guest)", async () => {
+  await page.getByRole("button", { name: "Pizza", exact: true }).click();
+  await page.waitForTimeout(15000);
+  await shot("06-hero-pizza", 1000);
   await page.getByRole("button", { name: /Open the live demo/ }).first().click();
   await page.waitForURL(/\/app\/projects\/.+\/market/, { timeout: 280000 });
   pid = page.url().split("/projects/")[1].split("/")[0];
@@ -49,6 +52,11 @@ await step("open live demo (guest)", async () => {
   L(`snapshot status=${mk.body.snapshot?.status} pop=${mk.body.snapshot?.population?.total} competitors=${mk.body.competitors?.length} sources=${(mk.body.snapshot?.sources || []).map((s) => `${s.layer}:${s.name}`).join(" | ")}`);
   L(`errors=${JSON.stringify(mk.body.snapshot?.errors || [])}`);
   L(`first competitors: ${mk.body.competitors?.slice(0, 6).map((c) => c.name).join(" | ")}`);
+});
+
+await step("competitor list", async () => {
+  await page.getByRole("button", { name: /Competitors/ }).first().click();
+  await shot("10b-competitors", 2500);
 });
 
 await step("overview", async () => {
