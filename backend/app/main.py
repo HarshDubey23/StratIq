@@ -78,11 +78,16 @@ for r in (auth.router, catalog.router, projects.router, scenarios.router, decisi
 
 @app.get("/api/health")
 def health():
-    db_ok = True
+    db_ok, err = True, None
     try:
         with get_engine().connect() as c:
             c.execute(text("select 1"))
     except Exception as e:  # pragma: no cover
         log.error("health db error: %s", e)
         db_ok = False
-    return JSONResponse(status_code=200 if db_ok else 503, content={"status": "ok" if db_ok else "degraded", "db": db_ok, "model_version": MODEL_VERSION})
+        import re
+        err = re.sub(r"://[^@\s]+@", "://***@", f"{type(e).__name__}: {e}")[:300]
+    body = {"status": "ok" if db_ok else "degraded", "db": db_ok, "model_version": MODEL_VERSION}
+    if err:
+        body["db_error"] = err
+    return JSONResponse(status_code=200 if db_ok else 503, content=body)
