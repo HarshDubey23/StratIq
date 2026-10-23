@@ -1,1 +1,1 @@
-{ "regions": ["bom1"] }
+{ "regions": ["bom1"], "git": { "deploymentEnabled": { "e2e-results": false } } }
