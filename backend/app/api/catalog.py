@@ -109,8 +109,9 @@ async def preview(spot: str = Query(default="cp-delhi"), category: str = Query(d
         raise HTTPException(502, f"OpenStreetMap is busy right now ({e.message[:100]})") from e
     return {"spot": {**sp, "key": spot}, "category": {"key": entry.key, "label": entry.label}, "radius_m": radius_m,
             "competitors": [{"name": p["name"] or "Unnamed", "lat": p["lat"], "lng": p["lng"], "ref": p["ref"]} for p in pois],
-            "source": {"name": prov.get("name"), "retrieved_at": prov.get("retrieved_at"), "detail": prov.get("detail"),
-                       "from_cache": prov.get("from_cache"), "attribution": prov.get("attribution")}}
+            "source": {"name": " + ".join([prov.get("name") or ""] + [a["name"] for a in prov.get("also") or []]),
+                       "retrieved_at": prov.get("retrieved_at"), "detail": prov.get("detail"), "from_cache": prov.get("from_cache"),
+                       "attribution": " · ".join([prov.get("attribution") or ""] + [a["attribution"] for a in prov.get("also") or []])}}
 
 
 @router.get("/market/sources-check")

@@ -225,7 +225,7 @@ export default function Landing() {
                     <span className={cn("absolute inline-flex h-full w-full rounded-full opacity-75", loading ? "animate-ping bg-warn" : loadErr ? "bg-danger" : "animate-ping bg-model")} />
                     <span className={cn("relative inline-flex h-2 w-2 rounded-full", loading ? "bg-warn" : loadErr ? "bg-danger" : "bg-model")} />
                   </span>
-                  {loading ? "Fetching from OpenStreetMap" : loadErr ? "Live data unavailable" : "Live from OpenStreetMap"}
+                  {loading ? "Fetching live places" : loadErr ? "Live data unavailable" : "Live · OpenStreetMap + Foursquare"}
                 </span>
                 <span className="coord">{spot.lat.toFixed(4)}°N {spot.lng.toFixed(4)}°E</span>
               </div>
@@ -259,7 +259,7 @@ export default function Landing() {
                 ))}
               </div>
               <p className="mt-4 border-t border-white/[0.06] pt-3 text-[11px] leading-relaxed text-ink-500">
-                Blue pillars are real {catLabel} from OpenStreetMap{agoMin !== null && !loadErr ? `, retrieved ${agoMin === 0 ? "just now" : `${agoMin} min ago`}${preview?.source.from_cache ? " (cached)" : ""}` : ""}. Moving dots are simulated people, not real individuals.
+                Blue pillars are real {catLabel} from OpenStreetMap and Foursquare Places{agoMin !== null && !loadErr ? `, retrieved ${agoMin === 0 ? "just now" : `${agoMin} min ago`}${preview?.source.from_cache ? " (cached)" : ""}` : ""}. Moving dots are simulated people, not real individuals.
               </p>
             </aside>
           </div>
@@ -277,7 +277,7 @@ export default function Landing() {
               </p>
               <dl data-reveal className="mt-10 grid grid-cols-2 gap-x-8 gap-y-6 border-t border-white/10 pt-8">
                 {[
-                  ["Competitors", "OpenStreetMap via racing Overpass mirrors, with a Photon fallback so a busy server never empties the map."],
+                  ["Competitors", "OpenStreetMap (racing Overpass mirrors + Photon) merged with Foursquare Places; a shop found in both is counted once."],
                   ["Population", "WorldPop, constrained to mapped buildings inside your catchment."],
                   ["Every value", "Tagged observed, user-entered, assumed or modeled — on screen, in reports, in the voice answers."],
                   ["Gaps", "Unmapped shops are flagged, and you can add the ones you see on the street."],
@@ -351,7 +351,7 @@ export default function Landing() {
               <div data-reveal className="mt-10 space-y-3 text-[15px]">
                 <div className="ml-auto w-fit max-w-[85%] rounded-3xl rounded-br-md bg-white/[0.08] px-5 py-3 backdrop-blur-md">Kitne gyms hain paas mein?</div>
                 <div className="w-fit max-w-[90%] rounded-3xl rounded-bl-md bg-accent/15 px-5 py-3 ring-1 ring-accent/30 backdrop-blur-md">
-                  I&apos;m reading the live project… the nearest competitors come straight from OpenStreetMap, and I&apos;ll tell you which one the simulation says is strongest.
+                  I&apos;m reading the live project… the nearest competitors come straight from OpenStreetMap and Foursquare, and I&apos;ll tell you which one the simulation says is strongest.
                 </div>
                 <div className="ml-auto w-fit max-w-[85%] rounded-3xl rounded-br-md bg-white/[0.08] px-5 py-3 backdrop-blur-md">What if I charge fifteen hundred?</div>
               </div>
@@ -392,7 +392,7 @@ export default function Landing() {
 
             <footer className="mt-24 flex flex-col gap-4 border-t border-white/10 pt-6 text-xs text-ink-500 md:flex-row md:items-center md:justify-between">
               <Logo />
-              <p>Map data © OpenStreetMap contributors (ODbL) · Population © WorldPop (CC BY 4.0) · Tiles © OpenFreeMap / OpenMapTiles · Voice by ElevenLabs</p>
+              <p>Map data © OpenStreetMap contributors (ODbL) · Places © Foursquare · Population © WorldPop (CC BY 4.0) · Tiles © OpenFreeMap / OpenMapTiles · Voice by ElevenLabs</p>
               <Link href="/methodology" className="hover:text-ink-200">Methodology and limitations</Link>
             </footer>
           </div>
