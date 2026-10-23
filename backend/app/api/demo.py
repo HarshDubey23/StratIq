@@ -89,9 +89,11 @@ LIVE_KINDS = {
     "pizza": {
         "key": "pizza", "name": "Pizza outlet", "radius_km": 3.0, "alt": ("Lower price ₹399", 399),
         "positioning": ["Lower price", "Faster delivery"], "hours": "11am–1am",
-        "base": {"price": 450, "quality": 0.6, "marketing_spend": 40000, "reference_price": None, "variable_cost_per_unit": None,
-                 "capacity": {"max_orders_per_day": 220, "open_days_per_month": 30}, "rent": 150000, "payroll": 180000, "utilities": 45000,
-                 "other_fixed": 25000, "startup_cost": 2500000, "param_overrides": {}, "seed": 42},
+        # Connaught Place-level costs: ~₹4 lakh rent for a 1,000 sq ft frontage, 12 staff, food + packaging + aggregator
+        # commission ≈ ₹235 an order. Assumptions a founder should replace with quotes.
+        "base": {"price": 450, "quality": 0.55, "marketing_spend": 40000, "reference_price": None, "variable_cost_per_unit": 235,
+                 "capacity": {"max_orders_per_day": 220, "open_days_per_month": 30}, "rent": 400000, "payroll": 260000, "utilities": 55000,
+                 "other_fixed": 40000, "startup_cost": 4500000, "param_overrides": {}, "seed": 42},
     },
     "gym": {
         "key": "gym", "name": "Gym", "radius_km": 2.5, "alt": ("Lower price ₹1,500", 1500),

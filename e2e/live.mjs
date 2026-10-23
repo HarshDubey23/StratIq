@@ -93,7 +93,7 @@ await step("live: smooth daily orders + strategy lab", async () => {
   L(`suggested: ${JSON.stringify(ins.body.suggested)}`);
   await page.goto(`${BASE}/app/projects/${pid}/live`);
   await page.getByText("Change your strategy").waitFor({ timeout: 90000 });
-  await page.getByRole("button", { name: "+50%" }).first().click();
+  await page.getByRole("radio", { name: "+50%" }).first().click();
   const mk = page.getByRole("slider", { name: "Marketing spend per month" });
   await mk.focus();
   for (let i = 0; i < 20; i++) await page.keyboard.press("ArrowRight");
