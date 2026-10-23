@@ -1,0 +1,212 @@
+INFO:     Started server process [2764]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:38450 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53958 - "GET /api/health HTTP/1.1" 200 OK
+2026-10-23 06:42:46,931 INFO httpx HTTP Request: GET https://photon.komoot.io/api/?q=cafe&lat=28.631500&lon=77.216700&limit=50&location_bias_scale=0.1&zoom=16&osm_tag=amenity%3Acafe "HTTP/1.1 200 OK"
+2026-10-23 06:42:46,970 INFO httpx HTTP Request: GET https://photon.komoot.io/api/?q=coffee&lat=28.631500&lon=77.216700&limit=50&location_bias_scale=0.1&zoom=16&osm_tag=shop%3Acoffee "HTTP/1.1 200 OK"
+2026-10-23 06:42:47,076 INFO httpx HTTP Request: POST https://maps.mail.ru/osm/tools/overpass/api/interpreter "HTTP/1.1 504 Gateway Time-out"
+2026-10-23 06:42:47,086 INFO httpx HTTP Request: GET https://photon.komoot.io/api/?q=Caf%C3%A9&lat=28.631500&lon=77.216700&limit=50&location_bias_scale=0.1&zoom=16&osm_tag=amenity%3Acafe "HTTP/1.1 200 OK"
+2026-10-23 06:42:47,288 INFO httpx HTTP Request: GET https://photon.komoot.io/api/?q=coffee+shop&lat=28.631500&lon=77.216700&limit=50&location_bias_scale=0.1&zoom=16&osm_tag=amenity%3Acafe "HTTP/1.1 200 OK"
+2026-10-23 06:42:47,435 INFO httpx HTTP Request: GET https://photon.komoot.io/api/?q=coffee&lat=28.631500&lon=77.216700&limit=50&location_bias_scale=0.1&zoom=16&osm_tag=amenity%3Acafe "HTTP/1.1 200 OK"
+2026-10-23 06:42:47,474 INFO httpx HTTP Request: GET https://photon.komoot.io/api/?q=coffee+shop&lat=28.631500&lon=77.216700&limit=50&location_bias_scale=0.1&zoom=16&osm_tag=shop%3Acoffee "HTTP/1.1 503 Service Temporarily Unavailable"
+2026-10-23 06:42:47,475 INFO httpx HTTP Request: GET https://photon.komoot.io/api/?q=coffee&lat=28.631500&lon=77.216700&limit=50&location_bias_scale=0.1&zoom=16 "HTTP/1.1 503 Service Temporarily Unavailable"
+2026-10-23 06:42:47,482 INFO httpx HTTP Request: GET https://photon.komoot.io/api/?q=chaayos&lat=28.631500&lon=77.216700&limit=50&location_bias_scale=0.1&zoom=16 "HTTP/1.1 503 Service Temporarily Unavailable"
+2026-10-23 06:42:47,486 INFO httpx HTTP Request: GET https://photon.komoot.io/api/?q=Caf%C3%A9&lat=28.631500&lon=77.216700&limit=50&location_bias_scale=0.1&zoom=16&osm_tag=shop%3Acoffee "HTTP/1.1 200 OK"
+INFO:     ::1:0 - "POST /api/v1/auth/signup HTTP/1.1" 201 Created
+INFO:     ::1:0 - "PUT /api/v1/auth/preferences HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/system/capabilities HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/auth/me HTTP/1.1" 200 OK
+2026-10-23 06:43:07,506 INFO strataiq.runs simulation start run=521e5555-d8da-4ee4-956b-420a273b410b scenario=b60e522a-7ad8-4b77-a75b-ba59bfa99d09 model=siq-choice-1.2 zones=265 comps=4
+2026-10-23 06:43:08,533 INFO strataiq.runs simulation end run=521e5555-d8da-4ee4-956b-420a273b410b status=succeeded duration_ms=162.6
+2026-10-23 06:43:08,546 INFO strataiq.runs simulation start run=c5867c75-8f11-4bf1-a260-ac92385c8570 scenario=089e417d-3354-4098-820e-a2f5a16b90a9 model=siq-choice-1.2 zones=265 comps=4
+2026-10-23 06:43:09,364 INFO strataiq.runs simulation end run=c5867c75-8f11-4bf1-a260-ac92385c8570 status=succeeded duration_ms=140.5
+INFO:     ::1:0 - "POST /api/v1/demo HTTP/1.1" 201 Created
+INFO:     ::1:0 - "GET /api/v1/projects/4a2ba6eb-94b8-4b35-928d-187904d0ec83 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/4a2ba6eb-94b8-4b35-928d-187904d0ec83/market?location_id=91895db1-d87b-4d24-b6db-32056208ce98 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/simulation-runs/521e5555-d8da-4ee4-956b-420a273b410b/results HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/4a2ba6eb-94b8-4b35-928d-187904d0ec83/insights?scenario_id=b60e522a-7ad8-4b77-a75b-ba59bfa99d09 HTTP/1.1" 200 OK
+2026-10-23 06:43:19,355 WARNING strataiq.osm overpass competitors failed: maps.mail.ru: HTTP 504; overpass-api.de: ConnectTimeout; overpass.kumi.systems: ReadTimeout; overpass.private.coffee: ReadTimeout
+INFO:     ::1:0 - "GET /api/v1/market/preview?spot=cp-delhi&category=cafe HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/4a2ba6eb-94b8-4b35-928d-187904d0ec83 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/simulation-runs/521e5555-d8da-4ee4-956b-420a273b410b/results HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/system/capabilities HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/auth/me HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/4a2ba6eb-94b8-4b35-928d-187904d0ec83 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/simulation-runs/521e5555-d8da-4ee4-956b-420a273b410b/results HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/4a2ba6eb-94b8-4b35-928d-187904d0ec83/market?location_id=91895db1-d87b-4d24-b6db-32056208ce98 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/genome/registry HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/4a2ba6eb-94b8-4b35-928d-187904d0ec83/insights?scenario_id=b60e522a-7ad8-4b77-a75b-ba59bfa99d09 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/simulation-runs/521e5555-d8da-4ee4-956b-420a273b410b/agents/3426 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/simulation-runs/521e5555-d8da-4ee4-956b-420a273b410b/results HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/simulation-runs/521e5555-d8da-4ee4-956b-420a273b410b/genome-matrix?rows=480 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/simulation-runs/521e5555-d8da-4ee4-956b-420a273b410b/agents/8140 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/simulation-runs/521e5555-d8da-4ee4-956b-420a273b410b/survey-kit HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/system/capabilities HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/auth/me HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/4a2ba6eb-94b8-4b35-928d-187904d0ec83 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/4a2ba6eb-94b8-4b35-928d-187904d0ec83/market?location_id=91895db1-d87b-4d24-b6db-32056208ce98 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/simulation-runs/521e5555-d8da-4ee4-956b-420a273b410b/results HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/4a2ba6eb-94b8-4b35-928d-187904d0ec83/insights?scenario_id=b60e522a-7ad8-4b77-a75b-ba59bfa99d09 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/simulation-runs/521e5555-d8da-4ee4-956b-420a273b410b/results HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/4a2ba6eb-94b8-4b35-928d-187904d0ec83/market?location_id=91895db1-d87b-4d24-b6db-32056208ce98 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/simulation-runs/c5867c75-8f11-4bf1-a260-ac92385c8570/results HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/4a2ba6eb-94b8-4b35-928d-187904d0ec83/compare HTTP/1.1" 200 OK
+2026-10-23 06:44:27,342 INFO strataiq.runs simulation start run=d7be8544-7e02-4920-95be-5f47597d9344 scenario=089e417d-3354-4098-820e-a2f5a16b90a9 model=siq-choice-1.2 zones=265 comps=4
+2026-10-23 06:44:28,222 INFO strataiq.runs simulation end run=d7be8544-7e02-4920-95be-5f47597d9344 status=succeeded duration_ms=162.8
+INFO:     ::1:0 - "POST /api/v1/scenarios/089e417d-3354-4098-820e-a2f5a16b90a9/runs HTTP/1.1" 201 Created
+INFO:     ::1:0 - "GET /api/v1/projects/4a2ba6eb-94b8-4b35-928d-187904d0ec83 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/4a2ba6eb-94b8-4b35-928d-187904d0ec83/compare HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/simulation-runs/d7be8544-7e02-4920-95be-5f47597d9344/results HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/simulation-runs/521e5555-d8da-4ee4-956b-420a273b410b/results HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/4a2ba6eb-94b8-4b35-928d-187904d0ec83/compare HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/4a2ba6eb-94b8-4b35-928d-187904d0ec83/decisions?goal=profit HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/4a2ba6eb-94b8-4b35-928d-187904d0ec83/market?location_id=91895db1-d87b-4d24-b6db-32056208ce98 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/simulation-runs/521e5555-d8da-4ee4-956b-420a273b410b/results HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/system/capabilities HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/auth/me HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/categories/archetypes HTTP/1.1" 200 OK
+INFO:     ::1:0 - "POST /api/v1/categories/resolve HTTP/1.1" 200 OK
+2026-10-23 06:45:00,387 INFO httpx HTTP Request: GET https://nominatim.openstreetmap.org/search?q=Connaught+Place%2C+New+Delhi&format=jsonv2&limit=6&addressdetails=0 "HTTP/1.1 200 OK"
+INFO:     ::1:0 - "GET /api/v1/market/search?q=Connaught+Place%2C+New+Delhi HTTP/1.1" 200 OK
+INFO:     ::1:0 - "POST /api/v1/projects HTTP/1.1" 201 Created
+INFO:     ::1:0 - "POST /api/v1/projects/3459e416-ba85-415b-aa2a-573722c98bf9/locations/31e5485b-9491-4625-b2c9-59e47becde61/refresh HTTP/1.1" 202 Accepted
+INFO:     ::1:0 - "GET /api/v1/projects/3459e416-ba85-415b-aa2a-573722c98bf9 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/3459e416-ba85-415b-aa2a-573722c98bf9/market?location_id=31e5485b-9491-4625-b2c9-59e47becde61 HTTP/1.1" 200 OK
+2026-10-23 06:45:13,671 INFO httpx HTTP Request: GET https://photon.komoot.io/api/?q=pizza&lat=28.631770&lon=77.219380&limit=50&location_bias_scale=0.1&zoom=16&osm_tag=cuisine%3Apizza "HTTP/1.1 200 OK"
+2026-10-23 06:45:13,695 INFO httpx HTTP Request: GET https://photon.komoot.io/api/?q=pizza+hut&lat=28.631770&lon=77.219380&limit=50&location_bias_scale=0.1&zoom=16&osm_tag=brand%3Apizza+hut "HTTP/1.1 200 OK"
+2026-10-23 06:45:13,696 INFO httpx HTTP Request: GET https://photon.komoot.io/api/?q=domino&lat=28.631770&lon=77.219380&limit=50&location_bias_scale=0.1&zoom=16&osm_tag=brand%3Adomino "HTTP/1.1 200 OK"
+2026-10-23 06:45:13,722 INFO httpx HTTP Request: GET https://photon.komoot.io/api/?q=la+pino&lat=28.631770&lon=77.219380&limit=50&location_bias_scale=0.1&zoom=16&osm_tag=brand%3Ala+pino "HTTP/1.1 200 OK"
+2026-10-23 06:45:13,748 INFO httpx HTTP Request: GET https://photon.komoot.io/api/?q=papa+john&lat=28.631770&lon=77.219380&limit=50&location_bias_scale=0.1&zoom=16&osm_tag=brand%3Apapa+john "HTTP/1.1 200 OK"
+2026-10-23 06:45:13,751 INFO httpx HTTP Request: GET https://photon.komoot.io/api/?q=pizza+shop&lat=28.631770&lon=77.219380&limit=50&location_bias_scale=0.1&zoom=16&osm_tag=brand%3Adomino "HTTP/1.1 503 Service Temporarily Unavailable"
+2026-10-23 06:45:13,752 INFO httpx HTTP Request: GET https://photon.komoot.io/api/?q=Pizza+outlet&lat=28.631770&lon=77.219380&limit=50&location_bias_scale=0.1&zoom=16&osm_tag=cuisine%3Apizza "HTTP/1.1 503 Service Temporarily Unavailable"
+2026-10-23 06:45:13,759 INFO httpx HTTP Request: GET https://photon.komoot.io/api/?q=pizza+shop&lat=28.631770&lon=77.219380&limit=50&location_bias_scale=0.1&zoom=16&osm_tag=cuisine%3Apizza "HTTP/1.1 200 OK"
+2026-10-23 06:45:13,760 INFO httpx HTTP Request: GET https://photon.komoot.io/api/?q=Pizza+outlet&lat=28.631770&lon=77.219380&limit=50&location_bias_scale=0.1&zoom=16&osm_tag=brand%3Adomino "HTTP/1.1 503 Service Temporarily Unavailable"
+2026-10-23 06:45:14,081 INFO httpx HTTP Request: POST https://maps.mail.ru/osm/tools/overpass/api/interpreter "HTTP/1.1 504 Gateway Time-out"
+2026-10-23 06:45:14,082 INFO httpx HTTP Request: POST https://maps.mail.ru/osm/tools/overpass/api/interpreter "HTTP/1.1 504 Gateway Time-out"
+2026-10-23 06:45:14,205 INFO httpx HTTP Request: POST https://maps.mail.ru/osm/tools/overpass/api/interpreter "HTTP/1.1 504 Gateway Time-out"
+INFO:     ::1:0 - "GET /api/v1/projects/3459e416-ba85-415b-aa2a-573722c98bf9/snapshots/17597629-316e-468e-a54a-5eb113ce6582 HTTP/1.1" 200 OK
+2026-10-23 06:45:24,351 INFO httpx HTTP Request: GET https://api.worldpop.org/v1/services/stats?dataset=wpgpas&year=2020&geojson=%7B%22type%22%3A%22FeatureCollection%22%2C%22features%22%3A%5B%7B%22type%22%3A%22Feature%22%2C%22properties%22%3A%7B%7D%2C%22geometry%22%3A%7B%22type%22%3A%22Polygon%22%2C%22coordinates%22%3A%5B%5B%5B77.2552%2C28.63177%5D%2C%5B77.2549%2C28.6359%5D%2C%5B77.25398%2C28.63996%5D%2C%5B77.25247%2C28.64388%5D%2C%5B77.2504%2C28.6476%5D%2C%5B77.2478%2C28.65104%5D%2C%5B77.24471%2C28.65415%5D%2C%5B77.24119%2C28.65688%5D%2C%5B77.23729%2C28.65918%5D%2C%5B77.23309%2C28.66101%5D%2C%5B77.22865%2C28.66234%5D%2C%5B77.22406%2C28.66315%5D%2C%5B77.21938%2C28.66342%5D%2C%5B77.2147%2C28.66315%5D%2C%5B77.21011%2C28.66234%5D%2C%5B77.20567%2C28.66101%5D%2C%5B77.20147%2C28.65918%5D%2C%5B77.19757%2C28.65688%5D%2C%5B77.19405%2C28.65415%5D%2C%5B77.19096%2C28.65104%5D%2C%5B77.18836%2C28.6476%5D%2C%5B77.18629%2C28.64388%5D%2C%5B77.18478%2C28.63996%5D%2C%5B77.18387%2C28.6359%5D%2C%5B77.18356%2C28.63177%5D%2C%5B77.18387%2C28.62764%5D%2C%5B77.18478%2C28.62358%5D%2C%5B77.18629%2C28.61966%5D%2C%5B77.18836%2C28.61594%5D%2C%5B77.19096%2C28.6125%5D%2C%5B77.19405%2C28.60939%5D%2C%5B77.19757%2C28.60666%5D%2C%5B77.20147%2C28.60436%5D%2C%5B77.20567%2C28.60253%5D%2C%5B77.21011%2C28.6012%5D%2C%5B77.2147%2C28.60039%5D%2C%5B77.21938%2C28.60012%5D%2C%5B77.22406%2C28.60039%5D%2C%5B77.22865%2C28.6012%5D%2C%5B77.23309%2C28.60253%5D%2C%5B77.23729%2C28.60436%5D%2C%5B77.24119%2C28.60666%5D%2C%5B77.24471%2C28.60939%5D%2C%5B77.2478%2C28.6125%5D%2C%5B77.2504%2C28.61594%5D%2C%5B77.25247%2C28.61966%5D%2C%5B77.25398%2C28.62358%5D%2C%5B77.2549%2C28.62764%5D%2C%5B77.2552%2C28.63177%5D%5D%5D%7D%7D%5D%7D&runasync=true "HTTP/1.1 200 OK"
+INFO:     ::1:0 - "GET /api/v1/projects/3459e416-ba85-415b-aa2a-573722c98bf9/snapshots/17597629-316e-468e-a54a-5eb113ce6582 HTTP/1.1" 200 OK
+2026-10-23 06:45:33,103 INFO httpx HTTP Request: GET https://api.worldpop.org/v1/services/stats?dataset=wpgppop&year=2020&geojson=%7B%22type%22%3A%22FeatureCollection%22%2C%22features%22%3A%5B%7B%22type%22%3A%22Feature%22%2C%22properties%22%3A%7B%7D%2C%22geometry%22%3A%7B%22type%22%3A%22Polygon%22%2C%22coordinates%22%3A%5B%5B%5B77.2552%2C28.63177%5D%2C%5B77.2549%2C28.6359%5D%2C%5B77.25398%2C28.63996%5D%2C%5B77.25247%2C28.64388%5D%2C%5B77.2504%2C28.6476%5D%2C%5B77.2478%2C28.65104%5D%2C%5B77.24471%2C28.65415%5D%2C%5B77.24119%2C28.65688%5D%2C%5B77.23729%2C28.65918%5D%2C%5B77.23309%2C28.66101%5D%2C%5B77.22865%2C28.66234%5D%2C%5B77.22406%2C28.66315%5D%2C%5B77.21938%2C28.66342%5D%2C%5B77.2147%2C28.66315%5D%2C%5B77.21011%2C28.66234%5D%2C%5B77.20567%2C28.66101%5D%2C%5B77.20147%2C28.65918%5D%2C%5B77.19757%2C28.65688%5D%2C%5B77.19405%2C28.65415%5D%2C%5B77.19096%2C28.65104%5D%2C%5B77.18836%2C28.6476%5D%2C%5B77.18629%2C28.64388%5D%2C%5B77.18478%2C28.63996%5D%2C%5B77.18387%2C28.6359%5D%2C%5B77.18356%2C28.63177%5D%2C%5B77.18387%2C28.62764%5D%2C%5B77.18478%2C28.62358%5D%2C%5B77.18629%2C28.61966%5D%2C%5B77.18836%2C28.61594%5D%2C%5B77.19096%2C28.6125%5D%2C%5B77.19405%2C28.60939%5D%2C%5B77.19757%2C28.60666%5D%2C%5B77.20147%2C28.60436%5D%2C%5B77.20567%2C28.60253%5D%2C%5B77.21011%2C28.6012%5D%2C%5B77.2147%2C28.60039%5D%2C%5B77.21938%2C28.60012%5D%2C%5B77.22406%2C28.60039%5D%2C%5B77.22865%2C28.6012%5D%2C%5B77.23309%2C28.60253%5D%2C%5B77.23729%2C28.60436%5D%2C%5B77.24119%2C28.60666%5D%2C%5B77.24471%2C28.60939%5D%2C%5B77.2478%2C28.6125%5D%2C%5B77.2504%2C28.61594%5D%2C%5B77.25247%2C28.61966%5D%2C%5B77.25398%2C28.62358%5D%2C%5B77.2549%2C28.62764%5D%2C%5B77.2552%2C28.63177%5D%5D%5D%7D%7D%5D%7D&runasync=true "HTTP/1.1 200 OK"
+INFO:     ::1:0 - "GET /api/v1/projects/3459e416-ba85-415b-aa2a-573722c98bf9/snapshots/17597629-316e-468e-a54a-5eb113ce6582 HTTP/1.1" 200 OK
+2026-10-23 06:45:33,347 INFO httpx HTTP Request: GET https://api.worldpop.org/v1/tasks/cf7dec9b-bd79-5200-b799-7ccf72ff551a "HTTP/1.1 200 OK"
+INFO:     ::1:0 - "GET /api/v1/projects/3459e416-ba85-415b-aa2a-573722c98bf9/snapshots/17597629-316e-468e-a54a-5eb113ce6582 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/3459e416-ba85-415b-aa2a-573722c98bf9/snapshots/17597629-316e-468e-a54a-5eb113ce6582 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/3459e416-ba85-415b-aa2a-573722c98bf9/snapshots/17597629-316e-468e-a54a-5eb113ce6582 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/3459e416-ba85-415b-aa2a-573722c98bf9/snapshots/17597629-316e-468e-a54a-5eb113ce6582 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/3459e416-ba85-415b-aa2a-573722c98bf9/snapshots/17597629-316e-468e-a54a-5eb113ce6582 HTTP/1.1" 200 OK
+2026-10-23 06:45:48,197 INFO httpx HTTP Request: GET https://api.worldpop.org/v1/tasks/96f0d837-973b-5d05-806e-df8a1e515fd9 "HTTP/1.1 200 OK"
+INFO:     ::1:0 - "GET /api/v1/projects/3459e416-ba85-415b-aa2a-573722c98bf9/snapshots/17597629-316e-468e-a54a-5eb113ce6582 HTTP/1.1" 200 OK
+2026-10-23 06:45:49,339 INFO httpx HTTP Request: GET https://api.worldpop.org/v1/tasks/cf7dec9b-bd79-5200-b799-7ccf72ff551a "HTTP/1.1 200 OK"
+INFO:     ::1:0 - "GET /api/v1/projects/3459e416-ba85-415b-aa2a-573722c98bf9/snapshots/17597629-316e-468e-a54a-5eb113ce6582 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/3459e416-ba85-415b-aa2a-573722c98bf9/snapshots/17597629-316e-468e-a54a-5eb113ce6582 HTTP/1.1" 200 OK
+2026-10-23 06:45:53,476 WARNING strataiq.osm overpass competitors failed: maps.mail.ru: HTTP 504; overpass-api.de: ConnectTimeout; overpass.kumi.systems: ReadTimeout; overpass.private.coffee: ReadTimeout
+2026-10-23 06:45:53,673 INFO httpx HTTP Request: GET https://nominatim.openstreetmap.org/search?q=pizza&format=jsonv2&limit=50&viewbox=77.173325%2C28.672194%2C77.265436%2C28.591345&bounded=1&extratags=1 "HTTP/1.1 200 OK"
+2026-10-23 06:45:54,918 INFO httpx HTTP Request: GET https://nominatim.openstreetmap.org/search?q=domino&format=jsonv2&limit=50&viewbox=77.173325%2C28.672194%2C77.265436%2C28.591345&bounded=1&extratags=1 "HTTP/1.1 200 OK"
+INFO:     ::1:0 - "GET /api/v1/projects/3459e416-ba85-415b-aa2a-573722c98bf9/snapshots/17597629-316e-468e-a54a-5eb113ce6582 HTTP/1.1" 200 OK
+2026-10-23 06:45:55,903 INFO httpx HTTP Request: GET https://nominatim.openstreetmap.org/search?q=pizza+hut&format=jsonv2&limit=50&viewbox=77.173325%2C28.672194%2C77.265436%2C28.591345&bounded=1&extratags=1 "HTTP/1.1 200 OK"
+2026-10-23 06:45:56,168 INFO httpx HTTP Request: GET https://api.worldpop.org/v1/tasks/96f0d837-973b-5d05-806e-df8a1e515fd9 "HTTP/1.1 200 OK"
+INFO:     ::1:0 - "GET /api/v1/projects/3459e416-ba85-415b-aa2a-573722c98bf9/snapshots/17597629-316e-468e-a54a-5eb113ce6582 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/3459e416-ba85-415b-aa2a-573722c98bf9/snapshots/17597629-316e-468e-a54a-5eb113ce6582 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/3459e416-ba85-415b-aa2a-573722c98bf9/snapshots/17597629-316e-468e-a54a-5eb113ce6582 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/3459e416-ba85-415b-aa2a-573722c98bf9/snapshots/17597629-316e-468e-a54a-5eb113ce6582 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/3459e416-ba85-415b-aa2a-573722c98bf9/snapshots/17597629-316e-468e-a54a-5eb113ce6582 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/3459e416-ba85-415b-aa2a-573722c98bf9/snapshots/17597629-316e-468e-a54a-5eb113ce6582 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/3459e416-ba85-415b-aa2a-573722c98bf9/snapshots/17597629-316e-468e-a54a-5eb113ce6582 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/3459e416-ba85-415b-aa2a-573722c98bf9/snapshots/17597629-316e-468e-a54a-5eb113ce6582 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/3459e416-ba85-415b-aa2a-573722c98bf9/snapshots/17597629-316e-468e-a54a-5eb113ce6582 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/3459e416-ba85-415b-aa2a-573722c98bf9/snapshots/17597629-316e-468e-a54a-5eb113ce6582 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/3459e416-ba85-415b-aa2a-573722c98bf9/snapshots/17597629-316e-468e-a54a-5eb113ce6582 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/3459e416-ba85-415b-aa2a-573722c98bf9/snapshots/17597629-316e-468e-a54a-5eb113ce6582 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/3459e416-ba85-415b-aa2a-573722c98bf9/snapshots/17597629-316e-468e-a54a-5eb113ce6582 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/3459e416-ba85-415b-aa2a-573722c98bf9/snapshots/17597629-316e-468e-a54a-5eb113ce6582 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/3459e416-ba85-415b-aa2a-573722c98bf9/snapshots/17597629-316e-468e-a54a-5eb113ce6582 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/3459e416-ba85-415b-aa2a-573722c98bf9/snapshots/17597629-316e-468e-a54a-5eb113ce6582 HTTP/1.1" 200 OK
+2026-10-23 06:46:37,069 INFO httpx HTTP Request: POST https://maps.mail.ru/osm/tools/overpass/api/interpreter "HTTP/1.1 504 Gateway Time-out"
+INFO:     ::1:0 - "GET /api/v1/projects/3459e416-ba85-415b-aa2a-573722c98bf9/snapshots/17597629-316e-468e-a54a-5eb113ce6582 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/3459e416-ba85-415b-aa2a-573722c98bf9/snapshots/17597629-316e-468e-a54a-5eb113ce6582 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/3459e416-ba85-415b-aa2a-573722c98bf9/snapshots/17597629-316e-468e-a54a-5eb113ce6582 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/3459e416-ba85-415b-aa2a-573722c98bf9/snapshots/17597629-316e-468e-a54a-5eb113ce6582 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/3459e416-ba85-415b-aa2a-573722c98bf9/snapshots/17597629-316e-468e-a54a-5eb113ce6582 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/3459e416-ba85-415b-aa2a-573722c98bf9/snapshots/17597629-316e-468e-a54a-5eb113ce6582 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/3459e416-ba85-415b-aa2a-573722c98bf9/snapshots/17597629-316e-468e-a54a-5eb113ce6582 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/3459e416-ba85-415b-aa2a-573722c98bf9/snapshots/17597629-316e-468e-a54a-5eb113ce6582 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/3459e416-ba85-415b-aa2a-573722c98bf9/snapshots/17597629-316e-468e-a54a-5eb113ce6582 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/3459e416-ba85-415b-aa2a-573722c98bf9/snapshots/17597629-316e-468e-a54a-5eb113ce6582 HTTP/1.1" 200 OK
+2026-10-23 06:47:02,775 WARNING strataiq.market snapshot buildings failed: maps.mail.ru: HTTP 504; overpass-api.de: ConnectTimeout; overpass.private.coffee: ReadTimeout; overpass.kumi.systems: ReadTimeout
+2026-10-23 06:47:02,775 WARNING strataiq.market snapshot context failed: no response within 110 s
+INFO:     ::1:0 - "GET /api/v1/projects/3459e416-ba85-415b-aa2a-573722c98bf9/snapshots/17597629-316e-468e-a54a-5eb113ce6582 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/3459e416-ba85-415b-aa2a-573722c98bf9/market?location_id=31e5485b-9491-4625-b2c9-59e47becde61 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/3459e416-ba85-415b-aa2a-573722c98bf9 HTTP/1.1" 200 OK
+2026-10-23 06:47:03,954 INFO strataiq.runs simulation start run=f8350bf9-33f0-44cd-ba59-85d80257b209 scenario=71c328cc-e957-4366-9977-dce47f47a1e9 model=siq-choice-1.2 zones=298 comps=8
+2026-10-23 06:47:04,924 INFO strataiq.runs simulation end run=f8350bf9-33f0-44cd-ba59-85d80257b209 status=succeeded duration_ms=231.8
+INFO:     ::1:0 - "POST /api/v1/scenarios/71c328cc-e957-4366-9977-dce47f47a1e9/runs HTTP/1.1" 201 Created
+INFO:     ::1:0 - "GET /api/v1/projects/3459e416-ba85-415b-aa2a-573722c98bf9 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/simulation-runs/f8350bf9-33f0-44cd-ba59-85d80257b209/results HTTP/1.1" 200 OK
+INFO:     ::1:0 - "POST /api/v1/categories/resolve HTTP/1.1" 200 OK
+INFO:     ::1:0 - "POST /api/v1/projects HTTP/1.1" 201 Created
+INFO:     ::1:0 - "POST /api/v1/projects/981e0b14-cb2b-4ec3-9cb6-97c2b4609cb8/locations/6824e381-69c6-4a41-b50b-6f4de8e8808f/refresh HTTP/1.1" 202 Accepted
+2026-10-23 06:47:47,246 INFO httpx HTTP Request: POST https://maps.mail.ru/osm/tools/overpass/api/interpreter "HTTP/1.1 504 Gateway Time-out"
+2026-10-23 06:47:47,247 INFO httpx HTTP Request: POST https://maps.mail.ru/osm/tools/overpass/api/interpreter "HTTP/1.1 504 Gateway Time-out"
+INFO:     ::1:0 - "GET /api/v1/projects/981e0b14-cb2b-4ec3-9cb6-97c2b4609cb8/snapshots/0beb3d01-ba32-4b12-8016-a6b824036118 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/981e0b14-cb2b-4ec3-9cb6-97c2b4609cb8/snapshots/0beb3d01-ba32-4b12-8016-a6b824036118 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/981e0b14-cb2b-4ec3-9cb6-97c2b4609cb8/snapshots/0beb3d01-ba32-4b12-8016-a6b824036118 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/981e0b14-cb2b-4ec3-9cb6-97c2b4609cb8/snapshots/0beb3d01-ba32-4b12-8016-a6b824036118 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/981e0b14-cb2b-4ec3-9cb6-97c2b4609cb8/snapshots/0beb3d01-ba32-4b12-8016-a6b824036118 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/981e0b14-cb2b-4ec3-9cb6-97c2b4609cb8/snapshots/0beb3d01-ba32-4b12-8016-a6b824036118 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/981e0b14-cb2b-4ec3-9cb6-97c2b4609cb8/snapshots/0beb3d01-ba32-4b12-8016-a6b824036118 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/981e0b14-cb2b-4ec3-9cb6-97c2b4609cb8/snapshots/0beb3d01-ba32-4b12-8016-a6b824036118 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/981e0b14-cb2b-4ec3-9cb6-97c2b4609cb8/snapshots/0beb3d01-ba32-4b12-8016-a6b824036118 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/981e0b14-cb2b-4ec3-9cb6-97c2b4609cb8/snapshots/0beb3d01-ba32-4b12-8016-a6b824036118 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/981e0b14-cb2b-4ec3-9cb6-97c2b4609cb8/snapshots/0beb3d01-ba32-4b12-8016-a6b824036118 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/981e0b14-cb2b-4ec3-9cb6-97c2b4609cb8/snapshots/0beb3d01-ba32-4b12-8016-a6b824036118 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/981e0b14-cb2b-4ec3-9cb6-97c2b4609cb8/snapshots/0beb3d01-ba32-4b12-8016-a6b824036118 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/981e0b14-cb2b-4ec3-9cb6-97c2b4609cb8/snapshots/0beb3d01-ba32-4b12-8016-a6b824036118 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/981e0b14-cb2b-4ec3-9cb6-97c2b4609cb8/snapshots/0beb3d01-ba32-4b12-8016-a6b824036118 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/981e0b14-cb2b-4ec3-9cb6-97c2b4609cb8/snapshots/0beb3d01-ba32-4b12-8016-a6b824036118 HTTP/1.1" 200 OK
+2026-10-23 06:48:26,954 WARNING strataiq.osm overpass competitors failed: overpass-api.de: ConnectTimeout; overpass.kumi.systems: ReadTimeout; overpass.private.coffee: ReadTimeout; maps.mail.ru: ReadTimeout
+2026-10-23 06:48:27,156 INFO httpx HTTP Request: GET https://nominatim.openstreetmap.org/search?q=fitness+centre&format=jsonv2&limit=50&viewbox=77.180879%2C28.662941%2C77.252521%2C28.600059&bounded=1&extratags=1 "HTTP/1.1 200 OK"
+2026-10-23 06:48:28,374 INFO httpx HTTP Request: GET https://nominatim.openstreetmap.org/search?q=gym&format=jsonv2&limit=50&viewbox=77.180879%2C28.662941%2C77.252521%2C28.600059&bounded=1&extratags=1 "HTTP/1.1 200 OK"
+INFO:     ::1:0 - "GET /api/v1/projects/981e0b14-cb2b-4ec3-9cb6-97c2b4609cb8/snapshots/0beb3d01-ba32-4b12-8016-a6b824036118 HTTP/1.1" 200 OK
+2026-10-23 06:48:29,430 INFO httpx HTTP Request: GET https://nominatim.openstreetmap.org/search?q=fitness&format=jsonv2&limit=50&viewbox=77.180879%2C28.662941%2C77.252521%2C28.600059&bounded=1&extratags=1 "HTTP/1.1 200 OK"
+INFO:     ::1:0 - "GET /api/v1/projects/981e0b14-cb2b-4ec3-9cb6-97c2b4609cb8/snapshots/0beb3d01-ba32-4b12-8016-a6b824036118 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/981e0b14-cb2b-4ec3-9cb6-97c2b4609cb8/snapshots/0beb3d01-ba32-4b12-8016-a6b824036118 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/981e0b14-cb2b-4ec3-9cb6-97c2b4609cb8/snapshots/0beb3d01-ba32-4b12-8016-a6b824036118 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/981e0b14-cb2b-4ec3-9cb6-97c2b4609cb8/snapshots/0beb3d01-ba32-4b12-8016-a6b824036118 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/981e0b14-cb2b-4ec3-9cb6-97c2b4609cb8/snapshots/0beb3d01-ba32-4b12-8016-a6b824036118 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/981e0b14-cb2b-4ec3-9cb6-97c2b4609cb8/snapshots/0beb3d01-ba32-4b12-8016-a6b824036118 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/981e0b14-cb2b-4ec3-9cb6-97c2b4609cb8/snapshots/0beb3d01-ba32-4b12-8016-a6b824036118 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/981e0b14-cb2b-4ec3-9cb6-97c2b4609cb8/snapshots/0beb3d01-ba32-4b12-8016-a6b824036118 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/981e0b14-cb2b-4ec3-9cb6-97c2b4609cb8/snapshots/0beb3d01-ba32-4b12-8016-a6b824036118 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/981e0b14-cb2b-4ec3-9cb6-97c2b4609cb8/snapshots/0beb3d01-ba32-4b12-8016-a6b824036118 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/981e0b14-cb2b-4ec3-9cb6-97c2b4609cb8/snapshots/0beb3d01-ba32-4b12-8016-a6b824036118 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/981e0b14-cb2b-4ec3-9cb6-97c2b4609cb8/snapshots/0beb3d01-ba32-4b12-8016-a6b824036118 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/981e0b14-cb2b-4ec3-9cb6-97c2b4609cb8/snapshots/0beb3d01-ba32-4b12-8016-a6b824036118 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/981e0b14-cb2b-4ec3-9cb6-97c2b4609cb8/snapshots/0beb3d01-ba32-4b12-8016-a6b824036118 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/981e0b14-cb2b-4ec3-9cb6-97c2b4609cb8/snapshots/0beb3d01-ba32-4b12-8016-a6b824036118 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/981e0b14-cb2b-4ec3-9cb6-97c2b4609cb8/snapshots/0beb3d01-ba32-4b12-8016-a6b824036118 HTTP/1.1" 200 OK
+2026-10-23 06:49:10,464 INFO httpx HTTP Request: POST https://maps.mail.ru/osm/tools/overpass/api/interpreter "HTTP/1.1 504 Gateway Time-out"
+INFO:     ::1:0 - "GET /api/v1/projects/981e0b14-cb2b-4ec3-9cb6-97c2b4609cb8/snapshots/0beb3d01-ba32-4b12-8016-a6b824036118 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/981e0b14-cb2b-4ec3-9cb6-97c2b4609cb8/snapshots/0beb3d01-ba32-4b12-8016-a6b824036118 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/981e0b14-cb2b-4ec3-9cb6-97c2b4609cb8/snapshots/0beb3d01-ba32-4b12-8016-a6b824036118 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/981e0b14-cb2b-4ec3-9cb6-97c2b4609cb8/snapshots/0beb3d01-ba32-4b12-8016-a6b824036118 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/981e0b14-cb2b-4ec3-9cb6-97c2b4609cb8/snapshots/0beb3d01-ba32-4b12-8016-a6b824036118 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/981e0b14-cb2b-4ec3-9cb6-97c2b4609cb8/snapshots/0beb3d01-ba32-4b12-8016-a6b824036118 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/981e0b14-cb2b-4ec3-9cb6-97c2b4609cb8/snapshots/0beb3d01-ba32-4b12-8016-a6b824036118 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/981e0b14-cb2b-4ec3-9cb6-97c2b4609cb8/snapshots/0beb3d01-ba32-4b12-8016-a6b824036118 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/981e0b14-cb2b-4ec3-9cb6-97c2b4609cb8/snapshots/0beb3d01-ba32-4b12-8016-a6b824036118 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/981e0b14-cb2b-4ec3-9cb6-97c2b4609cb8/snapshots/0beb3d01-ba32-4b12-8016-a6b824036118 HTTP/1.1" 200 OK
+2026-10-23 06:49:36,286 WARNING strataiq.market snapshot buildings failed: maps.mail.ru: HTTP 504; overpass-api.de: ConnectTimeout; overpass.kumi.systems: ReadTimeout; overpass.private.coffee: ReadTimeout
+2026-10-23 06:49:36,287 WARNING strataiq.market snapshot context failed: no response within 110 s
+2026-10-23 06:49:36,287 WARNING strataiq.market snapshot population failed: wpgppop query failed: ReadTimeout
+2026-10-23 06:49:36,287 WARNING strataiq.market snapshot age_sex failed: wpgpas query failed: ReadTimeout
+INFO:     ::1:0 - "GET /api/v1/projects/981e0b14-cb2b-4ec3-9cb6-97c2b4609cb8/snapshots/0beb3d01-ba32-4b12-8016-a6b824036118 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/981e0b14-cb2b-4ec3-9cb6-97c2b4609cb8/market?location_id=6824e381-69c6-4a41-b50b-6f4de8e8808f HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/981e0b14-cb2b-4ec3-9cb6-97c2b4609cb8/market?location_id=6824e381-69c6-4a41-b50b-6f4de8e8808f HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/system/capabilities HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/981e0b14-cb2b-4ec3-9cb6-97c2b4609cb8 HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/auth/me HTTP/1.1" 200 OK
+INFO:     ::1:0 - "GET /api/v1/projects/981e0b14-cb2b-4ec3-9cb6-97c2b4609cb8/market?location_id=6824e381-69c6-4a41-b50b-6f4de8e8808f HTTP/1.1" 200 OK

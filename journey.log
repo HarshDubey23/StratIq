@@ -1,0 +1,66 @@
+[console.warning] Image "wood-pattern" could not be loaded. Please make sure you have added the image with map.addImage() or a "sprite" property in your style. You can provide missing images by listening for the "styleimagemissing" map event.
+shot 01-landing @ /
+OK   landing
+OK   methodology
+shot 02-onboarding @ /onboarding
+shot 03-dashboard @ /app
+OK   sign up
+[console.warning] Image "wood-pattern" could not be loaded. Please make sure you have added the image with map.addImage() or a "sprite" property in your style. You can provide missing images by listening for the "styleimagemissing" map event.
+  diag 04a-demo-live: webgl2 | map 820x788 canvas=820x788 markers=0 text=@keyframes siqpulse{0%{box-shadow:0 0 0 0 rgba(255,159,46,.6
+shot 04a-demo-live @ /app/projects/4a2ba6eb-94b8-4b35-928d-187904d0ec83/live
+genome per agent=615 agents=10000 total=6150000 calib={"method":"revealed-demand floor from incumbents (assumption-anchored)","reason":"incumbents already above survival floor; no change","applied":false,"summary":null,"multiplier":1,"incumbents_used":2,"survival_floor_units":120,"median_incumbent_units":245.4}
+decomposition lost-to-competitor: {"price":{"you":-0.512,"edge":-0.431,"best_competitor":-0.081},"travel":{"you":-1.659,"edge":-0.934,"best_competitor":-0.726},"quality":{"you":0.2,"edge":0.2,"best_competitor":0},"time_fit":{"you":0.222,"edge":-0.039,"best_competitor":0.26},"attributes":{"you":0.152,"edge":0.152,"best_competitor":0},"expectation":{"you":-0.009,"edge":0.025,"best_competitor":-0.034},"lifestyle_fit":{"you":0.084,"edge":0.086,"best_competitor":-0.002},"trust_novelty":{"you":-0.229,"edge":-0.344,"best_competitor":0.115}}
+top drivers against you: Perceived risk of a new place -0.0078 | Minimum star rating considered -0.0048 | Tolerance of queues -0.0045 | Impulsivity -0.0036 | Reads reviews before visiting -0.0027
+[console.warning] Image "wood-pattern" could not be loaded. Please make sure you have added the image with map.addImage() or a "sprite" property in your style. You can provide missing images by listening for the "styleimagemissing" map event.
+  diag 04b-demo-agent-xray: webgl2 | map 820x788 canvas=820x788 markers=5 text=@keyframes siqpulse{0%{box-shadow:0 0 0 0 rgba(255,159,46,.6
+shot 04b-demo-agent-xray @ /app/projects/4a2ba6eb-94b8-4b35-928d-187904d0ec83/live?agent=3426
+shot 04c-demo-market-dna @ /app/projects/4a2ba6eb-94b8-4b35-928d-187904d0ec83/genome
+shot 04d-demo-dna-xray @ /app/projects/4a2ba6eb-94b8-4b35-928d-187904d0ec83/genome
+shot 04e-demo-survey-kit @ /app/projects/4a2ba6eb-94b8-4b35-928d-187904d0ec83/genome
+[console.warning] Image "wood-pattern" could not be loaded. Please make sure you have added the image with map.addImage() or a "sprite" property in your style. You can provide missing images by listening for the "styleimagemissing" map event.
+  diag 04-demo-lab-baseline: webgl2 | map 486x378 canvas=486x378 markers=0 text=500 mOpenFreeMap © OpenMapTiles Data from OpenStreetMapLoadi
+shot 04-demo-lab-baseline @ /app/projects/4a2ba6eb-94b8-4b35-928d-187904d0ec83/simulation
+  diag 05-demo-lab-lower-price: webgl2 | map 486x378 canvas=486x378 markers=1 text=Location A2 kmOpenFreeMap © OpenMapTiles Data from OpenStree
+shot 05-demo-lab-lower-price @ /app/projects/4a2ba6eb-94b8-4b35-928d-187904d0ec83/simulation
+  diag 06-demo-tornado: webgl2 | map 486x378 canvas=486x378 markers=1 text=Location A2 kmOpenFreeMap © OpenMapTiles Data from OpenStree
+shot 06-demo-tornado @ /app/projects/4a2ba6eb-94b8-4b35-928d-187904d0ec83/simulation
+shot 07-demo-decisions @ /app/projects/4a2ba6eb-94b8-4b35-928d-187904d0ec83/decisions
+  diag 08-demo-market: webgl2 | map 800x727 canvas=800x727 markers=0 text=500 mOpenFreeMap © OpenMapTiles Data from OpenStreetMap
+shot 08-demo-market @ /app/projects/4a2ba6eb-94b8-4b35-928d-187904d0ec83/market
+OK   demo project
+shot 09-wizard-category @ /app/projects/new?objective=start_new
+shot 10-wizard-profile @ /app/projects/new?objective=start_new
+[console.warning] Image "circle-11" could not be loaded. Please make sure you have added the image with map.addImage() or a "sprite" property in your style. You can provide missing images by listening for the "styleimagemissing" map event.
+[console.warning] WebGL: INVALID_VALUE: texSubImage2D: no canvas
+[console.warning] Image "wood-pattern" could not be loaded. Please make sure you have added the image with map.addImage() or a "sprite" property in your style. You can provide missing images by listening for the "styleimagemissing" map event.
+  diag 11-wizard-location: webgl2 | map 780x318 canvas=780x318 markers=1 text=Candidate2 kmOpenFreeMap © OpenMapTiles Data from OpenStreet
+shot 11-wizard-location @ /app/projects/new?objective=start_new
+shot 12-wizard-review @ /app/projects/new?objective=start_new
+  diag 13a-live-market-loading: webgl2 | map 800x756 canvas=800x756 markers=0 text=500 mOpenFreeMap © OpenMapTiles Data from OpenStreetMapLoadi
+[console.warning] WebGL: INVALID_VALUE: texSubImage2D: no canvas
+shot 13a-live-market-loading @ /app/projects/3459e416-ba85-415b-aa2a-573722c98bf9/market
+  diag 13-live-market-pizza: webgl2 | map 800x849 canvas=800x849 markers=1 text=Location A1 kmOpenFreeMap © OpenMapTiles Data from OpenStree
+shot 13-live-market-pizza @ /app/projects/3459e416-ba85-415b-aa2a-573722c98bf9/market
+FAIL wizard ui: TimeoutError: locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for getByRole('button', { name: /Competitors/ })
+    - locator resolved to <button class="flex-1 rounded px-2 py-1.5 text-xs capitalize text-ink-400 hover:text-ink-100">Competitors (8)</button>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is visible, enabled and
+project create 201
+refresh start 202 loading
+snapshot status=partial pop={"total":null,"zones":298,"method":"unavailable","source":null,"radius_km":2.5,"spacing_km":0.278,"n_buildings":0,"buildings_used":0} errors=[{"source":"buildings","message":"maps.mail.ru: HTTP 504; overpass-api.de: ConnectTimeout; overpass.kumi.systems: ReadTimeout; overpass.private.coffee: ReadTimeout"},{"source":"context","message":"no response within 110 s"},{"source":"population","message":"wpgppop query failed: ReadTimeout"},{"source":"age_sex","message":"wpgpas query failed: ReadTimeout"}] sources=competitors:live
+coverage={"note":"Coverage could not be assessed because population data was unavailable.","level":"unknown","method":"Heuristic from building mapping density, record completeness and edit recency. Not a measured recall rate.","signals":[{"why":"Zero or very few results may mean missing data, not an empty market.","value":2,"signal":"Competitors found"},{"why":"Unnamed features are often incomplete records.","value":1,"signal":"Share with a name"},{"why":"Detail level of local mapping.","value":0.5,"signal":"Share with opening hours"}]}
+competitors found: 2; first: Anytime Fitness | Shark's Gym
+[console.warning] Image "wood-pattern" could not be loaded. Please make sure you have added the image with map.addImage() or a "sprite" property in your style. You can provide missing images by listening for the "styleimagemissing" map event.
+  diag 14-live-gym-market: webgl2 | map 800x849 canvas=800x849 markers=0 text=500 mOpenFreeMap © OpenMapTiles Data from OpenStreetMap
+[console.warning] Image "circle-11" could not be loaded. Please make sure you have added the image with map.addImage() or a "sprite" property in your style. You can provide missing images by listening for the "styleimagemissing" map event.
+shot 14-live-gym-market @ /app/projects/981e0b14-cb2b-4ec3-9cb6-97c2b4609cb8/market
+FAIL live gym journey: TimeoutError: locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for getByRole('button', { name: /Competitors/ })
+    - locator resolved to <button class="flex-1 rounded px-2 py-1.5 text-xs capitalize text-ink-400 hover:text-ink-100">Competitors (2)</button>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is visible, enabled and
