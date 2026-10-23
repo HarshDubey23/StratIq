@@ -24,7 +24,7 @@ from scipy.special import ndtr
 from ..categories.archetypes import Archetype
 from .geo import distance_matrix_km
 
-MODEL_VERSION = "siq-choice-1.1"
+MODEL_VERSION = "siq-choice-1.2"
 
 UNCERTAIN_PARAMS = (
     "participation", "frequency", "beta_price", "beta_quality", "distance_decay",

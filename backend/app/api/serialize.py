@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from ..engine.model import MODEL_VERSION
 from ..models import CandidateLocation, Competitor, MarketSnapshot, Project, Scenario, SimulationRun
 
 
@@ -16,7 +17,7 @@ def scenario_out(s: Scenario, run: SimulationRun | None = None) -> dict:
     d = {"id": s.id, "name": s.name, "is_baseline": s.is_baseline, "location_id": s.location_id, "inputs": s.inputs,
          "created_at": iso(s.created_at), "updated_at": iso(s.updated_at), "latest_run": None}
     if run is not None:
-        stale = run.inputs_snapshot.get("scenario") != s.inputs
+        stale = run.inputs_snapshot.get("scenario") != s.inputs or run.model_version != MODEL_VERSION
         d["latest_run"] = {"id": run.id, "status": run.status, "finished_at": iso(run.finished_at), "stale": stale,
                            "model_version": run.model_version}
     return d

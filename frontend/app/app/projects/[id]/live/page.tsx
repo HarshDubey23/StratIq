@@ -290,7 +290,7 @@ export default function LiveMarket() {
           <Button size="sm" onClick={run} loading={running}>Re-run</Button>
         </div>
         {error && <ErrorState message={error} />}
-        {sc.latest_run?.stale && <Notice tone="warn">Inputs changed since this run. Re-run to update the live market.</Notice>}
+        {sc.latest_run?.stale && <Notice tone="warn">This run is out of date (your inputs or the model changed). Press Re-run to update the live market.</Notice>}
         {res?.evidence?.failed_layers?.includes("competitors") && (res?.competitors?.length || 0) === 0 && (
           <Notice tone="warn">Competitor data failed to load for this location, so this run has no competitors and is optimistic. Refresh live data on the Market map, then re-run.</Notice>
         )}
