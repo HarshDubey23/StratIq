@@ -98,6 +98,8 @@ job, and a typecheck + production build of the frontend.
 
 ## Deploy (public URL)
 
+Live: **https://strataiq-rho.vercel.app** (frontend, Vercel) → **https://strataiq-api.vercel.app** (FastAPI, Vercel Python, `SERVERLESS=1`, `AUTO_MIGRATE=1`) → Supabase Postgres + PostGIS (schema `strataiq`).
+
 1. **Database — Neon**: create a project, run `CREATE EXTENSION postgis;` in the SQL editor, copy the connection string.
 2. **Backend — Render**: New → Blueprint → this repo (uses `render.yaml`). Set `DATABASE_URL`, `CONTACT_EMAIL`,
    and optionally `ORS_API_KEY`, `ANTHROPIC_API_KEY`. Migrations run on start. Check `https://<api>/api/health`.
