@@ -146,6 +146,6 @@ def test_daily_orders_are_not_quantised_by_agent_scale():
     assert r["scale"] > 100
     later = np.array(r["daily"]["units_you"][14:])
     assert (later > 0).all()                      # no empty days once trading
-    assert later.max() <= 125 * 1.12 + 1e-6       # never above the kitchen's capacity
+    assert later.max() <= 125 + 1e-6              # never above the kitchen's capacity
     assert len(set(np.round(later).tolist())) > 5  # not a few repeated steps
     assert r["capacity_per_day"] == 125.0

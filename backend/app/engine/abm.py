@@ -404,7 +404,7 @@ def run_abm(arch: Archetype, zones: list[Zone], comps: list[Competitor], biz: Bu
             exp_comp = scale * float(w @ pr[:, 1:J].sum(1)) if in_idx.size and J > 1 else 0.0
             exp_none = scale * float(w @ pr[:, J]) if in_idx.size else 0.0
             orders = float(rng.poisson(exp_you)) if exp_you < 1e7 else exp_you  # day-to-day randomness of real orders
-            served = min(orders, cap_units_day * float(np.clip(rng.normal(1.0, 0.04), 0.85, 1.12)))  # staffing / rush variation
+            served = min(orders, cap_units_day * float(np.clip(rng.normal(0.97, 0.03), 0.85, 1.0)))  # staffing / rush days: never above the stated limit
             turned = orders - served
             # agent-level events (who buys, from whom) drive habits, word of mouth and the dots on the map
             buyers = np.where(in_market & (rng.random(N) < freq / 30.0 * m_day))[0]
