@@ -15,7 +15,7 @@ export interface ReportContent {
 
 function H({ n, children }: { n: number; children: React.ReactNode }) {
   return (
-    <h2 className="mb-3 mt-8 flex items-baseline gap-2 border-b border-ink-700 pb-1.5 text-base font-semibold">
+    <h2 className="mb-3 mt-8 flex items-baseline gap-2 border-b border-white/[0.07] pb-1.5 text-base font-semibold">
       <span className="num text-xs text-ink-400">{String(n).padStart(2, "0")}</span>
       {children}
     </h2>
@@ -32,7 +32,7 @@ function MiniMap({ loc, snap, comps }: { loc: Location; snap: ReportContent["loc
   const sx = (x: number) => ((x - x0) / (x1 - x0 || 1)) * W;
   const sy = (y: number) => W - ((y - y0) / (y1 - y0 || 1)) * W;
   return (
-    <svg viewBox={`-10 -10 ${W + 20} ${W + 20}`} className="h-56 w-56 shrink-0 rounded border border-ink-700 bg-ink-900" role="img" aria-label="Catchment and competitors">
+    <svg viewBox={`-10 -10 ${W + 20} ${W + 20}`} className="h-56 w-56 shrink-0 rounded border border-white/[0.07] bg-ink-900" role="img" aria-label="Catchment and competitors">
       <polygon points={ring.map((c) => `${sx(c[0])},${sy(c[1])}`).join(" ")} fill="rgba(34,211,238,0.07)" stroke="#FF9F2E" strokeDasharray="4 3" />
       {comps.filter((c) => c.active).map((c) => (
         <circle key={c.id} cx={sx(c.lng)} cy={sy(c.lat)} r={4} fill={c.source === "user" ? "#C59BFF" : "#6F8CFF"} stroke="#080C15" />
@@ -47,13 +47,13 @@ export function ReportView({ c }: { c: ReportContent }) {
   const prof = c.project.profile as Record<string, any>;
   const ran = c.scenarios.filter((s) => s.result);
   return (
-    <article className="print-light mx-auto max-w-4xl rounded-lg border border-ink-700 bg-ink-950 p-6 text-sm leading-relaxed text-ink-200 md:p-10">
+    <article className="print-light mx-auto max-w-4xl rounded-lg border border-white/[0.07] bg-ink-950 p-6 text-sm leading-relaxed text-ink-200 md:p-10">
       {c.project.is_demo && <div className="mb-4 rounded border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs font-medium text-amber-200">DEMO SCENARIO — Illustrative market data; not verified live conditions.</div>}
       <header>
-        <div className="text-xs uppercase tracking-widest text-ink-400">StrataIQ feasibility report</div>
+        <div className="text-xsst text-ink-400">StrataIQ feasibility report</div>
         <h1 className="mt-1 text-2xl font-semibold text-ink-100">{c.project.name}</h1>
         <p className="mt-1 text-xs text-ink-400">Generated {when(c.generated_at)} · model {d.model_version || "—"}</p>
-        <p className="mt-3 rounded border border-ink-700 bg-ink-900 p-3 text-xs text-ink-300">{c.disclaimer}</p>
+        <p className="mt-3 rounded border border-white/[0.07] bg-ink-900 p-3 text-xs text-ink-300">{c.disclaimer}</p>
       </header>
 
       <H n={1}>Business concept</H>
@@ -83,7 +83,7 @@ export function ReportView({ c }: { c: ReportContent }) {
         <thead><tr className="text-left text-ink-400"><th className="py-1 font-normal">Source</th><th className="font-normal">Layer</th><th className="font-normal">Retrieved</th><th className="font-normal">Source data as of</th><th className="font-normal">License</th></tr></thead>
         <tbody>
           {c.locations.flatMap(({ location: l, snapshot: s }) => (s?.sources || []).map((src, i) => (
-            <tr key={`${l.id}-${i}`} className="border-t border-ink-800">
+            <tr key={`${l.id}-${i}`} className="border-t border-white/[0.06]">
               <td className="py-1">{src.name}</td><td>{src.layer}</td><td>{when(src.retrieved_at)}</td><td>{src.source_updated_at || "not reported"}</td><td>{src.license}</td>
             </tr>
           )))}
@@ -97,7 +97,7 @@ export function ReportView({ c }: { c: ReportContent }) {
         <thead><tr className="text-left text-ink-400"><th className="py-1 font-normal">Name</th><th className="font-normal">Source</th><th className="text-right font-normal">Price</th><th className="text-right font-normal">Last edited</th></tr></thead>
         <tbody>
           {c.competitors.slice(0, 30).map((x) => (
-            <tr key={x.id} className="border-t border-ink-800"><td className="py-1">{x.name}{!x.active && " (excluded)"}</td><td>{x.source === "osm" ? "OpenStreetMap" : x.source === "user" ? (x.is_hypothetical ? "Hypothetical" : "User-observed") : "Demo"}</td><td className="text-right">{x.price ? money(x.price) : "unknown"}</td><td className="text-right">{x.source_updated_at ? when(x.source_updated_at).split(",")[0] : "—"}</td></tr>
+            <tr key={x.id} className="border-t border-white/[0.06]"><td className="py-1">{x.name}{!x.active && " (excluded)"}</td><td>{x.source === "osm" ? "OpenStreetMap" : x.source === "user" ? (x.is_hypothetical ? "Hypothetical" : "User-observed") : "Demo"}</td><td className="text-right">{x.price ? money(x.price) : "unknown"}</td><td className="text-right">{x.source_updated_at ? when(x.source_updated_at).split(",")[0] : "—"}</td></tr>
           ))}
         </tbody>
       </table>
@@ -110,7 +110,7 @@ export function ReportView({ c }: { c: ReportContent }) {
         <table className="w-full text-xs">
           <tbody>
             {Object.entries(ran[0].result.parameters).map(([k, v]) => (
-              <tr key={k} className="border-t border-ink-800"><td className="py-1">{v.label}</td><td className="num text-right">{num(v.value, 4)}</td><td className="text-right text-ink-400">[{num(v.low, 3)} – {num(v.high, 3)}]</td><td className="text-right">{v.status}</td></tr>
+              <tr key={k} className="border-t border-white/[0.06]"><td className="py-1">{v.label}</td><td className="num text-right">{num(v.value, 4)}</td><td className="text-right text-ink-400">[{num(v.low, 3)} – {num(v.high, 3)}]</td><td className="text-right">{v.status}</td></tr>
             ))}
           </tbody>
         </table>
@@ -128,7 +128,7 @@ export function ReportView({ c }: { c: ReportContent }) {
       <H n={8}>Scenario comparison</H>
       <table className="w-full text-xs">
         <thead><tr className="text-left text-ink-400"><th className="py-1 font-normal">Rank</th><th className="font-normal">Scenario</th><th className="text-right font-normal">Units</th><th className="text-right font-normal">Profit / mo</th><th className="text-right font-normal">P(loss)</th></tr></thead>
-        <tbody>{d.ranking.map((r) => <tr key={r.scenario_id} className="border-t border-ink-800"><td className="py-1">{r.rank}</td><td>{r.name}</td><td className="text-right">{num(r.units)}</td><td className="text-right">{money(r.profit)}</td><td className="text-right">{pct(r.prob_loss)}</td></tr>)}</tbody>
+        <tbody>{d.ranking.map((r) => <tr key={r.scenario_id} className="border-t border-white/[0.06]"><td className="py-1">{r.rank}</td><td>{r.name}</td><td className="text-right">{num(r.units)}</td><td className="text-right">{money(r.profit)}</td><td className="text-right">{pct(r.prob_loss)}</td></tr>)}</tbody>
       </table>
       <p className="mt-2"><b>Result:</b> {d.headline}</p>
 
@@ -142,7 +142,7 @@ export function ReportView({ c }: { c: ReportContent }) {
       <ol className="list-decimal space-y-1 pl-5">{d.next_actions.map((a, i) => <li key={i}>{a.action} <span className="text-ink-400">— {a.why}</span></li>)}</ol>
       {d.recommendations.length > 0 && (
         <ul className="mt-3 space-y-2">
-          {d.recommendations.map((r, i) => <li key={i} className="rounded border border-ink-700 p-2 text-xs"><b>{r.action}</b> {r.reason} Reconsider if: {r.reconsider_if}</li>)}
+          {d.recommendations.map((r, i) => <li key={i} className="rounded border border-white/[0.07] p-2 text-xs"><b>{r.action}</b> {r.reason} Reconsider if: {r.reconsider_if}</li>)}
         </ul>
       )}
 

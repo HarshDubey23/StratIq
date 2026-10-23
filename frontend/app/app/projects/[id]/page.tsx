@@ -86,7 +86,7 @@ export default function Overview() {
       <div className="grid gap-5 lg:grid-cols-2">
         <Card>
           <CardHeader title="Candidate locations" right={<Link href={`${base}/market`} className="text-xs text-accent hover:underline">Open map</Link>} />
-          <ul className="divide-y divide-ink-800">
+          <ul className="divide-y divide-white/[0.06]">
             {p.locations.map((l) => {
               const s = p.snapshots?.[l.id];
               return (
@@ -103,7 +103,7 @@ export default function Overview() {
         </Card>
         <Card>
           <CardHeader title="Scenarios" right={<Link href={`${base}/simulation`} className="text-xs text-accent hover:underline">Open lab</Link>} />
-          <ul className="divide-y divide-ink-800">
+          <ul className="divide-y divide-white/[0.06]">
             {scen.map((s) => (
               <li key={s.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
                 <div>

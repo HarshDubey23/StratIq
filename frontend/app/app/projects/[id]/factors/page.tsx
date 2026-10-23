@@ -14,7 +14,7 @@ const STATUS: Record<string, { label: string; cls: string; help: string }> = {
   assumed: { label: "Assumed", cls: "border-ink-500 bg-ink-800 text-ink-200", help: "Documented model assumption (default or your override)." },
   simulated: { label: "Simulated", cls: "border-model/40 bg-model/10 text-model", help: "Produced by the simulation run." },
   pending: { label: "Pending", cls: "border-sky-400/30 bg-sky-400/5 text-sky-300", help: "Computable once market data is loaded or the scenario is run." },
-  unavailable: { label: "No source yet", cls: "border-ink-700 bg-ink-900 text-ink-500", help: "Defined for future data. No source connected, so no value is invented." },
+  unavailable: { label: "No source yet", cls: "border-white/[0.07] bg-ink-900 text-ink-500", help: "Defined for future data. No source connected, so no value is invented." },
 };
 const ROLE: Record<string, string> = { agent: "Agent profile", choice: "Choice model", finance: "Economics", output: "Output", context: "Evidence", reserved: "Future data" };
 
@@ -74,7 +74,7 @@ export default function Factors() {
 
       <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
         {Object.entries(STATUS).map(([k, s]) => (
-          <button key={k} onClick={() => setStatus(status === k ? "all" : k)} title={s.help} className={cn("rounded-lg border p-3 text-left transition-colors", status === k ? "border-accent" : "border-ink-700 hover:border-ink-500", "bg-ink-900")}>
+          <button key={k} onClick={() => setStatus(status === k ? "all" : k)} title={s.help} className={cn("rounded-lg border p-3 text-left transition-colors", status === k ? "border-accent" : "border-white/[0.07] hover:border-ink-500", "bg-ink-900")}>
             <div className={cn("inline-flex rounded border px-1.5 py-px text-[10px] font-medium uppercase", s.cls)}>{s.label}</div>
             <div className="num mt-1.5 text-2xl font-semibold">{data.summary[k] || 0}</div>
           </button>
@@ -85,7 +85,7 @@ export default function Factors() {
         {Object.entries(data.domains).map(([k, label]) => {
           const ds = domStatus(k);
           return (
-            <button key={k} onClick={() => setDomain(domain === k ? "all" : k)} className={cn("rounded-lg border bg-ink-900 p-3 text-left", domain === k ? "border-accent" : "border-ink-700 hover:border-ink-500")}>
+            <button key={k} onClick={() => setDomain(domain === k ? "all" : k)} className={cn("rounded-lg border bg-ink-900 p-3 text-left", domain === k ? "border-accent" : "border-white/[0.07] hover:border-ink-500")}>
               <div className="text-xs font-medium text-ink-200">{label}</div>
               <div className="num mt-1 text-sm"><span className="text-ink-100">{ds.filled}</span><span className="text-ink-500"> / {ds.total} with values</span></div>
               <div className="mt-1.5 h-1 rounded bg-ink-800"><div className="h-1 rounded bg-accent" style={{ width: `${(ds.filled / Math.max(1, ds.total)) * 100}%` }} /></div>
@@ -100,7 +100,7 @@ export default function Factors() {
       </Notice>
 
       <Card>
-        <div className="flex flex-wrap items-center gap-2 border-b border-ink-700 p-3">
+        <div className="flex flex-wrap items-center gap-2 border-b border-white/[0.07] p-3">
           <div className="relative min-w-60 flex-1">
             <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-ink-400" />
             <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search factors, e.g. ‘age’, ‘metro’, ‘churn’" className="pl-9" aria-label="Search factors" />
@@ -124,7 +124,7 @@ export default function Factors() {
             </thead>
             <tbody>
               {rows.map(({ d, v }) => (
-                <tr key={d.key} className="border-t border-ink-800/70 hover:bg-ink-850" title={d.description}>
+                <tr key={d.key} className="border-t border-white/[0.06]/70 hover:bg-ink-850" title={d.description}>
                   <td className="px-3 py-1.5">
                     <div className="text-ink-100">{d.label}</div>
                     <div className="num text-[10px] text-ink-500">{d.key}</div>

@@ -80,12 +80,12 @@ export default function MonitorPage() {
             {f && <p className="px-2 text-xs text-ink-400">Green band: P10–P90 of modeled {f.unit_label}. Purple: your reported figures.</p>}
           </div>
           {m && m.actuals.length > 0 && (
-            <div className="overflow-x-auto border-t border-ink-800">
+            <div className="overflow-x-auto border-t border-white/[0.06]">
               <table className="w-full text-sm">
                 <thead><tr className="text-left text-xs text-ink-400"><th className="px-3 py-2 font-normal">Period</th><th className="text-right font-normal">Forecast</th><th className="text-right font-normal">Actual</th><th className="text-right font-normal">Error</th><th className="text-right font-normal">Revenue</th><th className="px-3 font-normal">Source</th><th /></tr></thead>
                 <tbody>
                   {m.actuals.map((a) => (
-                    <tr key={a.period} className="border-t border-ink-800/60">
+                    <tr key={a.period} className="border-t border-white/[0.06]/60">
                       <td className="num px-3 py-2">{a.period}</td>
                       <td className="num text-right">{num(f?.units)}</td>
                       <td className="num text-right">{num(a.units)}</td>

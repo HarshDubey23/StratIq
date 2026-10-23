@@ -77,7 +77,7 @@ export function LocationPicker({
       </form>
       {error && <ErrorState message={error} />}
       {results && results.length > 0 && (
-        <ul className="max-h-40 divide-y divide-ink-800 overflow-auto rounded-md border border-ink-700 bg-ink-850">
+        <ul className="max-h-40 divide-y divide-white/[0.06] overflow-auto rounded-2xl border border-white/[0.07] bg-white/[0.02]">
           {results.map((r, i) => (
             <li key={i}>
               <button type="button" onClick={() => pick(r.lat, r.lng, r.display_name)} className="flex w-full items-start gap-2 px-3 py-2 text-left text-sm hover:bg-ink-800">
@@ -91,7 +91,7 @@ export function LocationPicker({
           ))}
         </ul>
       )}
-      <div className={`overflow-hidden rounded-md border border-ink-700 ${height}`}>
+      <div className={`overflow-hidden rounded-md border border-white/[0.07] ${height}`}>
         <MarketMap
           className="h-full w-full"
           center={view}
