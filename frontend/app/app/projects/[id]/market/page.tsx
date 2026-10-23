@@ -354,7 +354,7 @@ export default function MarketPage() {
               ) : (
                 <>
                   <Notice>
-                    Competitors come from OpenStreetMap and can be incomplete, especially for small or informal businesses. Add any you have seen on the ground, or a hypothetical future
+                    Competitors come from OpenStreetMap and Foursquare Places (a shop in both is counted once) and can still be incomplete, especially for small or informal businesses. Add any you have seen on the ground, or a hypothetical future
                     entrant, using <b>Add competitor</b> on the map.
                   </Notice>
                   {comps.length === 0 && snap && <EmptyState title="No competitors found in the data" body="This can mean an unserved market, or simply missing map data. Verify locally and add what you find." />}

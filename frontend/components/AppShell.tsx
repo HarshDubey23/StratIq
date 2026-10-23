@@ -71,7 +71,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
         {caps && (
           <div className="space-y-1.5 text-ink-400">
-            <div className="flex justify-between"><span>Places</span><span className="text-ink-200">OpenStreetMap</span></div>
+            <div className="flex justify-between"><span>Places</span><span className="text-ink-200">OSM + Foursquare</span></div>
             <div className="flex justify-between"><span>Population</span><span className="text-ink-200">WorldPop</span></div>
             <div className="flex justify-between"><span>Travel time</span><span className={caps.routing ? "text-ink-200" : "text-ink-500"}>{caps.routing ? "openrouteservice" : "radius"}</span></div>
             <div className="flex justify-between"><span>Voice</span><span className="text-ink-200">Strata</span></div>
