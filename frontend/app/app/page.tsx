@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { useSession } from "@/components/AppShell";
+import { QuickStart } from "@/components/QuickStart";
 import { Badge, Button, ButtonLink, Dialog, EmptyState, ErrorState, Evidence, Skeleton } from "@/components/ui";
 import { api, ApiError } from "@/lib/api";
 import { ago, money, num, OBJECTIVES, pct } from "@/lib/format";
@@ -78,7 +79,11 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-8">
+        <QuickStart />
+      </div>
+
+      <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {actions.map((a) => (
           <Link key={a.t} href={a.href} className="group relative overflow-hidden rounded-3xl border border-white/[0.07] bg-gradient-to-b from-ink-850 to-ink-900 p-5 transition-[border-color,transform] duration-500 hover:-translate-y-0.5 hover:border-accent/40">
             <span className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-accent/0 blur-2xl transition-colors duration-500 group-hover:bg-accent/20" />

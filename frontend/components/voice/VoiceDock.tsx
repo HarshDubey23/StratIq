@@ -17,6 +17,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from "react";
 import { cn } from "@/components/ui";
 import { readScreen, sendStrategy } from "@/lib/screen";
+import { GLOSSARY } from "@/components/Journey";
+import { quickCreate } from "@/components/QuickStart";
 
 const AGENT_ID = process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID || "agent_3201m5jvb75gfymtmw8m34wck59b";
 
@@ -49,8 +51,8 @@ async function jfetch<T>(url: string, init?: RequestInit & { json?: unknown }): 
 }
 
 const SUGGESTIONS = {
-  project: ["What do you see on this screen?", "How can I grow?", "Double the marketing", "How do agents decide?", "Kitne competitors hain?", "Try price ₹399"],
-  general: ["What does StrataIQ do?", "Open the live demo", "Is the data real?"],
+  project: ["What do you see on this screen?", "Best location kahan hai?", "Find my best strategy", "How can I grow?", "What is break-even?", "Give me a tour"],
+  general: ["I want to open a café in Indiranagar, Bengaluru", "Open the live demo", "What does StrataIQ do?"],
 };
 
 function VoiceDockInner() {
@@ -61,6 +63,7 @@ function VoiceDockInner() {
   pidRef.current = projectId;
   const pathRef = useRef(path);
   pathRef.current = path;
+  const lastSuggested = useRef<{ label: string; changes: Record<string, number> } | null>(null);
 
   const [open, setOpen] = useState(false);
   const [engine, setEngine] = useState<Engine>("realtime");
@@ -117,6 +120,60 @@ function VoiceDockInner() {
         } catch (e) {
           return JSON.stringify({ error: e instanceof Error ? e.message : "simulation failed" });
         }
+      },
+      find_best_location: async () => {
+        const pid = pidRef.current;
+        if (!pid) return JSON.stringify({ error: "Open a project first." });
+        try {
+          const sc = readScreen();
+          const out = await jfetch<{ current: Record<string, unknown>; top: Record<string, unknown>[]; uplift_profit: number; method: string; unit: string }>(
+            `/api/v1/projects/${pid}/sites${sc?.scenario_id ? `?scenario_id=${sc.scenario_id}` : ""}`);
+          if (!pathRef.current.endsWith("/market")) router.push(`/app/projects/${pid}/market?tab=sites`);
+          setTimeout(() => window.dispatchEvent(new CustomEvent("strataiq:sites")), 600);
+          const slim = (x: Record<string, unknown>) => ({ profit_per_month: x.profit, demand: x.demand, units: x.units, from_current_km: x.from_current_km,
+            people_within_1km: x.people_within_1km, competitors_within_500m: x.competitors_within_500m, nearest_competitor_km: x.nearest_competitor_km, risk: x.risk });
+          return JSON.stringify({ unit: out.unit, current_site: slim(out.current), best_sites: out.top.slice(0, 3).map(slim), uplift_profit_per_month: out.uplift_profit,
+            note: out.method, shown_on: "Market map > Best sites (green pillars); the user can click 'Open this site & simulate'" });
+        } catch (e) {
+          return JSON.stringify({ error: e instanceof Error ? e.message : "site scan failed" });
+        }
+      },
+      optimize_strategy: async () => {
+        const pid = pidRef.current;
+        if (!pid) return JSON.stringify({ error: "Open a project first." });
+        try {
+          const sc = readScreen();
+          const out = await jfetch<{ current: Record<string, number>; best: Record<string, number>; best_without_new_capacity: Record<string, number>; evaluated: number; cost_note: string; unit: string }>(
+            `/api/v1/projects/${pid}/optimize${sc?.scenario_id ? `?scenario_id=${sc.scenario_id}` : ""}`);
+          if (!pathRef.current.endsWith("/live")) router.push(`/app/projects/${pid}/live`);
+          setTimeout(() => window.dispatchEvent(new CustomEvent("strataiq:optimize")), pathRef.current.endsWith("/live") ? 0 : 1800);
+          const pick = (x: Record<string, number>) => ({ price: x.price, marketing_spend: x.marketing_spend, capacity_scale: x.capacity_scale, units: x.units, demand: x.demand, profit_per_month: x.profit, payback_months: x.payback_months, risk: (x as unknown as { risk?: unknown }).risk });
+          return JSON.stringify({ unit: out.unit, combinations_tested: out.evaluated, current: pick(out.current), best: pick(out.best), best_without_new_capacity: pick(out.best_without_new_capacity),
+            cost_note: out.cost_note, next: "Offer to verify the best with test_strategy (only the changed fields)." });
+        } catch (e) {
+          return JSON.stringify({ error: e instanceof Error ? e.message : "optimizer failed" });
+        }
+      },
+      start_new_idea: async ({ description }: { description: string }) => {
+        try {
+          const { id, plan } = await quickCreate(String(description || ""));
+          router.push(`/app/projects/${id}/market?welcome=1`);
+          return JSON.stringify({ created: true, business: plan.category.label, place: plan.place?.display_name, price: plan.price, assumptions: plan.assumptions,
+            next: "Live data is loading on the market map (about a minute); then the baseline runs automatically." });
+        } catch (e) {
+          const q = encodeURIComponent(String(description || ""));
+          router.push(`/app/projects/new?idea=${q}`);
+          return JSON.stringify({ created: false, reason: e instanceof Error ? e.message : "need more detail", next: "Opened the quick-start form with the idea filled in; ask the user to pick the place." });
+        }
+      },
+      explain_term: async ({ term }: { term: string }) => {
+        const t = String(term || "").toLowerCase();
+        const hit = GLOSSARY.find(([k]) => k.toLowerCase().includes(t) || t.includes(k.toLowerCase().split(" ")[0]));
+        return JSON.stringify(hit ? { term: hit[0], meaning: hit[1] } : { term, meaning: null, glossary_terms: GLOSSARY.map(([k]) => k) });
+      },
+      open_guide: async () => {
+        window.dispatchEvent(new CustomEvent("strataiq:tour"));
+        return "Opened the five-step 'How it works' guide on screen.";
       },
       test_price: async ({ price }: { price: number }) => {
         const pid = pidRef.current;
@@ -214,13 +271,27 @@ function VoiceDockInner() {
       setPhase("thinking");
       const pid = pidRef.current;
       try {
-        const out = await jfetch<{ answer: string; result?: unknown; actions?: { type: string; to?: string; scenario_id?: string }[] }>(pid ? `/api/v1/projects/${pid}/assistant/ask` : `/api/v1/assistant/ask`, {
+        const out = await jfetch<{ answer: string; result?: unknown; suggested?: { label: string; changes: Record<string, number> }; actions?: { type: string; to?: string; scenario_id?: string; text?: string; action?: { label: string; changes: Record<string, number> } }[] }>(pid ? `/api/v1/projects/${pid}/assistant/ask` : `/api/v1/assistant/ask`, {
           method: "POST",
-          json: { question: q, page: path, screen: readScreen() },
+          json: { question: q, page: path, screen: readScreen(), suggested: lastSuggested.current },
         });
         push("strata", out.answer);
+        if (out.suggested) lastSuggested.current = out.suggested;
         const onLive = path.endsWith("/live");
         for (const a of out.actions || []) {
+          if (a.type === "suggest" && a.action) {
+            lastSuggested.current = a.action;
+            continue;
+          }
+          if (a.type === "sites" && pid) {
+            if (!path.endsWith("/market")) router.push(`/app/projects/${pid}/market?tab=sites`);
+            setTimeout(() => window.dispatchEvent(new CustomEvent("strataiq:sites")), 600);
+            continue;
+          }
+          if (a.type === "quickstart" && a.text) {
+            void tools.start_new_idea({ description: a.text });
+            continue;
+          }
           if (a.type === "strategy") {
             sendStrategy({ scenario_id: a.scenario_id, result: out.result });
             continue;

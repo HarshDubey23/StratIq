@@ -23,6 +23,15 @@ export interface MapCandidate {
   active?: boolean;
 }
 
+/** A scored candidate site from the location finder: score 0-1 (relative profit), rank 1..5 for the shortlist. */
+export interface MapOpportunity {
+  lat: number;
+  lng: number;
+  score: number;
+  rank?: number;
+  label?: string;
+}
+
 export interface MapZone {
   lat: number;
   lng: number;
@@ -55,6 +64,10 @@ interface Props {
   depth?: boolean;
   zoneSpacingKm?: number | null;
   competitorWeight?: Record<string, number>;
+  opportunity?: MapOpportunity[] | null;
+  /** Fly the camera to this point whenever `key` changes. */
+  focus?: { lat: number; lng: number; key: string } | null;
+  onOpportunityClick?: (o: MapOpportunity) => void;
 }
 
 const EMPTY: GeoJSON.FeatureCollection = { type: "FeatureCollection", features: [] };
@@ -345,6 +358,29 @@ export default function MapView(props: Props) {
           background: true, getBackgroundColor: [12, 17, 28, 210], backgroundPadding: [6, 3], fontFamily: "Geist, system-ui, sans-serif",
           characterSet: "auto", updateTriggers: { getPosition: [wmax, Object.keys(w).length] },
         }),
+      (props.opportunity || []).length > 0 &&
+        new DL.ScatterplotLayer({
+          id: "opp-heat", data: props.opportunity || [], getPosition: (o: MapOpportunity) => [o.lng, o.lat, 4], radiusUnits: "meters",
+          getRadius: (o: MapOpportunity) => 60 + 90 * o.score, stroked: false, pickable: true,
+          getFillColor: (o: MapOpportunity) => [Math.round(30 + 40 * o.score), Math.round(90 + 134 * o.score), Math.round(120 + 48 * o.score), Math.round(40 + 150 * o.score)] as [number, number, number, number],
+          onClick: (info: { object?: MapOpportunity }) => { if (info.object) handlers.current.onOpportunityClick?.(info.object); },
+          updateTriggers: { getFillColor: [(props.opportunity || []).length], getRadius: [(props.opportunity || []).length] },
+        }),
+      (props.opportunity || []).some((o) => o.rank) &&
+        new DL.ColumnLayer({
+          id: "opp-top", data: (props.opportunity || []).filter((o) => o.rank), diskResolution: 6, radius: 55, extruded: true, angle: 30,
+          getPosition: (o: MapOpportunity) => [o.lng, o.lat], getElevation: (o: MapOpportunity) => 900 - 110 * ((o.rank || 1) - 1),
+          getFillColor: [69, 224, 168, 225], pickable: true,
+          onClick: (info: { object?: MapOpportunity }) => { if (info.object) handlers.current.onOpportunityClick?.(info.object); },
+        }),
+      (props.opportunity || []).some((o) => o.rank) &&
+        new DL.TextLayer({
+          id: "opp-labels", data: (props.opportunity || []).filter((o) => o.rank),
+          getPosition: (o: MapOpportunity) => [o.lng, o.lat, 900 - 110 * ((o.rank || 1) - 1) + 40],
+          getText: (o: MapOpportunity) => o.label || `#${o.rank}`, getSize: 13, sizeUnits: "pixels", getColor: [4, 6, 11, 255],
+          getTextAnchor: "middle", getAlignmentBaseline: "bottom", background: true, getBackgroundColor: [69, 224, 168, 235],
+          backgroundPadding: [6, 3], fontFamily: "Geist, system-ui, sans-serif", fontWeight: 600, characterSet: "auto",
+        }),
       depth && (props.candidates || []).length > 0 &&
         new DL.ColumnLayer({
           id: "site-beacon", data: (props.candidates || []).map((c) => ({ ...c, tip: `${c.label} — your candidate site` })), diskResolution: 32, radius: 24, extruded: true,
@@ -352,7 +388,14 @@ export default function MapView(props: Props) {
           getFillColor: (c: MapCandidate) => (c.active === false ? [...C.youSoft, 150] : [...C.you, 255]) as [number, number, number, number], pickable: true,
         }),
     ].filter(Boolean));
-  }, [deckReady, props.zones, props.competitors, props.candidates, props.layers, props.depth, props.zoneSpacingKm, props.competitorWeight]);
+  }, [deckReady, props.zones, props.competitors, props.candidates, props.layers, props.depth, props.zoneSpacingKm, props.competitorWeight, props.opportunity]);
+
+  useEffect(() => {
+    const m = map.current;
+    if (!ready || !m || !props.focus) return;
+    m.flyTo({ center: [props.focus.lng, props.focus.lat], zoom: 15.2, pitch: 58, duration: 1400, essential: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, props.focus?.key]);
 
   useEffect(() => {
     const m = map.current;

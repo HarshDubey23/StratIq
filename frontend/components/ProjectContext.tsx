@@ -7,6 +7,7 @@ import { createContext, useCallback, useContext, useEffect, useState } from "rea
 import { cn, DemoBanner, ErrorState, Evidence, Skeleton } from "@/components/ui";
 import { api, ApiError } from "@/lib/api";
 import type { Project } from "@/lib/types";
+import { Journey } from "@/components/Journey";
 
 interface Ctx {
   project: Project;
@@ -104,6 +105,7 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
           })}
         </nav>
       </div>
+      {project && <Journey project={project} />}
       {error && (
         <div className="p-6">
           <ErrorState message={error} onRetry={reload} />

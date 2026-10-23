@@ -234,6 +234,13 @@ def apply_changes(arch, inputs: dict, ch: dict) -> tuple[dict, list[str]]:
                 cap[f.key] = round(float(base) * float(ch["capacity_scale"]), 2)
                 break
         out["capacity"] = cap
+        # capacity is not free (same rule as the optimizer, engine/explore.py): staff and utilities scale with it,
+        # rent rises by half the increase, startup cost by 35% per 100% added
+        sc = float(ch["capacity_scale"])
+        out["payroll"] = float(out.get("payroll") or 0) * sc
+        out["utilities"] = float(out.get("utilities") or 0) * sc
+        out["rent"] = float(out.get("rent") or 0) * (1 + 0.5 * (sc - 1))
+        out["startup_cost"] = float(out.get("startup_cost") or 0) * (1 + 0.35 * max(0.0, sc - 1))
         label.append(f"capacity ×{ch['capacity_scale']:g}")
     if ch.get("open_hour") is not None or ch.get("close_hour") is not None:
         off = dict(out.get("offer") or {"open_hour": None, "close_hour": None, "weekend_open": True, "attributes": {}})

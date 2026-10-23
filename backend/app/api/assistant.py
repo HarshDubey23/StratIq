@@ -223,6 +223,7 @@ class Ask(BaseModel):
     question: str = Field(min_length=1, max_length=600)
     page: str | None = None
     screen: dict | None = None  # what the user is looking at right now (published by the page)
+    suggested: dict | None = None  # the last action the assistant suggested ("test it" runs this)
 
 
 NAV = {
@@ -243,6 +244,15 @@ INTENTS: list[tuple[str, list[str]]] = [
                   r"\bopen\w*\s+(from\s+)?\d{1,2}\s*(am|pm)?\s*(to|till|until|-)\s*\d", r"\b(close|band)\w*\s+(at\s+)?\d{1,2}\s*(am|pm)"]),
     ("explain_agents", [r"how (do|does|did) (the )?(agents?|people|customers) (decide|choose|pick)", r"agents? .*\b(decide|choose|chunte|select)", r"\b615\b", r"kaise (decide|choose|chun)", r"\bgenome\b.*\bwork", r"why (did|does) (this|an?) agent"]),
     ("screen", [r"what (am i|are we|is) (looking|seeing|on)", r"\bthis (page|screen|map|chart|graph)\b", r"(yeh|ye|is) (page|map|screen|chart)", r"explain (this|the map|the screen|the chart|what)", r"what do you see", r"kya dikh", r"where am i"]),
+    ("start_idea", [r"\b(i want to|i wanna|i plan to|planning to|thinking of|want to) (open|start|launch)\b", r"\b(kholna|kholni|shuru karna)\b.*\b(hai|chahta|chahti)\b",
+                    r"\b(new|another) (idea|analysis|business|project)\b.*\b(in|at|near|for)\b"]),
+    ("find_site", [r"\b(best|better|ideal|right|optimal|top) (location|site|place|spot|area|jagah)", r"where (should|do|can) (i|we) (open|start|put|locate)", r"kahan (kholu|kholun|kholna|khole)",
+                   r"\b(location|site) (finder|scan|suggest)", r"\bmove (the )?(shop|store|outlet|site)\b", r"which (location|area|site|spot) is best", r"konsi jagah"]),
+    ("optimize", [r"\b(best|optimal|ideal|optimum|right) (strategy|price|plan|pricing|combination|marketing)", r"\boptimi[sz]", r"maximi[sz]e (my )?profit", r"most profit", r"sabse (zyada|jyada) (profit|munafa)",
+                  r"what (price|strategy) (should|maximi)"]),
+    ("explain_term", [r"\bwhat (is|are|does) (a |an |the )?(catchment|p10|p90|break.?even|awareness|capacity|wtp|willingness to pay|monte carlo|outside option|trial rate|repeat share|payback|utili[sz]ation|scenario|baseline|genome|agent|turned away|reference price|variable cost|fixed cost|operating profit)",
+                      r"\b(catchment|p10|p90|break.?even|monte carlo|wtp|payback|utili[sz]ation|genome|awareness|capacity) (ka |ki |ke )?(kya|matlab|means?|meaning)", r"\bmeaning of\b", r"\bexplain (the )?(term|word)"]),
+    ("tour", [r"\b(tour|guide me|walk me through|show me around|how (do i|to) use|where do i start|what do i do( first| now| next)?|next step|samjhao|kaise use|kya karu ab|aage kya)\b"]),
     ("insights", [r"insight", r"suggest", r"advice", r"advise", r"improve", r"\bgrow", r"badh", r"sujhav", r"what should i change", r"how (can|do) i (get|increase|make|win)",
                   r"what('s| is) wrong", r"problem", r"why (so )?(low|less|few)", r"kam kyu", r"analy[sz]"]),
     ("try_price", [r"\b(try|test|simulate|run|what if|kya hoga|check)\b.*\b(price|fee|charge|₹|rs|rupees?|\d{3,})", r"\bprice (of|at|to) \d"]),
@@ -464,6 +474,41 @@ def explain_agents(f: dict, view: dict | None, unit: str) -> str:
     return s
 
 
+GLOSSARY = {
+    "catchment": "The catchment is the area your customers realistically come from — by default a circle of a few kilometres around your site, or a travel-time area. Everyone outside it is ignored.",
+    "p10": "P10 is the bad-but-realistic case: in 10% of the uncertainty runs profit was this low or lower. P90 is the good case. The truth is likely between them.",
+    "p90": "P90 is the good case: only 10% of the uncertainty runs did better. P10 is the bad case. Plan for P10, hope for P90.",
+    "break": "Break-even is how many sales a month you need so revenue exactly covers all monthly costs. Below it you lose money every month.",
+    "awareness": "Awareness is the share of people who need what you sell and have heard that you exist. Nobody can choose you before they know you; ads, word of mouth and your signboard raise it.",
+    "capacity": "Capacity is the most you can serve — orders a day, seats, members or slots. Demand above capacity is turned away and some of those people go to rivals.",
+    "wtp": "Willingness to pay is the highest price a person would accept. Each agent has its own, based on income and how much it values the category.",
+    "willingness": "Willingness to pay is the highest price a person would accept. Each agent has its own, based on income and how much it values the category.",
+    "monte": "Monte Carlo means running the model hundreds of times with the uncertain assumptions drawn from their realistic ranges, so you see a range of outcomes and the chance of a loss, not one number.",
+    "outside": "The outside option is 'buy nothing' or 'buy somewhere we don't model'. Every agent compares you and your rivals with it, so demand isn't forced onto anyone.",
+    "trial": "Trial rate is the share of people who knew about you and bought at least once.",
+    "repeat": "Repeat share is the share of your customers who bought two or more times — the sign of a loyal base.",
+    "payback": "Payback is how many months of profit it takes to earn back your startup investment.",
+    "utili": "Utilisation is how full you are: sales divided by capacity. Near 100% means you're turning people away.",
+    "scenario": "A scenario is one version of your plan — a price, costs, capacity and marketing. You can make several and compare them.",
+    "baseline": "The baseline is your starting plan. Every other scenario is compared against it.",
+    "genome": "The genome is the 615 numbers that describe one synthetic person: budget, travel, free hours, tastes, media habits, loyalty and more.",
+    "agent": "An agent is one synthetic person in the simulation, placed where real people live. Each stands for a number of real residents. They are not real individuals.",
+    "turned": "Turned away means people who wanted to buy from you on a day when you were already full.",
+    "reference": "The reference price is the typical local price for this kind of business. Affordability is judged against it.",
+    "variable": "Variable cost is what each sale costs you — ingredients, packaging, commissions. It grows with every sale.",
+    "fixed": "Fixed costs are the monthly bills you pay even with zero sales — rent, salaries, utilities, marketing.",
+    "operating": "Operating profit is revenue minus variable and fixed costs, before tax, loan interest and depreciation.",
+}
+
+
+def explain_term(q: str) -> str:
+    ql = q.lower()
+    for k, v in GLOSSARY.items():
+        if k in ql:
+            return v
+    return "Ask me about any word on the screen — catchment, break-even, P10, awareness, capacity, payback — and I'll explain it simply."
+
+
 GENERAL = ("StrataIQ lets you test a business before you invest. Pick any business and any place in India or the world. "
            "It loads real competitors from OpenStreetMap and real population from WorldPop, then simulates ten thousand synthetic customers "
            "choosing between you, your competitors, or nothing, and turns that into profit, risk and break-even. "
@@ -474,6 +519,11 @@ GENERAL = ("StrataIQ lets you test a business before you invest. Pick any busine
 async def ask_general(body: Ask):
     intent = detect(body.question)
     actions = []
+    if intent == "start_idea":
+        return {"answer": "Let me set that up — I'll find the place, load the real competitors and population, and run the simulation.",
+                "intent": intent, "grounded": True, "actions": [{"type": "quickstart", "text": body.question}]}
+    if intent == "explain_term":
+        return {"answer": explain_term(body.question), "intent": intent, "actions": [], "grounded": True}
     if intent == "navigate" or "demo" in body.question.lower():
         if "demo" in body.question.lower():
             actions.append({"type": "demo"})
@@ -492,6 +542,63 @@ async def ask(project_id: str, body: Ask, user: User = Depends(current_user), db
     arch = ARCHETYPES[p.category["archetype"]]
     unit = arch.unit_label
     from .insights import _run_strategy, _scenario_run, build_insights
+    if intent == "explain_term":
+        return {"answer": explain_term(q), "intent": intent, "actions": [], "grounded": True}
+    if intent == "start_idea":
+        return {"answer": "Starting a new analysis for that idea — I'll load the real market and run it.", "intent": intent, "grounded": True,
+                "actions": [{"type": "quickstart", "text": q}]}
+    if intent == "find_site":
+        from .explore import _scenario, model_inputs
+        from ..engine.explore import site_scan
+        s_obj = _scenario(p, sc.get("scenario_id"))
+        a_, z_, c_, b_, pr_, rad_, _l = model_inputs(db, p, s_obj)
+        res = await run_in_threadpool(site_scan, a_, z_, c_, b_, pr_, rad_)
+        cur, top = res["current"], res["top"]
+        if not top:
+            return {"answer": "I couldn't find other populated sites inside this catchment to compare.", "intent": intent, "actions": [], "grounded": True}
+        t0 = top[0]
+        if t0["profit"] <= cur["profit"]:
+            ans = (f"Your current site is already the best in this catchment by the model: about {num(cur['demand'])} {unit} of demand a month. "
+                   f"The nearest alternative gives {inr(t0['profit'])} versus your {inr(cur['profit'])}.")
+        else:
+            ans = (f"The best site I found is {t0['from_current_km']} kilometres from yours, with about {num(t0['people_within_1km'])} people within a kilometre "
+                   f"and {t0['competitors_within_500m']} competitors within 500 metres. Same plan there: about {num(t0['units'])} {unit} and {inr(t0['profit'])} a month, "
+                   f"versus {inr(cur['profit'])} at your site. Rent is assumed the same, so check local rents. I've marked the top sites on the market map.")
+        return {"answer": ans, "intent": intent, "grounded": True, "actions": [{"type": "sites"}], "result": {"current": cur, "top": top}}
+    if intent == "optimize":
+        from .explore import best_changes
+        changes, o = await best_changes(p.id, sc.get("scenario_id"))
+        b, c = o["best"], o["current"]
+        if not changes:
+            return {"answer": f"Your current plan is already the most profitable combination I tested ({o['evaluated']} options): {inr(c['profit'])} a month.",
+                    "intent": intent, "actions": [], "grounded": True}
+        parts = []
+        if "price" in changes:
+            parts.append(f"price {inr(b['price'])}")
+        if "marketing_spend" in changes:
+            parts.append(f"marketing {inr(b['marketing_spend'])} a month")
+        if "capacity_scale" in changes:
+            parts.append(f"capacity up {round(100 * (b['capacity_scale'] - 1))} percent, with the extra staff and rent included")
+        ans = (f"I tested {o['evaluated']} combinations. The most profitable: {', '.join(parts)}. That gives about {num(b['units'])} {unit} and "
+               f"{inr(b['profit'])} a month versus {inr(c['profit'])} now")
+        if b.get("risk") and c.get("risk"):
+            ans += f", and the chance of a loss month goes from {pct(c['risk']['prob_loss'])} to {pct(b['risk']['prob_loss'])}"
+        ans += ". Say 'test it' and I'll check it with the ten thousand agents on the map."
+        return {"answer": ans, "intent": intent, "grounded": True, "actions": [{"type": "suggest", "action": {"label": "Best strategy", "changes": changes}}],
+                "suggested": {"label": "Best strategy", "changes": changes}}
+    if intent == "tour":
+        from ..services.runs import latest_runs as _lr
+        runs_ = _lr(db, p)
+        page = (sc.get("page") or "")
+        if not runs_:
+            ans = "First step: open the Market map and let the live data load — real competitors and population. Then the baseline simulation runs automatically."
+        elif page != "live":
+            ans = ("Your baseline has run. Next, open the Live market to watch ten thousand people decide day by day. Then read my insights on the right, "
+                   "test a strategy with the sliders, ask me for the best location or the best strategy, and finally check Decisions for the verdict and what to verify.")
+        else:
+            ans = ("You're on the live market. Press play to watch customers choose. On the right: change your strategy and run it on the map, "
+                   "read my insights, or ask me 'best strategy' or 'best location'. When you're done, open Decisions for the verdict.")
+        return {"answer": ans, "intent": intent, "actions": [], "grounded": True}
     if intent in ("apply_suggestion", "strategy", "insights", "screen", "explain_agents"):
         s_obj, r_obj = _scenario_run(db, p, sc.get("scenario_id"))
         ins = build_insights(r_obj.results, s_obj.inputs, unit, arch.price_label) if r_obj else None
@@ -500,7 +607,8 @@ async def ask(project_id: str, body: Ask, user: User = Depends(current_user), db
                 cap_now = (ins or {}).get("view", {}).get("capacity_per_day")
                 changes = parse_strategy(q, s_obj.inputs, cap_now)
             else:
-                changes = ((ins or {}).get("suggested") or {}).get("changes") or {}
+                changes = ((body.suggested or {}).get("changes") or ((ins or {}).get("suggested") or {}).get("changes") or {})
+                changes = {k: float(v) for k, v in changes.items() if k in ("price", "marketing_spend", "quality", "capacity_scale", "open_hour", "close_hour")}
             if not changes:
                 return {"answer": ("Tell me what to change — for example 'double the marketing', 'capacity 200 a day', 'price 399', "
                                    "or 'open 8 am to 11 pm' — and I'll run it on the map."), "intent": intent, "actions": [], "grounded": True}

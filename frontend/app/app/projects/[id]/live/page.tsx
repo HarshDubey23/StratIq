@@ -8,6 +8,7 @@ import { Area, CartesianGrid, ComposedChart, Line, LineChart, ReferenceLine, Res
 import AgentXray from "@/components/AgentXray";
 import { CompareCard, HowAgentsDecide, runStrategy, StrataRead, StrategyLab, type Changes, type StrategyOut } from "@/components/StrategyLab";
 import { publishScreen, takePendingStrategy } from "@/lib/screen";
+import { BestStrategy } from "@/components/BestStrategy";
 import { useProject } from "@/components/ProjectContext";
 import { Badge, Button, EmptyState, ErrorState, Evidence, Notice, Segmented, Select, Spinner } from "@/components/ui";
 import { api, ApiError } from "@/lib/api";
@@ -39,6 +40,12 @@ export default function LiveMarket() {
   const [error, setError] = useState<string | null>(null);
   const [compare, setCompare] = useState<StrategyOut | null>(null);
   const [testing, setTesting] = useState(false);
+  const [optKey, setOptKey] = useState(0);
+  useEffect(() => {
+    const h = () => setOptKey(Date.now());
+    window.addEventListener("strataiq:optimize", h);
+    return () => window.removeEventListener("strataiq:optimize", h);
+  }, []);
 
   const load = useCallback(async () => {
     if (!sc) return;
@@ -214,8 +221,13 @@ export default function LiveMarket() {
                 ["Customers so far", num(abm.daily.customers_you[day])],
                 ["Aware of you", pct(abm.daily.aware_share[day])],
                 [membership ? "Competitor members" : "Competitor sales today", num(abm.daily.units_comp[day])],
-              ].map(([l, v]) => (
-                <div key={l} className="pointer-events-auto panel rounded-2xl px-3 py-2 ">
+              ].map(([l, v], hi) => (
+                <div key={l} title={[
+                  `Orders you served on this simulated day${capDay ? `, out of your daily capacity of ${num(capDay)}` : ""}.`,
+                  "Real people (scaled up from the agents) who have bought from you at least once so far.",
+                  "Share of people who need this today and know you exist. Ads, word of mouth and your signboard raise it.",
+                  "Sales all the nearby competitors made on this simulated day.",
+                ][hi]} className="pointer-events-auto panel cursor-help rounded-2xl px-3 py-2 ">
                   <div className="text-[10px] text-ink-400">{l}</div>
                   <div className="num text-lg font-semibold text-ink-100">{v}</div>
                 </div>
@@ -295,6 +307,7 @@ export default function LiveMarket() {
           <Notice tone="warn">Competitor data failed to load for this location, so this run has no competitors and is optimistic. Refresh live data on the Market map, then re-run.</Notice>
         )}
 
+        {abm && res && <BestStrategy projectId={p.id} scenarioId={sc.id} busy={testing} onVerify={testStrategy} autoKey={optKey} />}
         {abm && res && p.archetype && (
           <StrategyLab projectId={p.id} scenario={sc} arch={p.archetype} unit={unit} busy={testing} onRun={testStrategy} />
         )}

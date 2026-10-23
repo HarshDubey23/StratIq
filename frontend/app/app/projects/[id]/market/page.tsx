@@ -4,6 +4,7 @@ import { Building2, ExternalLink, Layers, MapPinPlus, Plus, RefreshCw, Trash2, U
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { publishScreen } from "@/lib/screen";
+import { BestSites, toOpportunity, type SitesOut } from "@/components/BestSites";
 import { LocationPicker, type PickedPlace } from "@/components/LocationPicker";
 import { Map as MarketMap, } from "@/components/Map";
 import type { LayerKey } from "@/components/MapView";
@@ -14,7 +15,7 @@ import { ago, money, num, pct, when } from "@/lib/format";
 import { refreshLocation, waitForSnapshot } from "@/lib/market";
 import type { CompetitorRec, MarketData, Run, SimResult } from "@/lib/types";
 
-type Tab = "evidence" | "competitors" | "locations";
+type Tab = "evidence" | "competitors" | "locations" | "sites";
 
 export default function MarketPage() {
   const { project: p, reload } = useProject();
@@ -24,6 +25,14 @@ export default function MarketPage() {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [tab, setTab] = useState<Tab>("evidence");
+  const [sites, setSites] = useState<SitesOut | null>(null);
+  const [focus, setFocus] = useState<{ lat: number; lng: number; key: string } | null>(null);
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("tab") === "sites") setTab("sites");
+    const h = () => setTab("sites");
+    window.addEventListener("strataiq:sites", h);
+    return () => window.removeEventListener("strataiq:sites", h);
+  }, []);
   const [sel, setSel] = useState<string | null>(null);
   const [addMode, setAddMode] = useState(false);
   const [draft, setDraft] = useState<{ lat: number; lng: number } | null>(null);
@@ -175,6 +184,9 @@ export default function MarketPage() {
           fitKey={`${locId}-${snap?.id || "none"}`}
           zoneSpacingKm={snap?.population?.spacing_km}
           competitorWeight={compWeight}
+          opportunity={tab === "sites" && sites ? toOpportunity(sites) : null}
+          onOpportunityClick={(o) => setFocus({ lat: o.lat, lng: o.lng, key: `${o.lat},${o.lng},${Date.now()}` })}
+          focus={focus}
         />
         <div className="absolute left-3 top-3 z-10 flex flex-wrap items-center gap-2">
           <Select value={locId} onChange={(e) => setLocId(e.target.value)} className="panel h-8 w-auto text-xs" aria-label="Location">
@@ -234,9 +246,10 @@ export default function MarketPage() {
 
       <aside className="flex w-full flex-col border-l border-white/[0.06] bg-ink-950/80 backdrop-blur-xl lg:w-[400px]">
         <div className="flex gap-1 border-b border-white/[0.06] p-2">
-          {(["evidence", "competitors", "locations"] as Tab[]).map((t) => (
-            <button key={t} onClick={() => setTab(t)} className={cn("flex-1 rounded px-2 py-1.5 text-xs capitalize", tab === t ? "bg-ink-800 text-ink-100" : "text-ink-400 hover:text-ink-100")}>
-              {t === "competitors" ? `Competitors (${comps.filter((c) => c.active).length})` : t}
+          {(["evidence", "competitors", "sites", "locations"] as Tab[]).map((t) => (
+            <button key={t} onClick={() => setTab(t)} data-tour={t === "sites" ? "best-sites" : undefined}
+              className={cn("flex-1 rounded px-2 py-1.5 text-xs capitalize", tab === t ? "bg-ink-800 text-ink-100" : t === "sites" ? "text-model hover:text-ink-100" : "text-ink-400 hover:text-ink-100")}>
+              {t === "competitors" ? `Competitors (${comps.filter((c) => c.active).length})` : t === "sites" ? "Best sites" : t}
             </button>
           ))}
         </div>
@@ -390,6 +403,10 @@ export default function MarketPage() {
             </>
           )}
 
+          {tab === "sites" && (snap ? (
+            <BestSites projectId={p.id} scenarioId={p.scenarios?.find((x) => x.is_baseline && x.location_id === locId)?.id || p.scenarios?.find((x) => x.location_id === locId)?.id}
+              locationKey={`${locId}-${snap.id}-${baseResult ? "r" : "n"}`} onData={setSites} onFocus={(lat, lng) => setFocus({ lat, lng, key: `${lat},${lng},${Date.now()}` })} />
+          ) : <p className="text-xs text-ink-400">Load live data first, then I can test every spot in the area.</p>)}
           {tab === "locations" && <LocationsPanel onSelect={setLocId} currentId={locId} onChanged={async () => { await reload(); await load(); }} />}
         </div>
       </aside>

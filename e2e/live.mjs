@@ -103,6 +103,20 @@ await step("live: smooth daily orders + strategy lab", async () => {
   await shot("13c-strategy-compare", 6000);
 });
 
+await step("best sites + optimizer", async () => {
+  const sites = await api(`/projects/${pid}/sites`);
+  L(`sites [${sites.status}]: current profit=${sites.body.current?.profit} demand=${sites.body.current?.demand}; top=${(sites.body.top || []).map((t) => `${t.profit}@${t.from_current_km}km`).join(", ")}; scanned=${sites.body.candidates?.length}`);
+  const opt = await api(`/projects/${pid}/optimize`);
+  L(`optimize [${opt.status}]: tested=${opt.body.evaluated} current=${opt.body.current?.profit} best=${JSON.stringify({ p: opt.body.best?.price, m: opt.body.best?.marketing_spend, c: opt.body.best?.capacity_scale, profit: opt.body.best?.profit, loss: opt.body.best?.risk?.prob_loss })}`);
+  await page.goto(`${BASE}/app/projects/${pid}/market?tab=sites`);
+  await page.getByText("Where should you open?").waitFor({ timeout: 90000 });
+  await shot("10c-best-sites", 6000);
+  await page.goto(`${BASE}/app/projects/${pid}/live`);
+  await page.getByRole("button", { name: /Find the best combination/ }).click();
+  await page.getByText(/Best strategy found/).waitFor({ timeout: 60000 });
+  await shot("13d-optimizer", 2500);
+});
+
 await step("decisions", async () => {
   await page.goto(`${BASE}/app/projects/${pid}/decisions`);
   await page.getByText("What could make this result wrong?").waitFor({ timeout: 60000 });
@@ -110,7 +124,7 @@ await step("decisions", async () => {
 });
 
 await step("voice analyst (grounded answers)", async () => {
-  for (const q of ["kitne competitors hain?", "what is my profit", "what is the break even", "try price 300", "how do agents decide whom to choose?", "what insights do you see on this map?", "double the marketing"]) {
+  for (const q of ["kitne competitors hain?", "what is my profit", "what is the break even", "try price 300", "how do agents decide whom to choose?", "what insights do you see on this map?", "double the marketing", "where should I open?", "find the best strategy", "P10 ka matlab kya hai", "give me a tour"]) {
     const r = await api(`/projects/${pid}/assistant/ask`, "POST", { question: q, screen: await page.evaluate(() => window.__strataScreen || null) });
     L(`Q: ${q} -> [${r.status}] ${typeof r.body === "object" ? r.body.answer : r.body}`);
   }
@@ -120,6 +134,20 @@ await step("voice analyst (grounded answers)", async () => {
   await page.waitForTimeout(4000);
   await page.getByRole("button", { name: /Talk to Strata/ }).click();
   await shot("15-voice-dock", 4000);
+});
+
+await step("quick start from one sentence", async () => {
+  await page.goto(`${BASE}/app`);
+  await page.getByLabel("Your business idea").fill("A café in Indiranagar, Bengaluru, coffee at ₹250");
+  await page.getByRole("button", { name: /Understand it/ }).click();
+  await page.getByRole("button", { name: /Analyse this idea with live data/ }).waitFor({ timeout: 60000 });
+  await shot("20-quickstart-plan", 1500);
+  await page.getByRole("button", { name: /Analyse this idea with live data/ }).click();
+  await page.waitForURL(/\/market/, { timeout: 60000 });
+  await shot("21-quickstart-welcome", 2500);
+  const close = page.getByRole("button", { name: "Close" }).first();
+  if (await close.isVisible().catch(() => false)) await close.click();
+  await shot("22-quickstart-market", 60000);
 });
 
 fs.writeFileSync(`${OUT}/journey.log`, log.join("\n"));
