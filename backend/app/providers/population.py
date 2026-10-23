@@ -99,6 +99,10 @@ def parse_age_sex(data: dict) -> dict:
     bands = []
     for r in sorted(rows, key=lambda x: int(x.get("class", 0))):
         bands.append({"age": str(r.get("age")), "male": float(r.get("male") or 0), "female": float(r.get("female") or 0)})
+    if len(bands) == 18:
+        # WorldPop splits the first five-year band into infants (0-1) and 1-4: merge them back into 0-4.
+        a, b = bands[0], bands[1]
+        bands = [{"age": "0 to 5", "male": a["male"] + b["male"], "female": a["female"] + b["female"]}] + bands[2:]
     if len(bands) != 17:
         raise ProviderError("worldpop", f"age-sex pyramid has {len(bands)} bands, expected 17")
     return {"bands": bands}

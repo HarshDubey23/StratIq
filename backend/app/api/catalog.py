@@ -82,3 +82,32 @@ def capabilities():
     s = get_settings()
     return {"ai": ai.enabled(), "routing": bool(s.ors_api_key), "population": "worldpop", "places": "openstreetmap",
             "model_version": MODEL_VERSION}
+
+
+# Public, cached preview for the landing page: real competitors around a famous street, no account needed.
+PREVIEW_SPOTS = {
+    "cp-delhi": {"label": "Connaught Place, New Delhi", "lat": 28.6315, "lng": 77.2167},
+    "indiranagar": {"label": "Indiranagar, Bengaluru", "lat": 12.9719, "lng": 77.6412},
+    "bandra": {"label": "Bandra West, Mumbai", "lat": 19.0596, "lng": 72.8295},
+    "koramangala": {"label": "Koramangala, Bengaluru", "lat": 12.9352, "lng": 77.6245},
+}
+PREVIEW_CATS = {"gym", "cafe", "restaurant", "pharmacy", "salon", "bakery_cafe", "grocery", "clothing"}
+
+
+@router.get("/market/preview")
+async def preview(spot: str = Query(default="cp-delhi"), category: str = Query(default="cafe"), radius_m: int = Query(default=1600, ge=300, le=3000)):
+    if spot not in PREVIEW_SPOTS or category not in PREVIEW_CATS:
+        raise HTTPException(404, "Unknown preview")
+    sp = PREVIEW_SPOTS[spot]
+    entry = next((e for e in TAXONOMY if e.key == category), None)
+    if entry is None:
+        raise HTTPException(404, "Unknown category")
+    try:
+        pois, prov = await osm.fetch_pois(sp["lat"], sp["lng"], radius_m, list(entry.filters), Cache(session_factory()), limit=250,
+                                          fallback=True, timeout_s=30, terms=[entry.label.split("/")[0].strip(), *entry.synonyms[:2]])
+    except ProviderError as e:
+        raise HTTPException(502, f"OpenStreetMap is busy right now ({e.message[:100]})") from e
+    return {"spot": {**sp, "key": spot}, "category": {"key": entry.key, "label": entry.label}, "radius_m": radius_m,
+            "competitors": [{"name": p["name"] or "Unnamed", "lat": p["lat"], "lng": p["lng"], "ref": p["ref"]} for p in pois],
+            "source": {"name": prov.get("name"), "retrieved_at": prov.get("retrieved_at"), "detail": prov.get("detail"),
+                       "from_cache": prov.get("from_cache"), "attribution": prov.get("attribution")}}

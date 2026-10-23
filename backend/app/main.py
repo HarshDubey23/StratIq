@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
-from .api import auth, catalog, decisions, demo, genome, projects, scenarios
+from .api import assistant, auth, catalog, decisions, demo, genome, projects, scenarios
 from .config import get_settings
 from .db import get_engine
 from .engine.model import MODEL_VERSION
@@ -19,9 +19,33 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name
 log = logging.getLogger("strataiq")
 
 
+_migrated = False
+
+
+def migrate_once() -> None:
+    """Apply Alembic migrations once per process when AUTO_MIGRATE is on (serverless hosts have no release step)."""
+    global _migrated
+    if _migrated or not get_settings().auto_migrate:
+        return
+    _migrated = True
+    try:
+        from pathlib import Path
+
+        from alembic import command
+        from alembic.config import Config
+        root = Path(__file__).resolve().parent.parent
+        cfg = Config(str(root / "alembic.ini"))
+        cfg.set_main_option("script_location", str(root / "alembic"))
+        command.upgrade(cfg, "head")
+        log.info("migrations applied")
+    except Exception as e:  # pragma: no cover
+        log.error("auto-migrate failed: %s", e)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     get_settings()
+    migrate_once()
     yield
     await close_client()
 
@@ -33,6 +57,14 @@ app.add_middleware(CORSMiddleware, allow_origins=get_settings().cors_origins, al
                    allow_methods=["*"], allow_headers=["*"])
 
 
+@app.middleware("http")
+async def ensure_migrated(request: Request, call_next):
+    if not _migrated and get_settings().auto_migrate:
+        from fastapi.concurrency import run_in_threadpool
+        await run_in_threadpool(migrate_once)
+    return await call_next(request)
+
+
 @app.exception_handler(RequestValidationError)
 async def validation_handler(request: Request, exc: RequestValidationError):
     errors = [{"field": ".".join(str(x) for x in e["loc"][1:]), "message": e["msg"]} for e in exc.errors()]
@@ -40,7 +72,7 @@ async def validation_handler(request: Request, exc: RequestValidationError):
 
 
 API = "/api/v1"
-for r in (auth.router, catalog.router, projects.router, scenarios.router, decisions.router, demo.router, genome.router):
+for r in (auth.router, catalog.router, projects.router, scenarios.router, decisions.router, demo.router, genome.router, assistant.router):
     app.include_router(r, prefix=API)
 
 

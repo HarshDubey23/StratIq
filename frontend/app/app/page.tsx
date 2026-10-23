@@ -31,6 +31,18 @@ export default function Dashboard() {
   }, []);
   useEffect(load, [load]);
 
+  const [liveBusy, setLiveBusy] = useState(false);
+  async function liveDemo() {
+    setLiveBusy(true);
+    try {
+      const p = await api<Project>("/demo/live", { method: "POST" });
+      router.push(`/app/projects/${p.id}/market`);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "Could not create the live demo");
+      setLiveBusy(false);
+    }
+  }
+
   async function demo() {
     setBusy(true);
     try {
@@ -50,28 +62,35 @@ export default function Dashboard() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-8 md:px-8">
-      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
+    <main className="mx-auto w-full max-w-7xl px-4 py-10 md:px-10">
+      <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
         <div>
-          <p className="text-sm text-ink-400">{user?.name ? `Hi ${user.name.split(" ")[0]}` : " "}</p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight">Make your next business move with more confidence.</h1>
-          <p className="mt-1.5 text-sm text-ink-300">Explore markets, test strategies, and find out what you need to validate before investing.</p>
+          <p className="text-sm text-ink-400">{user?.name && user.name !== "Guest" ? `Namaste, ${user.name.split(" ")[0]}` : "Namaste"}</p>
+          <h1 className="font-display mt-2 max-w-3xl text-[clamp(2rem,4.4vw,3.6rem)] font-semibold leading-[0.98] tracking-[-0.04em]">What would you open, and where?</h1>
+          <p className="mt-3 max-w-xl text-[15px] text-ink-300">Describe any business and pick any street. StrataIQ loads the real market around it and simulates who would come.</p>
         </div>
-        <ButtonLink href="/app/projects/new" variant="primary">New analysis <ArrowRight className="h-4 w-4" /></ButtonLink>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="secondary" onClick={liveDemo} loading={liveBusy}>
+            <span className="relative flex h-2 w-2"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-model opacity-70" /><span className="relative inline-flex h-2 w-2 rounded-full bg-model" /></span>
+            Live demo: gym in Connaught Place
+          </Button>
+          <ButtonLink href="/app/projects/new" variant="primary">New analysis <ArrowRight className="h-4 w-4" /></ButtonLink>
+        </div>
       </div>
 
-      <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {actions.map((a) => (
-          <Link key={a.t} href={a.href} className="group rounded-lg border border-ink-700 bg-ink-900 p-4 transition-colors hover:border-accent/50">
+          <Link key={a.t} href={a.href} className="group relative overflow-hidden rounded-3xl border border-white/[0.07] bg-gradient-to-b from-ink-850 to-ink-900 p-5 transition-[border-color,transform] duration-500 hover:-translate-y-0.5 hover:border-accent/40">
+            <span className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-accent/0 blur-2xl transition-colors duration-500 group-hover:bg-accent/20" />
             <a.i className="h-5 w-5 text-accent" />
-            <div className="mt-3 text-sm font-semibold">{a.t}</div>
-            <div className="mt-0.5 text-xs text-ink-400">{a.d}</div>
+            <div className="font-display mt-6 text-lg font-semibold tracking-tight">{a.t}</div>
+            <div className="mt-1 text-[13px] text-ink-400">{a.d}</div>
           </Link>
         ))}
       </div>
 
-      <div className="mt-10 flex items-center justify-between">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-300">Your simulations</h2>
+      <div className="mt-12 flex items-center justify-between">
+        <h2 className="font-display text-xl font-semibold tracking-tight">Your simulations</h2>
         <Button size="sm" variant="ghost" onClick={demo} loading={busy}>
           <FlaskConical className="h-3.5 w-3.5" /> Open labelled demo
         </Button>
@@ -95,10 +114,10 @@ export default function Dashboard() {
         {projects && projects.length > 0 && (
           <div className="grid gap-3 md:grid-cols-2">
             {projects.map((p) => (
-              <div key={p.id} className="flex flex-col rounded-lg border border-ink-700 bg-ink-900 p-4">
+              <div key={p.id} className="flex flex-col rounded-3xl border border-white/[0.07] bg-gradient-to-b from-ink-850 to-ink-900 p-5 transition-colors hover:border-white/15">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <Link href={`/app/projects/${p.id}`} className="block truncate font-semibold hover:text-accent">{p.name}</Link>
+                    <Link href={`/app/projects/${p.id}`} className="font-display block truncate text-lg font-semibold tracking-tight hover:text-accent">{p.name}</Link>
                     <div className="mt-0.5 truncate text-xs text-ink-400">
                       {p.category.label} · {p.locations[0]?.address || `${p.locations[0]?.lat.toFixed(4)}, ${p.locations[0]?.lng.toFixed(4)}`}
                     </div>
@@ -119,15 +138,15 @@ export default function Dashboard() {
                     <div className="grid grid-cols-3 gap-2">
                       <div>
                         <div className="text-[11px] text-ink-400">Baseline {p.summary.unit_label}</div>
-                        <div className="num">{num(p.summary.units_sold)}</div>
+                        <div className="num font-display text-lg font-semibold">{num(p.summary.units_sold)}</div>
                       </div>
                       <div>
                         <div className="text-[11px] text-ink-400">Monthly op. profit</div>
-                        <div className={`num ${p.summary.operating_profit < 0 ? "text-red-300" : "text-emerald-300"}`}>{money(p.summary.operating_profit, { compact: true })}</div>
+                        <div className={`num font-display text-lg font-semibold ${p.summary.operating_profit < 0 ? "text-red-300" : "text-emerald-300"}`}>{money(p.summary.operating_profit, { compact: true })}</div>
                       </div>
                       <div>
                         <div className="text-[11px] text-ink-400">Modeled loss risk</div>
-                        <div className="num">{pct(p.summary.prob_loss)}</div>
+                        <div className="num font-display text-lg font-semibold">{pct(p.summary.prob_loss)}</div>
                       </div>
                     </div>
                   ) : (

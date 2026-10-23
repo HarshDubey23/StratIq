@@ -2,9 +2,7 @@
 
 import maplibregl, { type GeoJSONSource, type Map as MLMap } from "maplibre-gl";
 import { useEffect, useRef, useState } from "react";
-
-const STYLE_DARK = "https://tiles.openfreemap.org/styles/dark";
-const STYLE_FALLBACK = "https://tiles.openfreemap.org/styles/positron";
+import { attachDeck, C, enhanceMap, metersPerZoneRadius, pickStyle, popColor, type DeckHandle } from "@/lib/mapkit";
 
 export type LayerKey = "catchment" | "zones" | "competitors" | "agents" | "activity" | "buildings3d";
 
@@ -53,6 +51,10 @@ interface Props {
   pitch?: number;
   /** Fill the nearest positioned ancestor (absolute, inset 0). */
   fill?: boolean;
+  /** Real-depth layers: population as 3D hex columns, competitors as pillars (height = modeled customers). */
+  depth?: boolean;
+  zoneSpacingKm?: number | null;
+  competitorWeight?: Record<string, number>;
 }
 
 const EMPTY: GeoJSON.FeatureCollection = { type: "FeatureCollection", features: [] };
@@ -73,19 +75,15 @@ export default function MapView(props: Props) {
   handlers.current = props;
   const [ready, setReady] = useState(false);
   const [styleNote, setStyleNote] = useState<string | null>(null);
+  const deck = useRef<DeckHandle | null>(null);
+  const [deckReady, setDeckReady] = useState(false);
 
   // ---- create map once ----
   useEffect(() => {
     let cancelled = false;
     let m: MLMap | null = null;
     (async () => {
-      let style = STYLE_DARK;
-      try {
-        const r = await fetch(STYLE_DARK, { method: "GET" });
-        if (!r.ok) style = STYLE_FALLBACK;
-      } catch {
-        style = STYLE_FALLBACK;
-      }
+      const style = await pickStyle();
       if (cancelled || !el.current) return;
       try {
       m = new maplibregl.Map({
@@ -93,10 +91,10 @@ export default function MapView(props: Props) {
         style,
         center: props.center,
         zoom: props.zoom ?? 13.2,
-        pitch: props.pitch ?? 45,
-        bearing: -12,
+        pitch: props.pitch ?? 55,
+        bearing: -18,
         attributionControl: { compact: true },
-        maxPitch: 70,
+        maxPitch: 78,
       });
       } catch (err) {
         setStyleNote(`The map could not start in this browser (${err instanceof Error ? err.message : "WebGL unavailable"}). Data panels still work.`);
@@ -111,44 +109,30 @@ export default function MapView(props: Props) {
       });
       m.on("load", () => {
         if (!m) return;
-        const layers = m.getStyle().layers || [];
-        const firstSymbol = layers.find((l) => l.type === "symbol")?.id;
-        if (m.getSource("openmaptiles")) {
-          try {
-            m.addLayer(
-              {
-                id: "siq-buildings-3d",
-                source: "openmaptiles",
-                "source-layer": "building",
-                type: "fill-extrusion",
-                minzoom: 13.5,
-                paint: {
-                  "fill-extrusion-color": "#1a2330",
-                  "fill-extrusion-height": ["coalesce", ["get", "render_height"], 6],
-                  "fill-extrusion-base": ["coalesce", ["get", "render_min_height"], 0],
-                  "fill-extrusion-opacity": 0.75,
-                },
-              },
-              firstSymbol,
-            );
-          } catch {
-            /* building layer not in this style */
-          }
-        }
+        enhanceMap(m);
+        attachDeck(m).then((d) => {
+          if (cancelled || !d) return;
+          deck.current = d;
+          d.setTooltip((info) => {
+            const o = info.object as { tip?: string } | undefined;
+            return o?.tip ?? null;
+          });
+          setDeckReady(true);
+        });
         m.addSource("siq-catchment", { type: "geojson", data: EMPTY });
         m.addSource("siq-zones", { type: "geojson", data: EMPTY });
         m.addSource("siq-activity", { type: "geojson", data: EMPTY });
         m.addSource("siq-agents", { type: "geojson", data: EMPTY });
         m.addSource("siq-comps", { type: "geojson", data: EMPTY });
-        m.addLayer({ id: "siq-catchment-fill", type: "fill", source: "siq-catchment", paint: { "fill-color": "#22d3ee", "fill-opacity": 0.05 } });
-        m.addLayer({ id: "siq-catchment-line", type: "line", source: "siq-catchment", paint: { "line-color": "#22d3ee", "line-width": 1.5, "line-dasharray": [2, 2], "line-opacity": 0.8 } });
+        m.addLayer({ id: "siq-catchment-fill", type: "fill", source: "siq-catchment", paint: { "fill-color": "#FF9F2E", "fill-opacity": 0.035 } });
+        m.addLayer({ id: "siq-catchment-line", type: "line", source: "siq-catchment", paint: { "line-color": "#FF9F2E", "line-width": 1.5, "line-dasharray": [2, 2], "line-opacity": 0.8 } });
         m.addLayer({
           id: "siq-zones",
           type: "circle",
           source: "siq-zones",
           paint: {
             "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 4, 14, 14, 16, 34],
-            "circle-color": ["interpolate", ["linear"], ["get", "v"], 0, "#0b1a24", 0.25, "#0e4f5e", 0.5, "#0e7490", 0.75, "#22a9c4", 1, "#67e8f9"],
+            "circle-color": ["interpolate", ["linear"], ["get", "v"], 0, "#0b1a24", 0.25, "#0e4f5e", 0.5, "#8A4B0F", 0.75, "#E0801C", 1, "#FFC27A"],
             "circle-opacity": 0.45,
             "circle-blur": 0.6,
           },
@@ -157,7 +141,7 @@ export default function MapView(props: Props) {
           id: "siq-activity",
           type: "circle",
           source: "siq-activity",
-          paint: { "circle-radius": 3, "circle-color": "#94a3b8", "circle-opacity": 0.8, "circle-stroke-color": "#0b0f15", "circle-stroke-width": 1 },
+          paint: { "circle-radius": 3, "circle-color": "#94a3b8", "circle-opacity": 0.8, "circle-stroke-color": "#080C15", "circle-stroke-width": 1 },
         });
         m.addLayer({
           id: "siq-agents",
@@ -186,7 +170,7 @@ export default function MapView(props: Props) {
           paint: {
             "circle-radius": 5.5,
             "circle-color": ["get", "c"],
-            "circle-stroke-color": ["case", ["boolean", ["get", "hyp"], false], "#ffffff", "#0b0f15"],
+            "circle-stroke-color": ["case", ["boolean", ["get", "hyp"], false], "#ffffff", "#080C15"],
             "circle-stroke-width": ["case", ["boolean", ["get", "hyp"], false], 2, 1.5],
             "circle-opacity": ["case", ["boolean", ["get", "off"], false], 0.35, 1],
           },
@@ -227,6 +211,8 @@ export default function MapView(props: Props) {
     return () => {
       cancelled = true;
       markers.current.forEach((mk) => mk.remove());
+      deck.current?.destroy();
+      deck.current = null;
       m?.remove();
       map.current = null;
     };
@@ -259,14 +245,14 @@ export default function MapView(props: Props) {
     const m = map.current;
     if (!ready || !m) return;
     const mode = props.agentColor || "red";
-    const color = (choice: number) => (mode === "red" ? "#f43f5e" : choice === 0 ? "#22d3ee" : choice < 0 ? "#475569" : "#f43f5e");
+    const color = (choice: number) => (mode === "red" ? "#FF4F64" : choice === 0 ? "#FF9F2E" : choice < 0 ? "#475569" : "#FF4F64");
     (m.getSource("siq-agents") as GeoJSONSource).setData(fc((props.agents || []).map(([lat, lng, seg, ch]) => pt(lng, lat, { c: color(ch), s: seg, ch }))));
   }, [ready, props.agents, props.agentColor]);
 
   useEffect(() => {
     const m = map.current;
     if (!ready || !m) return;
-    const col = { osm: "#f59e0b", user: "#a78bfa", hypothetical: "#a78bfa", demo: "#fbbf24" };
+    const col = { osm: "#6F8CFF", user: "#C59BFF", hypothetical: "#C59BFF", demo: "#fbbf24" };
     (m.getSource("siq-comps") as GeoJSONSource).setData(
       fc(
         (props.competitors || []).map((c) =>
@@ -284,10 +270,10 @@ export default function MapView(props: Props) {
       const d = document.createElement("button");
       d.type = "button";
       d.setAttribute("aria-label", `Candidate ${c.label}`);
-      d.style.cssText = `display:flex;align-items:center;gap:6px;padding:3px 8px 3px 4px;border-radius:999px;font:600 11px Inter,sans-serif;cursor:pointer;
-        background:${c.active ? "#22d3ee" : "#0f141c"};color:${c.active ? "#07090d" : "#e2e7ee"};border:1px solid ${c.active ? "#67e8f9" : "#3a485c"};box-shadow:0 2px 10px rgba(0,0,0,.5)`;
+      d.style.cssText = `display:flex;align-items:center;gap:6px;padding:3px 8px 3px 4px;border-radius:999px;font:600 11px Geist,sans-serif;cursor:pointer;
+        background:${c.active ? "#FF9F2E" : "#0C111C"};color:${c.active ? "#04060B" : "#ECEFF5"};border:1px solid ${c.active ? "#FFC27A" : "#39475F"};box-shadow:0 2px 10px rgba(0,0,0,.5)`;
       const dot = document.createElement("span");
-      dot.style.cssText = `width:10px;height:10px;border-radius:999px;background:${c.active ? "#07090d" : "#22d3ee"}`;
+      dot.style.cssText = `width:10px;height:10px;border-radius:999px;background:${c.active ? "#04060B" : "#FF9F2E"}`;
       const t = document.createElement("span");
       t.textContent = c.label;
       d.append(dot, t);
@@ -306,13 +292,52 @@ export default function MapView(props: Props) {
     const L = props.layers || {};
     vis("siq-catchment-fill", L.catchment);
     vis("siq-catchment-line", L.catchment);
-    vis("siq-zones", L.zones);
+    vis("siq-zones", props.depth === false ? L.zones : false);
     vis("siq-comps", L.competitors);
     vis("siq-comps-halo", L.competitors);
     vis("siq-agents", L.agents);
     vis("siq-activity", L.activity);
-    vis("siq-buildings-3d", L.buildings3d);
+    vis("siq-3d-buildings", L.buildings3d);
   }, [ready, props.layers]);
+
+  // ---- deck.gl depth layers ----
+  useEffect(() => {
+    const d = deck.current;
+    if (!deckReady || !d) return;
+    const L = props.layers || {};
+    const depth = props.depth !== false;
+    const zs = props.zones || [];
+    const max = Math.max(1e-9, ...zs.map((z) => z.value));
+    const radius = metersPerZoneRadius(props.zoneSpacingKm);
+    const w = props.competitorWeight || {};
+    const wmax = Math.max(1e-9, ...Object.values(w));
+    const comps = (props.competitors || []).filter((c) => !c.inactive);
+    d.setLayers((DL) => [
+      depth && L.zones !== false && zs.length > 0 &&
+        new DL.ColumnLayer({
+          id: "pop-columns", data: zs, diskResolution: 6, radius, extruded: true, coverage: 0.92, angle: 30,
+          getPosition: (z: MapZone) => [z.lng, z.lat], getElevation: (z: MapZone) => 15 + (z.value / max) * 520,
+          getFillColor: (z: MapZone) => popColor(z.value / max, 120), pickable: true, material: { ambient: 0.5, diffuse: 0.6, shininess: 20 },
+          transitions: { getElevation: { duration: 900 } },
+          updateTriggers: { getElevation: [max], getFillColor: [max] },
+        }),
+      depth && L.competitors !== false &&
+        new DL.ColumnLayer({
+          id: "comp-pillars", data: comps.map((c) => ({ ...c, tip: `${c.name || "Unnamed"} — ${c.kind === "osm" ? "observed in OpenStreetMap" : c.kind === "user" ? "entered by you" : c.kind}${w[c.id] ? `\nmodeled ${Math.round(w[c.id])} customers/mo` : ""}` })),
+          diskResolution: 20, radius: 16, extruded: true,
+          getPosition: (c: MapCompetitor) => [c.lng, c.lat], getElevation: (c: MapCompetitor) => 90 + ((w[c.id] || 0) / wmax) * 760,
+          getFillColor: (c: MapCompetitor) => (c.kind === "osm" ? [...C.comp, 235] : [...C.user, 235]) as [number, number, number, number],
+          pickable: true, onClick: (info: { object?: MapCompetitor }) => { if (info.object) handlers.current.onCompetitorClick?.(info.object.id); },
+          transitions: { getElevation: { duration: 900 } }, updateTriggers: { getElevation: [wmax, Object.keys(w).length] },
+        }),
+      depth && (props.candidates || []).length > 0 &&
+        new DL.ColumnLayer({
+          id: "site-beacon", data: (props.candidates || []).map((c) => ({ ...c, tip: `${c.label} — your candidate site` })), diskResolution: 32, radius: 24, extruded: true,
+          getPosition: (c: MapCandidate) => [c.lng, c.lat], getElevation: (c: MapCandidate) => (c.active === false ? 300 : 900),
+          getFillColor: (c: MapCandidate) => (c.active === false ? [...C.youSoft, 150] : [...C.you, 255]) as [number, number, number, number], pickable: true,
+        }),
+    ].filter(Boolean));
+  }, [deckReady, props.zones, props.competitors, props.candidates, props.layers, props.depth, props.zoneSpacingKm, props.competitorWeight]);
 
   useEffect(() => {
     const m = map.current;

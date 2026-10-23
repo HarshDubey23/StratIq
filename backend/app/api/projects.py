@@ -8,6 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from ..categories.archetypes import ARCHETYPES
+from ..config import get_settings
 from ..db import get_db
 from ..models import CandidateLocation, Competitor, MarketSnapshot, Project, Scenario, User, utcnow
 from ..providers.http import ProviderError
@@ -166,7 +167,7 @@ async def refresh_market(project_id: str, location_id: str, response: Response, 
     loc = db.get(CandidateLocation, location_id)
     if not loc or loc.project_id != p.id:
         raise HTTPException(404, "Location not found")
-    if wait:
+    if wait or get_settings().serverless:
         try:
             snap = await refresh_snapshot(db, p, loc)
         except ProviderError as e:

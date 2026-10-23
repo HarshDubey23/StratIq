@@ -3,9 +3,7 @@
 import maplibregl, { type GeoJSONSource, type Map as MLMap } from "maplibre-gl";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Abm } from "@/lib/types";
-
-const STYLE_DARK = "https://tiles.openfreemap.org/styles/dark";
-const STYLE_FALLBACK = "https://tiles.openfreemap.org/styles/positron";
+import { attachDeck, C, enhanceMap, pickStyle, popColor, type DeckHandle } from "@/lib/mapkit";
 const EMPTY: GeoJSON.FeatureCollection = { type: "FeatureCollection", features: [] };
 
 export interface LiveMapProps {
@@ -24,12 +22,12 @@ export interface LiveMapProps {
   colorMode: "choice" | "segment" | "mode" | "age";
 }
 
-const SEG_COLORS = ["#fb7185", "#fbbf24", "#a78bfa"];
+const SEG_COLORS = ["#fb7185", "#fbbf24", "#C59BFF"];
 const MODE_COLORS = ["#4ade80", "#38bdf8", "#f472b6", "#facc15", "#fb923c", "#c084fc", "#a3e635"];
 
 function ageColor(a: number) {
   if (a < 15) return "#93c5fd";
-  if (a < 30) return "#22d3ee";
+  if (a < 30) return "#FF9F2E";
   if (a < 50) return "#fbbf24";
   return "#f87171";
 }
@@ -42,6 +40,8 @@ export default function LiveMap(p: LiveMapProps) {
   props.current = p;
   const [ready, setReady] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  const deck = useRef<DeckHandle | null>(null);
+  const [deckReady, setDeckReady] = useState(false);
   const cols = p.abm.agents.columns;
   const ci = useMemo(() => Object.fromEntries(cols.map((c, i) => [c, i])) as Record<string, number>, [cols]);
 
@@ -55,17 +55,11 @@ export default function LiveMap(p: LiveMapProps) {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      let style = STYLE_DARK;
-      try {
-        const r = await fetch(STYLE_DARK);
-        if (!r.ok) style = STYLE_FALLBACK;
-      } catch {
-        style = STYLE_FALLBACK;
-      }
+      const style = await pickStyle();
       if (cancelled || !el.current) return;
       let m: MLMap;
       try {
-        m = new maplibregl.Map({ container: el.current, style, center: p.center, zoom: 13.4, pitch: 52, bearing: -18, attributionControl: { compact: true }, maxPitch: 75 });
+        m = new maplibregl.Map({ container: el.current, style, center: p.center, zoom: 13.6, pitch: 58, bearing: -22, attributionControl: { compact: true }, maxPitch: 78 });
       } catch (e) {
         setNote(`Map could not start: ${e instanceof Error ? e.message : "WebGL unavailable"}`);
         return;
@@ -73,27 +67,26 @@ export default function LiveMap(p: LiveMapProps) {
       map.current = m;
       m.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-right");
       m.on("load", () => {
-        const layers = m.getStyle().layers || [];
-        const firstSymbol = layers.find((l) => l.type === "symbol")?.id;
-        if (m.getSource("openmaptiles")) {
-          try {
-            m.addLayer({ id: "b3d", source: "openmaptiles", "source-layer": "building", type: "fill-extrusion", minzoom: 13,
-              paint: { "fill-extrusion-color": "#18212d", "fill-extrusion-height": ["coalesce", ["get", "render_height"], 6], "fill-extrusion-base": ["coalesce", ["get", "render_min_height"], 0], "fill-extrusion-opacity": 0.8 } }, firstSymbol);
-          } catch { /* style without buildings */ }
-        }
+        enhanceMap(m, { buildingOpacity: 0.85 });
+        attachDeck(m).then((d) => {
+          if (cancelled || !d) return;
+          deck.current = d;
+          d.setTooltip((info) => (info.object as { tip?: string } | undefined)?.tip ?? null);
+          setDeckReady(true);
+        });
         for (const id of ["catch", "heat", "trails", "moving", "sel"]) m.addSource(id, { type: "geojson", data: EMPTY });
         m.addSource("idle", { type: "geojson", data: EMPTY, promoteId: "i" });
-        m.addLayer({ id: "catch-line", type: "line", source: "catch", paint: { "line-color": "#22d3ee", "line-width": 1.4, "line-dasharray": [2, 2], "line-opacity": 0.7 } });
+        m.addLayer({ id: "catch-line", type: "line", source: "catch", paint: { "line-color": "#FF9F2E", "line-width": 1.4, "line-dasharray": [2, 2], "line-opacity": 0.7 } });
         m.addLayer({ id: "heat", type: "heatmap", source: "heat", paint: {
           "heatmap-weight": ["get", "w"], "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 11, 0.6, 15, 1.4],
           "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 11, 14, 14, 38, 16, 70],
-          "heatmap-opacity": 0.55,
-          "heatmap-color": ["interpolate", ["linear"], ["heatmap-density"], 0, "rgba(0,0,0,0)", 0.2, "rgba(14,116,144,0.35)", 0.45, "rgba(34,211,238,0.5)", 0.7, "rgba(251,191,36,0.6)", 1, "rgba(244,63,94,0.75)"],
+          "heatmap-opacity": 0.4,
+          "heatmap-color": ["interpolate", ["linear"], ["heatmap-density"], 0, "rgba(0,0,0,0)", 0.2, "rgba(40,60,130,0.32)", 0.45, "rgba(90,110,220,0.42)", 0.7, "rgba(190,120,200,0.5)", 1, "rgba(255,159,46,0.6)"],
         } });
         m.addLayer({ id: "trails", type: "line", source: "trails", paint: { "line-color": ["get", "c"], "line-width": 0.7, "line-opacity": 0.22 } });
         m.addLayer({ id: "idle", type: "circle", source: "idle", paint: {
           "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, ["case", ["boolean", ["feature-state", "cust"], false], 2.2, 1.3], 14, ["case", ["boolean", ["feature-state", "cust"], false], 3.8, 2.5], 16, ["case", ["boolean", ["feature-state", "cust"], false], 5.5, 3.8]],
-          "circle-color": ["case", ["boolean", ["feature-state", "cust"], false], "#22d3ee", ["get", "c"]],
+          "circle-color": ["case", ["boolean", ["feature-state", "cust"], false], "#FF9F2E", ["get", "c"]],
           "circle-opacity": ["case", ["boolean", ["feature-state", "cust"], false], 0.95, ["get", "o"]],
         } });
         m.addLayer({ id: "moving", type: "circle", source: "moving", paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 1.8, 14, 3.2, 16, 5], "circle-color": ["get", "c"], "circle-opacity": 0.95, "circle-blur": 0.15 } });
@@ -111,6 +104,8 @@ export default function LiveMap(p: LiveMapProps) {
     return () => {
       cancelled = true;
       markers.current.forEach((x) => x.remove());
+      deck.current?.destroy();
+      deck.current = null;
       map.current?.remove();
       map.current = null;
     };
@@ -126,7 +121,7 @@ export default function LiveMap(p: LiveMapProps) {
     const maxp = Math.max(1, ...p.zones.map((z) => z.population));
     (m.getSource("heat") as GeoJSONSource).setData({ type: "FeatureCollection", features: p.zones.map((z) => ({ type: "Feature", geometry: { type: "Point", coordinates: [z.lng, z.lat] }, properties: { w: z.population / maxp } })) });
     m.setLayoutProperty("heat", "visibility", p.showHeat ? "visible" : "none");
-    m.setLayoutProperty("trails", "visibility", p.showTrails ? "visible" : "none");
+    m.setLayoutProperty("trails", "visibility", "none");
     const ring = p.catchment?.coordinates?.[0];
     if (ring?.length) {
       const b = new maplibregl.LngLatBounds(ring[0] as [number, number], ring[0] as [number, number]);
@@ -146,7 +141,7 @@ export default function LiveMap(p: LiveMapProps) {
       const d = document.createElement("div");
       const sz = you ? 22 : 10 + Math.min(14, (shares[b.idx - 1] || 0) * 60);
       d.title = you ? "Your business" : `${b.name} (modeled share ${Math.round((shares[b.idx - 1] || 0) * 100)}%)`;
-      d.style.cssText = `width:${sz}px;height:${sz}px;border-radius:999px;background:${you ? "#22d3ee" : "#f59e0b"};border:2px solid #07090d;box-shadow:0 0 0 ${you ? 6 : 3}px ${you ? "rgba(34,211,238,.25)" : "rgba(245,158,11,.25)"};${you ? "animation:siqpulse 1.6s infinite" : ""}`;
+      d.style.cssText = `width:${sz}px;height:${sz}px;border-radius:999px;background:${you ? "#FF9F2E" : "#6F8CFF"};border:2px solid #04060B;box-shadow:0 0 0 ${you ? 6 : 3}px ${you ? "rgba(255,159,46,.28)" : "rgba(111,140,255,.28)"};${you ? "animation:siqpulse 1.6s infinite" : ""}`;
       return new maplibregl.Marker({ element: d }).setLngLat([b.lng, b.lat]).addTo(m);
     });
   }, [ready, p.abm]);
@@ -196,7 +191,7 @@ export default function LiveMap(p: LiveMapProps) {
       features: f
         ? f.a.map((a, k): GeoJSON.Feature => {
             const b = biz[f.c[k]] || biz[0];
-            return { type: "Feature", geometry: { type: "LineString", coordinates: [[rows[a][ci.lng], rows[a][ci.lat]], [b.lng, b.lat]] }, properties: { c: f.c[k] === 0 ? "#22d3ee" : "#f59e0b" } };
+            return { type: "Feature", geometry: { type: "LineString", coordinates: [[rows[a][ci.lng], rows[a][ci.lat]], [b.lng, b.lat]] }, properties: { c: f.c[k] === 0 ? "#FF9F2E" : "#6F8CFF" } };
           })
         : [],
     });
@@ -236,7 +231,7 @@ export default function LiveMap(p: LiveMapProps) {
           const b = biz[f.c[k]] || biz[0];
           const lng = r[ci.lng] + (b.lng - r[ci.lng]) * e;
           const lat = r[ci.lat] + (b.lat - r[ci.lat]) * e;
-          feats[k] = { type: "Feature", geometry: { type: "Point", coordinates: [lng, lat] }, properties: { i: f.a[k], c: f.c[k] === 0 ? "#67e8f9" : "#fbbf24" } };
+          feats[k] = { type: "Feature", geometry: { type: "Point", coordinates: [lng, lat] }, properties: { i: f.a[k], c: f.c[k] === 0 ? "#FFC27A" : "#fbbf24" } };
         }
         (m.getSource("moving") as GeoJSONSource).setData({ type: "FeatureCollection", features: feats });
       }
@@ -245,6 +240,41 @@ export default function LiveMap(p: LiveMapProps) {
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
   }, [ready, ci]);
+
+  // deck.gl depth: business pillars (height = modeled share), faint population columns, demand arcs for this frame
+  useEffect(() => {
+    const d = deck.current;
+    if (!deckReady || !d) return;
+    const shares = p.abm.metrics.competitor_shares || [];
+    const smax = Math.max(0.02, ...shares);
+    const rows = p.abm.agents.rows;
+    const f = p.abm.frames[p.frameIdx];
+    const biz = p.abm.businesses;
+    const zs = p.zones;
+    const maxp = Math.max(1, ...zs.map((z) => z.population));
+    const arcs = f && p.showTrails ? f.a.slice(0, 900).map((a, k) => ({ from: [rows[a][ci.lng], rows[a][ci.lat]], to: [(biz[f.c[k]] || biz[0]).lng, (biz[f.c[k]] || biz[0]).lat], you: f.c[k] === 0 })) : [];
+    d.setLayers((DL) => [
+      p.showHeat && new DL.ColumnLayer({
+        id: "live-pop", data: zs, diskResolution: 6, radius: 130, extruded: true, coverage: 0.9, angle: 30,
+        getPosition: (z: { lng: number; lat: number }) => [z.lng, z.lat], getElevation: (z: { population: number }) => 8 + (z.population / maxp) * 260,
+        getFillColor: (z: { population: number }) => popColor(z.population / maxp, 70), updateTriggers: { getElevation: [maxp] },
+      }),
+      new DL.ArcLayer({
+        id: "live-arcs", data: arcs, getSourcePosition: (x: { from: number[] }) => x.from as [number, number], getTargetPosition: (x: { to: number[] }) => x.to as [number, number],
+        getSourceColor: (x: { you: boolean }) => (x.you ? [...C.you, 40] : [...C.comp, 30]) as [number, number, number, number],
+        getTargetColor: (x: { you: boolean }) => (x.you ? [...C.you, 230] : [...C.comp, 180]) as [number, number, number, number],
+        getWidth: (x: { you: boolean }) => (x.you ? 1.6 : 1), getHeight: 0.35, greatCircle: false,
+      }),
+      new DL.ColumnLayer({
+        id: "live-biz", data: biz.map((b) => ({ ...b, tip: b.idx === 0 ? "Your business" : `${b.name} — modeled share ${Math.round((shares[b.idx - 1] || 0) * 100)}%` })),
+        diskResolution: 24, radius: 20, extruded: true, pickable: true,
+        getPosition: (b: { lng: number; lat: number }) => [b.lng, b.lat],
+        getElevation: (b: { idx: number }) => (b.idx === 0 ? 1100 : 120 + ((shares[b.idx - 1] || 0) / smax) * 800),
+        getFillColor: (b: { idx: number }) => (b.idx === 0 ? [...C.you, 255] : [...C.comp, 235]) as [number, number, number, number],
+        updateTriggers: { getElevation: [smax] },
+      }),
+    ].filter(Boolean));
+  }, [deckReady, p.abm, p.frameIdx, p.zones, p.showHeat, p.showTrails, ci]);
 
   // selected agent ring
   useEffect(() => {
@@ -256,7 +286,7 @@ export default function LiveMap(p: LiveMapProps) {
 
   return (
     <div style={{ position: "absolute", inset: 0 }} data-testid="map">
-      <style>{"@keyframes siqpulse{0%{box-shadow:0 0 0 0 rgba(34,211,238,.6)}70%{box-shadow:0 0 0 18px rgba(34,211,238,0)}100%{box-shadow:0 0 0 0 rgba(34,211,238,0)}}"}</style>
+      <style>{"@keyframes siqpulse{0%{box-shadow:0 0 0 0 rgba(255,159,46,.6)}70%{box-shadow:0 0 0 18px rgba(255,159,46,0)}100%{box-shadow:0 0 0 0 rgba(255,159,46,0)}}"}</style>
       <div ref={el} style={{ position: "absolute", inset: 0 }} />
       {!ready && !note && <div className="absolute inset-0 flex items-center justify-center bg-ink-950 text-sm text-ink-400">Loading live market…</div>}
       {note && <div className="absolute left-3 top-3 rounded bg-ink-900/90 px-2 py-1 text-xs text-amber-200">{note}</div>}

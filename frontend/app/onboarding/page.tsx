@@ -38,7 +38,7 @@ export default function Onboarding() {
         <div className="mb-8 flex justify-center">
           <Logo href="/app" />
         </div>
-        <div className="space-y-5 rounded-lg border border-ink-700 bg-ink-900 p-6">
+        <div className="space-y-5 rounded-2xl border border-white/[0.07] bg-white/[0.025] p-6">
           <div>
             <h1 className="text-lg font-semibold">A few quick questions</h1>
             <p className="mt-1 text-sm text-ink-300">They pre-fill your first analysis. Everything is optional.</p>

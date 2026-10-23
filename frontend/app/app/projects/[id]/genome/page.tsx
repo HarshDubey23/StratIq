@@ -70,14 +70,14 @@ function DnaCanvas({ m, onPick }: { m: GenomeMatrix; onPick: (agent: number) => 
     <div ref={wrap} className="relative">
       <div className="relative ml-[1%] h-5 text-[9px] text-ink-500">
         {m.blocks.map((b) => (
-          <div key={b.key} className="absolute top-0 truncate border-l border-ink-700 pl-0.5" style={{ left: `${((b.start + BAND) / (m.cols + BAND)) * 100}%`, width: `${(b.size / (m.cols + BAND)) * 100}%` }} title={b.label}>
+          <div key={b.key} className="absolute top-0 truncate border-l border-white/[0.07] pl-0.5" style={{ left: `${((b.start + BAND) / (m.cols + BAND)) * 100}%`, width: `${(b.size / (m.cols + BAND)) * 100}%` }} title={b.label}>
             {b.size >= 30 ? b.label : ""}
           </div>
         ))}
       </div>
       <canvas
         ref={ref}
-        className="h-[min(62vh,640px)] w-full cursor-crosshair rounded border border-ink-800"
+        className="h-[min(62vh,640px)] w-full cursor-crosshair rounded border border-white/[0.06]"
         style={{ imageRendering: "pixelated" }}
         onMouseMove={(e) => setHover(locate(e))}
         onMouseLeave={() => setHover(null)}
@@ -177,7 +177,7 @@ export default function GenomePage() {
     <div className="mx-auto w-full max-w-[1400px] space-y-5 p-4 sm:p-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <div className="flex items-center gap-2 text-[11px] uppercase tracking-widest text-agent"><Dna className="h-3.5 w-3.5" /> Market DNA</div>
+          <div className="flex items-center gap-2 text-[11px]st text-agent"><Dna className="h-3.5 w-3.5" /> Market DNA</div>
           <h1 className="mt-1 text-2xl font-semibold text-ink-100">Every synthetic customer, every parameter</h1>
           <p className="mt-1 max-w-3xl text-sm text-ink-400">
             Each row is one synthetic agent; each column is one of its 615 genome parameters, coloured by where that agent sits in the population.
@@ -224,7 +224,7 @@ export default function GenomePage() {
                 <div className="text-sm font-medium text-ink-100">{m.rows} sampled agents × {m.cols} parameters</div>
                 <div className="flex flex-wrap items-center gap-3 text-[11px] text-ink-400">
                   {Object.entries(GROUP_LABEL).map(([k, l]) => <span key={k} className="flex items-center gap-1"><span className="h-2 w-2 rounded-sm" style={{ background: GROUP_COLOR[k] }} />{l}</span>)}
-                  <span className="flex items-center gap-1">percentile <span className="h-2 w-16 rounded-sm" style={{ background: "linear-gradient(90deg,#2563eb,#10141c,#fb923c,#f43f5e)" }} /></span>
+                  <span className="flex items-center gap-1">percentile <span className="h-2 w-16 rounded-sm" style={{ background: "linear-gradient(90deg,#2563eb,#10141c,#fb923c,#FF4F64)" }} /></span>
                 </div>
               </div>
               <DnaCanvas m={m} onPick={setPick} />
@@ -336,10 +336,10 @@ export default function GenomePage() {
                 </div>
                 <ol className="grid gap-2 md:grid-cols-2">
                   {kit.questions.map((q, i) => (
-                    <li key={q.id} className="rounded-md border border-ink-800 bg-ink-900 p-3 text-xs">
-                      <div className="text-[10px] uppercase tracking-wide text-ink-500">{q.section}</div>
+                    <li key={q.id} className="rounded-md border border-white/[0.06] bg-ink-900 p-3 text-xs">
+                      <div className="text-[10px] text-ink-500">{q.section}</div>
                       <div className="mt-0.5 text-ink-100">{i + 1}. {q.text}</div>
-                      {q.options && <div className="mt-1 flex flex-wrap gap-1">{q.options.map((o) => <span key={o} className="rounded border border-ink-700 px-1.5 py-0.5 text-[10px] text-ink-300">{o}</span>)}</div>}
+                      {q.options && <div className="mt-1 flex flex-wrap gap-1">{q.options.map((o) => <span key={o} className="rounded border border-white/[0.07] px-1.5 py-0.5 text-[10px] text-ink-300">{o}</span>)}</div>}
                       <div className="mt-1.5 text-[10px] text-ink-500">Why: {q.why}</div>
                       <div className="mt-0.5 text-[10px] text-ink-600">Replaces: {q.measures.join(", ")}</div>
                     </li>

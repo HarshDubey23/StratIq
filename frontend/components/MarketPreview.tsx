@@ -31,10 +31,10 @@ export function MarketPreview() {
     roads.push(`M 0 ${30 + i * 50} L 600 ${10 + i * 52}`);
   }
   return (
-    <div className="relative overflow-hidden rounded-xl border border-ink-700 bg-ink-900 shadow-2xl shadow-black/40">
-      <div className="flex items-center justify-between border-b border-ink-700 px-4 py-2 text-[11px] text-ink-300">
+    <div className="relative overflow-hidden rounded-xl border border-white/[0.07] bg-ink-900 shadow-2xl shadow-black/40">
+      <div className="flex items-center justify-between border-b border-white/[0.07] px-4 py-2 text-[11px] text-ink-300">
         <span className="font-medium text-ink-200">Market Reality Map</span>
-        <span className="rounded border border-warn/40 bg-warn/10 px-1.5 py-px font-medium uppercase tracking-wide text-warn">Illustrative preview — not real data</span>
+        <span className="rounded border border-warn/40 bg-warn/10 px-1.5 py-px font-medium text-warn">Illustrative preview — not real data</span>
       </div>
       <div className="grid md:grid-cols-[1.45fr_1fr]">
         <svg viewBox="0 0 600 420" className="h-full w-full bg-[#0a0e14]" role="img" aria-label="Illustrative map of a local market with a candidate location, competitors and synthetic customers">
@@ -49,21 +49,21 @@ export function MarketPreview() {
             })}
             <circle cx={cx} cy={cy} r={178} fill="rgba(34,211,238,0.05)" stroke="rgba(34,211,238,0.5)" strokeDasharray="5 5" />
             {agents.map((a, i) => (
-              <circle key={i} cx={a.x} cy={a.y} r={1.9} fill={a.you ? "#22d3ee" : "#f43f5e"} opacity={a.you ? 0.95 : 0.7} />
+              <circle key={i} cx={a.x} cy={a.y} r={1.9} fill={a.you ? "#FF9F2E" : "#FF4F64"} opacity={a.you ? 0.95 : 0.7} />
             ))}
             {comps.map((c, i) => (
               <g key={i}>
                 <circle cx={c.x} cy={c.y} r={9} fill="rgba(245,158,11,0.2)" />
-                <circle cx={c.x} cy={c.y} r={5} fill="#f59e0b" stroke="#0a0e14" strokeWidth={1.5} />
+                <circle cx={c.x} cy={c.y} r={5} fill="#6F8CFF" stroke="#0a0e14" strokeWidth={1.5} />
               </g>
             ))}
             <circle cx={cx} cy={cy} r={16} fill="rgba(34,211,238,0.18)" />
-            <circle cx={cx} cy={cy} r={7} fill="#22d3ee" stroke="#0a0e14" strokeWidth={2} />
+            <circle cx={cx} cy={cy} r={7} fill="#FF9F2E" stroke="#0a0e14" strokeWidth={2} />
           </g>
         </svg>
-        <div className="space-y-4 border-t border-ink-700 p-4 md:border-l md:border-t-0">
+        <div className="space-y-4 border-t border-white/[0.07] p-4 md:border-l md:border-t-0">
           <div>
-            <div className="text-[11px] uppercase tracking-wide text-ink-400">Scenario comparison (illustrative)</div>
+            <div className="text-[11px] text-ink-400">Scenario comparison (illustrative)</div>
             <div className="mt-2 space-y-2">
               {[
                 { n: "Baseline ₹1,800", w: 46, c: "bg-ink-400" },
@@ -82,7 +82,7 @@ export function MarketPreview() {
             </div>
           </div>
           <div>
-            <div className="text-[11px] uppercase tracking-wide text-ink-400">Affordability by segment (illustrative)</div>
+            <div className="text-[11px] text-ink-400">Affordability by segment (illustrative)</div>
             <div className="mt-2 flex items-end gap-2">
               {[38, 62, 88].map((h, i) => (
                 <div key={i} className="flex flex-1 flex-col items-center gap-1">

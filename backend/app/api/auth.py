@@ -23,6 +23,19 @@ def signup(body: SignupIn, response: Response, db: Session = Depends(get_db)):
     return user
 
 
+@router.post("/guest", response_model=UserOut, status_code=201)
+def guest(response: Response, db: Session = Depends(get_db)):
+    """One-click guest workspace for judges and first-time visitors (random credentials, private to this browser)."""
+    import secrets
+    tag = secrets.token_hex(5)
+    user = User(email=f"guest-{tag}@guest.strataiq.app", name="Guest", password_hash=hash_password(secrets.token_urlsafe(24)),
+                preferences={"guest": True})
+    db.add(user)
+    db.commit()
+    set_session_cookie(response, create_token(user.id))
+    return user
+
+
 @router.post("/login", response_model=UserOut)
 def login(body: LoginIn, response: Response, db: Session = Depends(get_db)):
     user = db.scalar(select(User).where(User.email == body.email))

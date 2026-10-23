@@ -21,6 +21,14 @@ SOURCES: dict[str, dict] = {
         "url": "https://operations.osmfoundation.org/policies/nominatim/",
         "coverage_note": "Place search. Usage limited to light, interactive use (max 1 request/second).",
     },
+    "osm_photon": {
+        "name": "OpenStreetMap (via Photon index)",
+        "kind": "observed",
+        "license": "ODbL 1.0",
+        "attribution": "© OpenStreetMap contributors · Photon by komoot",
+        "url": "https://photon.komoot.io/",
+        "coverage_note": "Same OpenStreetMap features as Overpass, from a search index. Used when Overpass mirrors are busy; edit dates are not available.",
+    },
     "worldpop": {
         "name": "WorldPop Global population (100 m, unconstrained)",
         "kind": "official_aggregate_estimate",

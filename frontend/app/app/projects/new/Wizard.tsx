@@ -208,7 +208,7 @@ export function Wizard() {
               onClick={() => i < step && setStep(i)}
               className={cn(
                 "flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs",
-                i === step ? "border-accent bg-accent/10 text-accent" : i < step ? "border-ink-600 text-ink-200 hover:border-ink-400" : "border-ink-700 text-ink-500",
+                i === step ? "border-accent bg-accent/10 text-accent" : i < step ? "border-ink-600 text-ink-200 hover:border-ink-400" : "border-white/[0.07] text-ink-500",
               )}
               aria-current={i === step ? "step" : undefined}
             >
@@ -227,7 +227,7 @@ export function Wizard() {
                 <button
                   key={o}
                   onClick={() => setObjective(o)}
-                  className={cn("rounded-md border p-3 text-left", objective === o ? "border-accent bg-accent/5" : "border-ink-700 hover:border-ink-500")}
+                  className={cn("rounded-md border p-3 text-left", objective === o ? "border-accent bg-accent/5" : "border-white/[0.07] hover:border-ink-500")}
                 >
                   <div className="text-sm font-medium">{OBJECTIVES[o]}</div>
                   <div className="mt-0.5 text-xs text-ink-400">{OBJ_HELP[o]}</div>
@@ -268,7 +268,7 @@ export function Wizard() {
             </Field>
             {resolveErr && <ErrorState message={resolveErr} />}
             {category && arch && (
-              <div className="space-y-4 rounded-md border border-ink-700 bg-ink-850 p-4">
+              <div className="space-y-4 rounded-2xl border border-white/[0.07] bg-white/[0.02] p-4">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-sm font-semibold">{category.label}</span>
                   <Badge tone={category.method === "taxonomy" || category.method === "manual" ? "ok" : "warn"}>
@@ -339,7 +339,7 @@ export function Wizard() {
               ))}
             </div>
             {(objective === "improve_existing" || objective === "diagnose") && (
-              <div className="space-y-3 rounded-md border border-ink-700 p-4">
+              <div className="space-y-3 rounded-md border border-white/[0.07] p-4">
                 <div className="text-sm font-medium">Current performance (leave unknown values empty)</div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   {[
@@ -392,7 +392,7 @@ export function Wizard() {
             <h2 className="text-base font-semibold">How will you compete?</h2>
             <div className="grid gap-2 sm:grid-cols-2">
               {POSITIONS.map((p) => (
-                <label key={p.key} className={cn("flex cursor-pointer items-center gap-2.5 rounded-md border p-3 text-sm", positions.includes(p.key) ? "border-accent bg-accent/5" : "border-ink-700")}>
+                <label key={p.key} className={cn("flex cursor-pointer items-center gap-2.5 rounded-md border p-3 text-sm", positions.includes(p.key) ? "border-accent bg-accent/5" : "border-white/[0.07]")}>
                   <input
                     type="checkbox"
                     checked={positions.includes(p.key)}
@@ -455,7 +455,7 @@ export function Wizard() {
             <h2 className="text-base font-semibold">Review</h2>
             <div className="grid gap-4 text-sm sm:grid-cols-2">
               <div className="space-y-1.5">
-                <div className="text-xs uppercase tracking-wide text-ink-400">Business</div>
+                <div className="text-xs text-ink-400">Business</div>
                 <div>{category.label} · {arch.label}</div>
                 <div className="text-ink-300">{OBJECTIVES[objective]}</div>
                 <div className="text-ink-300">{arch.price_label}: <span className="num text-ink-100">{money(price)}</span></div>
@@ -463,7 +463,7 @@ export function Wizard() {
                 <div className="text-ink-300">Attractiveness claim: <span className="num">{quality.toFixed(2)}</span> <Evidence kind="user" /></div>
               </div>
               <div className="space-y-1.5">
-                <div className="text-xs uppercase tracking-wide text-ink-400">Monthly costs</div>
+                <div className="text-xs text-ink-400">Monthly costs</div>
                 <div className="num">{money((rent || 0) + (payroll || 0) + (utilities || 0) + (otherFixed || 0) + (marketing || 0))} fixed</div>
                 <div className="text-ink-300">Startup: <span className="num">{money(startup)}</span></div>
                 <div className="text-ink-300">Location: {place?.address}</div>
@@ -471,7 +471,7 @@ export function Wizard() {
               </div>
             </div>
             <div>
-              <div className="mb-2 text-xs uppercase tracking-wide text-ink-400">Data that will be loaded live</div>
+              <div className="mb-2 text-xs text-ink-400">Data that will be loaded live</div>
               <ul className="space-y-1 text-sm text-ink-300">
                 <li>• Competitors: OpenStreetMap (Overpass) <Evidence kind="observed" /></li>
                 <li>• Buildings for population placement: OpenStreetMap <Evidence kind="observed" /></li>
@@ -480,15 +480,15 @@ export function Wizard() {
             </div>
             {missing.length > 0 && (
               <div>
-                <div className="mb-2 text-xs uppercase tracking-wide text-ink-400">Missing information (you can add it later)</div>
+                <div className="mb-2 text-xs text-ink-400">Missing information (you can add it later)</div>
                 <ul className="space-y-1.5">{missing.map((m) => <li key={m}><Notice tone="warn">{m}</Notice></li>)}</ul>
               </div>
             )}
             <div>
-              <div className="mb-2 text-xs uppercase tracking-wide text-ink-400">Default behaviour assumptions for {arch.label.toLowerCase()}</div>
+              <div className="mb-2 text-xs text-ink-400">Default behaviour assumptions for {arch.label.toLowerCase()}</div>
               <div className="grid gap-1.5 sm:grid-cols-2">
                 {["participation", "frequency", "distance_decay", "beta_price"].map((k) => arch.params[k] && (
-                  <div key={k} className="flex items-center justify-between rounded border border-ink-700 px-2.5 py-1.5 text-xs">
+                  <div key={k} className="flex items-center justify-between rounded border border-white/[0.07] px-2.5 py-1.5 text-xs">
                     <span className="text-ink-300" title={arch.params[k].description}>{arch.params[k].description.split(".")[0]}</span>
                     <span className="num ml-2 shrink-0 text-ink-100">{arch.params[k].value} <span className="text-ink-500">[{arch.params[k].low}–{arch.params[k].high}]</span></span>
                   </div>
