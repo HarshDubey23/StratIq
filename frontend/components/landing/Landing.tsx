@@ -262,7 +262,8 @@ export default function Landing() {
 
         {/* ---------------- the data is real ---------------- */}
         <section id="real" ref={reg(1)} data-chapter={1} className="relative flex min-h-[110vh] items-center px-5 md:px-10">
-          <div className="mx-auto w-full max-w-[1400px]">
+          <div aria-hidden className="pointer-events-none absolute inset-y-0 left-0 w-full bg-gradient-to-r from-ink-950/90 via-ink-950/60 to-transparent md:w-[62%]" />
+          <div className="relative mx-auto w-full max-w-[1400px]">
             <div className="max-w-xl">
               <Lines as="h2" lines={["The map", "isn't a mock-up."]} className="font-display text-[clamp(2.6rem,6vw,5.6rem)] font-semibold leading-[0.95] tracking-[-0.045em]" />
               <p data-reveal className="mt-7 text-[17px] leading-[1.65] text-ink-200">
@@ -288,7 +289,8 @@ export default function Landing() {
 
         {/* ---------------- agents ---------------- */}
         <section id="agents" ref={reg(2)} data-chapter={2} className="relative flex min-h-[110vh] items-center px-5 md:px-10">
-          <div className="mx-auto flex w-full max-w-[1400px] justify-end">
+          <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 w-full bg-gradient-to-l from-ink-950/90 via-ink-950/60 to-transparent md:w-[62%]" />
+          <div className="relative mx-auto flex w-full max-w-[1400px] justify-end">
             <div className="max-w-xl">
               <Lines as="h2" lines={["Ten thousand", "people decide."]} className="font-display text-[clamp(2.6rem,6vw,5.6rem)] font-semibold leading-[0.95] tracking-[-0.045em]" />
               <p data-reveal className="mt-7 text-[17px] leading-[1.65] text-ink-200">
@@ -318,7 +320,8 @@ export default function Landing() {
 
         {/* ---------------- decision ---------------- */}
         <section ref={reg(3)} data-chapter={3} className="relative flex min-h-[110vh] items-center px-5 md:px-10">
-          <div className="mx-auto w-full max-w-[1400px]">
+          <div aria-hidden className="pointer-events-none absolute inset-y-0 left-0 w-full bg-gradient-to-r from-ink-950/90 via-ink-950/60 to-transparent md:w-[62%]" />
+          <div className="relative mx-auto w-full max-w-[1400px]">
             <div className="max-w-xl">
               <Lines as="h2" lines={["A range,", "not a promise."]} className="font-display text-[clamp(2.6rem,6vw,5.6rem)] font-semibold leading-[0.95] tracking-[-0.045em]" />
               <p data-reveal className="mt-7 text-[17px] leading-[1.65] text-ink-200">
@@ -332,7 +335,8 @@ export default function Landing() {
 
         {/* ---------------- voice ---------------- */}
         <section id="voice" ref={reg(4)} data-chapter={4} className="relative flex min-h-[110vh] items-center px-5 md:px-10">
-          <div className="mx-auto flex w-full max-w-[1400px] justify-end">
+          <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 w-full bg-gradient-to-l from-ink-950/90 via-ink-950/60 to-transparent md:w-[62%]" />
+          <div className="relative mx-auto flex w-full max-w-[1400px] justify-end">
             <div className="max-w-xl">
               <Lines as="h2" lines={["Ask it out loud,", "in Hinglish."]} className="font-display text-[clamp(2.6rem,6vw,5.6rem)] font-semibold leading-[0.95] tracking-[-0.045em]" />
               <p data-reveal className="mt-7 text-[17px] leading-[1.65] text-ink-200">

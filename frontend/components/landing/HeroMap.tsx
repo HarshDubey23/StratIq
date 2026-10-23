@@ -82,7 +82,7 @@ export default function HeroMap({ spot, comps, chapter, showTrips }: { spot: Spo
       try {
         m = new maplibregl.Map({
           container: el.current, style, center: [spot.lng, spot.lat], ...CAMERAS[0], interactive: false, attributionControl: { compact: true },
-          maxPitch: 80, fadeDuration: 0,
+          maxPitch: 80, fadeDuration: 0, pixelRatio: Math.min(window.devicePixelRatio || 1, 1.5),
         });
       } catch {
         return;
