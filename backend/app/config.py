@@ -43,6 +43,9 @@ class Settings:
     persons_per_building: float = field(default_factory=lambda: float(os.getenv("PERSONS_PER_BUILDING", "12")))
     abm_agents: int = field(default_factory=lambda: int(os.getenv("ABM_AGENTS", "10000")))
     mc_draws: int = field(default_factory=lambda: int(os.getenv("MC_DRAWS", "800")))
+    # Serverless hosts (Vercel) cannot run work after the response: refresh market data inside the request.
+    serverless: bool = field(default_factory=lambda: _bool(os.getenv("SERVERLESS"), bool(os.getenv("VERCEL"))))
+    auto_migrate: bool = field(default_factory=lambda: _bool(os.getenv("AUTO_MIGRATE"), False))
 
     @property
     def user_agent(self) -> str:

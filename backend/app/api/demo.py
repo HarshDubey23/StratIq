@@ -82,7 +82,8 @@ LIVE_SPOTS = {
 async def create_live_demo(spot: str = "cp-delhi", user: User = Depends(current_user), db: Session = Depends(get_db)):
     """A real-data demo: live OpenStreetMap competitors + WorldPop population around a real street.
     Only the business inputs (price, rent, payroll…) are example assumptions, and they are labelled as such."""
-    from ..services.runs import start_refresh
+    from ..config import get_settings
+    from ..services.runs import execute_run, refresh_snapshot, start_refresh
     label, lat, lng = LIVE_SPOTS.get(spot, LIVE_SPOTS["cp-delhi"])
     cat = from_taxonomy_key("gym", "gym").as_dict()
     p = Project(owner_id=user.id, name=f"Gym near {label.split(',')[0]}", objective="start_new", decision_goal="profit", category=cat,
@@ -102,5 +103,14 @@ async def create_live_demo(spot: str = "cp-delhi", user: User = Depends(current_
     db.add(Scenario(project_id=p.id, location_id=loc.id, name="Lower price ₹1,500", inputs=base | {"price": 1500}))
     db.commit()
     db.refresh(p)
-    start_refresh(db, p, loc)
+    if get_settings().serverless:
+        try:
+            await refresh_snapshot(db, p, loc)
+            db.refresh(p)
+            execute_run(db, p, next(s for s in p.scenarios if s.is_baseline))
+        except Exception:  # the market page shows what failed and offers a retry
+            db.rollback()
+        db.refresh(p)
+    else:
+        start_refresh(db, p, loc)
     return project_out(p)

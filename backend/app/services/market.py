@@ -160,9 +160,10 @@ async def build_snapshot(*, lat: float, lng: float, catchment: dict, category: d
             raise ProviderError(what, f"no response within {int(seconds)} s") from e
 
     # Layers run concurrently; each races the Overpass mirrors. Competitors also fall back to Photon/Nominatim.
-    results = await asyncio.gather(bounded(comp_task(), 95, "overpass"), bounded(bld_task(), 110, "overpass"),
-                                   bounded(ctx_task(), 110, "overpass"), bounded(pop_task(), 100, "worldpop"),
-                                   bounded(agesex_task(), 100, "worldpop"), return_exceptions=True)
+    k = 0.55 if get_settings().serverless else 1.0  # serverless requests must finish well inside the platform limit
+    results = await asyncio.gather(bounded(comp_task(), 95 * k, "overpass"), bounded(bld_task(), 110 * k, "overpass"),
+                                   bounded(ctx_task(), 110 * k, "overpass"), bounded(pop_task(), 100 * k, "worldpop"),
+                                   bounded(agesex_task(), 100 * k, "worldpop"), return_exceptions=True)
     names = ["competitors", "buildings", "context", "population", "age_sex"]
     vals = {}
     for nm, res in zip(names, results):

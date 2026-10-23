@@ -19,9 +19,33 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name
 log = logging.getLogger("strataiq")
 
 
+_migrated = False
+
+
+def migrate_once() -> None:
+    """Apply Alembic migrations once per process when AUTO_MIGRATE is on (serverless hosts have no release step)."""
+    global _migrated
+    if _migrated or not get_settings().auto_migrate:
+        return
+    _migrated = True
+    try:
+        from pathlib import Path
+
+        from alembic import command
+        from alembic.config import Config
+        root = Path(__file__).resolve().parent.parent
+        cfg = Config(str(root / "alembic.ini"))
+        cfg.set_main_option("script_location", str(root / "alembic"))
+        command.upgrade(cfg, "head")
+        log.info("migrations applied")
+    except Exception as e:  # pragma: no cover
+        log.error("auto-migrate failed: %s", e)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     get_settings()
+    migrate_once()
     yield
     await close_client()
 
@@ -31,6 +55,14 @@ app = FastAPI(title="StrataIQ API", version="1.0.0", lifespan=lifespan,
 
 app.add_middleware(CORSMiddleware, allow_origins=get_settings().cors_origins, allow_credentials=True,
                    allow_methods=["*"], allow_headers=["*"])
+
+
+@app.middleware("http")
+async def ensure_migrated(request: Request, call_next):
+    if not _migrated and get_settings().auto_migrate:
+        from fastapi.concurrency import run_in_threadpool
+        await run_in_threadpool(migrate_once)
+    return await call_next(request)
 
 
 @app.exception_handler(RequestValidationError)
