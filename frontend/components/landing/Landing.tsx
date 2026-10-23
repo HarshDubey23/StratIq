@@ -142,8 +142,8 @@ export default function Landing() {
         router.push("/app/projects/new");
         return;
       }
-      const kind = ["cafe", "pizza", "gym"].includes(cat) ? cat : "cafe";
-      const r = await fetch(`/api/v1/demo/live?spot=${spot.key}&kind=${kind}`, { method: "POST", credentials: "include" });
+      const demoKind = ["cafe", "pizza", "gym"].includes(cat) ? cat : "cafe";
+      const r = await fetch(`/api/v1/demo/live?spot=${spot.key}&kind=${demoKind}`, { method: "POST", credentials: "include" });
       if (!r.ok) throw new Error("Could not start the live demo. Try again in a moment.");
       const p = await r.json();
       router.push(`/app/projects/${p.id}/market`);

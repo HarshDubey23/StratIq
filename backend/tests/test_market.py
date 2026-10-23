@@ -81,6 +81,8 @@ def test_build_snapshot_with_stubbed_providers(monkeypatch):
         return 42000.0, {"source": "worldpop"}
 
     monkeypatch.setattr(mk.osm, "fetch_pois", fake_pois)
+
+    monkeypatch.setattr(mk.osm, "fetch_competitors", fake_pois)
     monkeypatch.setattr(mk.osm, "fetch_buildings", fake_bld)
     monkeypatch.setattr(mk.population, "worldpop_total", fake_pop)
     monkeypatch.setattr(mk.population, "worldpop_age_sex", fake_agesex)
@@ -109,6 +111,8 @@ def test_build_snapshot_population_failure_is_reported(monkeypatch):
         raise ProviderError("worldpop", "timeout")
 
     monkeypatch.setattr(mk.osm, "fetch_pois", fake_pois)
+
+    monkeypatch.setattr(mk.osm, "fetch_competitors", fake_pois)
     monkeypatch.setattr(mk.osm, "fetch_buildings", fake_bld)
     monkeypatch.setattr(mk.population, "worldpop_total", bad_pop)
     monkeypatch.setattr(mk.population, "worldpop_age_sex", bad_pop)
@@ -131,6 +135,8 @@ def test_population_fallback_uses_buildings_and_is_flagged(monkeypatch):
         raise ProviderError("worldpop", "ReadTimeout")
 
     monkeypatch.setattr(mk.osm, "fetch_pois", fake_pois)
+
+    monkeypatch.setattr(mk.osm, "fetch_competitors", fake_pois)
     monkeypatch.setattr(mk.osm, "fetch_buildings", fake_bld)
     monkeypatch.setattr(mk.population, "worldpop_total", bad_pop)
     monkeypatch.setattr(mk.population, "worldpop_age_sex", bad_pop)

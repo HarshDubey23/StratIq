@@ -39,6 +39,8 @@ def stub_providers(monkeypatch):
         return osm.parse_nominatim(json.loads((FX / "nominatim_search.json").read_text())), {"source": "osm_nominatim"}
 
     monkeypatch.setattr(mk.osm, "fetch_pois", fake_pois)
+
+    monkeypatch.setattr(mk.osm, "fetch_competitors", fake_pois)
     monkeypatch.setattr(mk.osm, "fetch_buildings", fake_bld)
     monkeypatch.setattr(mk.population, "worldpop_total", fake_pop)
     monkeypatch.setattr(mk.population, "worldpop_age_sex", fake_agesex)
