@@ -142,7 +142,7 @@ export default function MarketPage() {
   const center: [number, number] = loc ? [loc.lng, loc.lat] : [78.96, 22.59];
 
   const mapComps = useMemo(
-    () => comps.map((c) => ({ id: c.id, name: c.name, lat: c.lat, lng: c.lng, kind: (c.source === "user" ? (c.is_hypothetical ? "hypothetical" : "user") : c.source === "foursquare" ? "fsq" : c.source) as "osm" | "fsq" | "user" | "hypothetical" | "demo", inactive: !c.active })),
+    () => comps.map((c) => ({ id: c.id, name: c.name, lat: c.lat, lng: c.lng, kind: (c.source === "user" ? (c.is_hypothetical ? "hypothetical" : "user") : c.source === "foursquare" ? "fsq" : c.source) as "osm" | "fsq" | "user" | "hypothetical" | "demo" | "field", inactive: !c.active })),
     [comps],
   );
   const zones = useMemo(() => (snap?.zones || []).map((z) => ({ lat: z.lat, lng: z.lng, value: z.population })), [snap]);
@@ -231,7 +231,7 @@ export default function MarketPage() {
             ) : (
               <div className="flex items-center gap-3">
                 <span>Baseline simulated.</span>
-                <Link href={`/app/projects/${p.id}/live`} className="rounded bg-accent px-3 py-1.5 text-xs font-semibold text-ink-950">Watch the live market →</Link>
+                <Link href={`/app/projects/${p.id}/live`} className="rounded-md bg-accent px-3 py-1.5 text-xs font-semibold text-white">Watch the live market →</Link>
                 <button onClick={() => setLiveReady(false)} className="text-xs text-ink-400">dismiss</button>
               </div>
             )}
@@ -339,6 +339,11 @@ export default function MarketPage() {
                       ))}
                     </ul>
                     <p className="mt-2 text-[10px] text-ink-500">{snap.coverage.method}</p>
+                    {snap.coverage.level !== "good" && (
+                      <Link href={`/app/projects/${p.id}/field`} className="mt-3 flex items-center justify-between rounded-md border border-field/40 bg-field/[0.08] px-3 py-2 text-xs text-field hover:bg-field/15">
+                        Gaps here? Send a field researcher <span aria-hidden>→</span>
+                      </Link>
+                    )}
                   </div>
                   <div>
                     <div className="mb-2 text-xs font-medium text-ink-200">Sources</div>
@@ -395,7 +400,7 @@ export default function MarketPage() {
                             <span className="block truncate">{c.name}</span>
                             <span className="block text-[11px] text-ink-400">{num(c.distance_km, 2)} km · {c.price ? money(c.price) : "price unknown"}</span>
                           </span>
-                          <Evidence kind={c.source === "user" ? "user" : c.source === "demo" ? "demo" : "observed"} label={c.is_hypothetical ? "Hypothetical" : undefined} />
+                          <Evidence kind={c.source === "user" ? "user" : c.source === "demo" ? "demo" : c.source === "field" ? "field" : "observed"} label={c.is_hypothetical ? "Hypothetical" : undefined} />
                         </button>
                       </li>
                     ))}
@@ -495,7 +500,7 @@ function CompetitorPanel({
       <div>
         <div className="flex items-start justify-between gap-2">
           <h3 className="font-semibold">{c.name}</h3>
-          <Evidence kind={c.source === "user" ? "user" : c.source === "demo" ? "demo" : "observed"} label={c.is_hypothetical ? "Hypothetical" : undefined} />
+          <Evidence kind={c.source === "user" ? "user" : c.source === "demo" ? "demo" : c.source === "field" ? "field" : "observed"} label={c.is_hypothetical ? "Hypothetical" : undefined} />
         </div>
         {!c.active && <Badge tone="warn" className="mt-1">Excluded from simulation</Badge>}
       </div>

@@ -157,7 +157,7 @@ export default function HeroMap({ spot, comps, chapter, showTrips }: { spot: Spo
     <div className="absolute inset-0" aria-hidden>
       <div ref={el} style={{ position: "absolute", inset: 0 }} />
       {/* vignette so type stays legible over the city */}
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_80%_at_70%_40%,transparent_30%,rgba(4,6,11,.55)_65%,#04060b_100%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_80%_at_70%_40%,transparent_30%,rgba(8,9,11,.55)_65%,#08090B_100%)]" />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-ink-950 via-ink-950/70 to-transparent" />
     </div>
   );

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Logo } from "@/components/brand";
 
 function Eq({ children }: { children: React.ReactNode }) {
-  return <pre className="num overflow-x-auto rounded-2xl border border-white/[0.07] bg-white/[0.025] p-3 text-[13px] leading-relaxed text-ink-100">{children}</pre>;
+  return <pre className="num overflow-x-auto rounded-xl border border-white/[0.07] bg-white/[0.025] p-3 text-[13px] leading-relaxed text-ink-100">{children}</pre>;
 }
 
 export default function Methodology() {

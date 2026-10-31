@@ -154,7 +154,7 @@ export default function SimulationLab() {
   const center: [number, number] = market ? [market.location.lng, market.location.lat] : [p.locations[0].lng, p.locations[0].lat];
   const zones = useMemo(() => (res?.zones || []).map((z) => ({ lat: z.lat, lng: z.lng, value: z.capture * z.weight })), [res]);
   const comps = useMemo(
-    () => (market?.competitors || []).filter((c) => c.active).map((c) => ({ id: c.id, name: c.name, lat: c.lat, lng: c.lng, kind: (c.source === "user" ? (c.is_hypothetical ? "hypothetical" : "user") : c.source === "foursquare" ? "fsq" : c.source) as "osm" | "fsq" | "user" | "hypothetical" | "demo" })),
+    () => (market?.competitors || []).filter((c) => c.active).map((c) => ({ id: c.id, name: c.name, lat: c.lat, lng: c.lng, kind: (c.source === "user" ? (c.is_hypothetical ? "hypothetical" : "user") : c.source === "foursquare" ? "fsq" : c.source) as "osm" | "fsq" | "user" | "hypothetical" | "demo" | "field" })),
     [market],
   );
 
@@ -326,7 +326,7 @@ export default function SimulationLab() {
               fitKey={`${draftLoc}-${market?.snapshot?.id || ""}`}
               onCandidateClick={(id) => setDraftLoc(id)}
             />
-            <div className="absolute bottom-8 left-2 z-10 space-y-1.5 rounded-2xl border border-white/[0.07] bg-white/[0.025]/95 p-2 text-[11px]">
+            <div className="absolute bottom-8 left-2 z-10 space-y-1.5 rounded-xl border border-white/[0.07] bg-white/[0.025]/95 p-2 text-[11px]">
               <Segmented value={agentColor} onChange={setAgentColor} options={[{ value: "choice", label: "Colour by choice" }, { value: "red", label: "All agents" }]} />
               {agentColor === "choice" ? (
                 <div className="flex flex-wrap gap-x-3 gap-y-1 text-ink-300">

@@ -101,3 +101,20 @@ Every run also simulates a **live market** of synthetic people (default 6,000 ag
 operations, marketing, retention, external). Each declares scope, source and role (agent profile, choice model,
 economics, output, evidence, or future data). Per location and run every factor gets a status: computed (live data),
 user, assumed, simulated, pending, or unavailable. Factors with no connected data source are shown empty — never invented.
+
+## Field evidence (ground truth from a field researcher)
+
+`engine/field.py` turns street-intercept interviews into evidence tuples `(value, low, high, "field", source)` that
+`ResolvedParams.from_archetype` already understands. Field evidence outranks published/derived evidence; explicit user
+overrides still win. A parameter is only replaced once enough answers exist:
+
+| Parameter | Estimate | Interval | Minimum n |
+|---|---|---|---|
+| `participation` | share of interviewees who use the category | Wilson 90 % | 8 interviews |
+| `frequency` | mean stated visits per month among users (not for structural frequencies, e.g. memberships) | mean ± 1.645·SE | 5 users |
+| `max_km` | 80th percentile of stated travel distance | P60–P95 | 6 users |
+| `wtp_sigma` | log-SD of stated maximum prices, clamped 0.15–1.0 | ×0.8–×1.25 | 6 answers |
+
+Visited competitors enter the choice model with their observed price and the researcher's 1–5 rating mapped to 0–1
+quality. Footfall counts and rent quotes are summarised for the decision but not converted into demand. Intercept
+samples are not random samples of the catchment; every source string says so.

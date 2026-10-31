@@ -79,6 +79,8 @@ def get_project(project_id: str, user: User = Depends(current_user), db: Session
     d["scenarios"] = [scenario_out(s, runs.get(s.id)) for s in p.scenarios]
     d["archetype"] = ARCHETYPES[p.category["archetype"]].to_public()
     d["data_kinds"] = _data_kinds(db, p)
+    from .field import field_status
+    d["field"] = field_status(db, p)
     d["snapshots"] = {l.id: (lambda s: {"id": s.id, "retrieved_at": s.retrieved_at.isoformat(), "status": s.status} if s else None)(latest_snapshot(db, l.id)) for l in p.locations}
     return d
 

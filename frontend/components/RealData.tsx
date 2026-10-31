@@ -22,7 +22,7 @@ export function IncomeMix({ income, price, className }: { income: IncomeEvidence
   const maxShare = Math.max(...income.histogram.map((h) => h.share), ...income.national_histogram.map((h) => h.share), 0.01);
   const ratio = income.median_mpce / income.india_median_mpce;
   return (
-    <section className={cn("rounded-2xl border border-white/[0.07] bg-white/[0.025] p-3 text-xs", className)} aria-label="Who lives here">
+    <section className={cn("rounded-xl border border-white/[0.07] bg-white/[0.025] p-3 text-xs", className)} aria-label="Who lives here">
       <div className="mb-2 flex items-start justify-between gap-2">
         <div className="flex items-center gap-2">
           <Wallet className="h-4 w-4 text-accent" />
@@ -134,7 +134,7 @@ export function DataLineage({ res, className }: { res: SimResult; className?: st
   const sources = res.parameter_sources || {};
   const g = res.abm?.genome;
   return (
-    <section className={cn("rounded-2xl border border-white/[0.07] bg-white/[0.025] p-3 text-xs", className)} aria-label="Data lineage">
+    <section className={cn("rounded-xl border border-white/[0.07] bg-white/[0.025] p-3 text-xs", className)} aria-label="Data lineage">
       <div className="mb-2 flex items-center gap-2">
         <Landmark className="h-4 w-4 text-model" />
         <div className="font-medium text-ink-100">Data lineage — what is real, what is assumed</div>

@@ -18,7 +18,7 @@ export function Logo({ href = "/", compact = false }: { href?: string; compact?:
       <LogoMark />
       {!compact && (
         <span className="flex items-baseline gap-1.5">
-          <span className="font-display text-[17px] font-semibold tracking-tight">StrataIQ</span>
+          <span className="font-display text-[17px] font-medium tracking-tight">StrataIQ</span>
           <span className="font-deva text-[13px] text-ink-400 transition-colors group-hover:text-accent" lang="hi">स्तर</span>
         </span>
       )}

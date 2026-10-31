@@ -4,9 +4,9 @@ import { Bar, BarChart, CartesianGrid, Cell, ComposedChart, Line, ReferenceLine,
 import { money, num } from "@/lib/format";
 import type { SimResult } from "@/lib/types";
 
-const AX = { stroke: "#64718A", fontSize: 11 };
-const GRID = "#192233";
-const TT = { contentStyle: { background: "#111826", border: "1px solid #243045", borderRadius: 6, fontSize: 12 }, labelStyle: { color: "#C2CAD8" } };
+const AX = { stroke: "#727786", fontSize: 11 };
+const GRID = "#20222A";
+const TT = { contentStyle: { background: "#17191F", border: "1px solid #2C2F39", borderRadius: 6, fontSize: 12 }, labelStyle: { color: "#C2CAD8" } };
 
 function compactMoney(v: number) {
   return money(v, { compact: true }).replace("₹", "");
@@ -21,9 +21,9 @@ export function PriceCurve({ data, current, unit }: { data: NonNullable<SimResul
         <YAxis yAxisId="p" tickFormatter={compactMoney} {...AX} width={56} />
         <YAxis yAxisId="u" orientation="right" tickFormatter={(v) => num(v)} {...AX} width={44} />
         <Tooltip {...TT} formatter={(v, n) => (String(n) === "units" ? [num(Number(v)), unit] : [money(Number(v)), "Operating profit"])} labelFormatter={(l) => `Price ₹${num(Number(l))}`} />
-        <ReferenceLine yAxisId="p" y={0} stroke="#64718A" strokeDasharray="3 3" />
-        <ReferenceLine yAxisId="p" x={current} stroke="#FF9F2E" strokeDasharray="4 3" label={{ value: "current", fill: "#FF9F2E", fontSize: 10, position: "top" }} />
-        <Line yAxisId="p" type="monotone" dataKey="profit" stroke="#45E0A8" strokeWidth={2} dot={false} />
+        <ReferenceLine yAxisId="p" y={0} stroke="#727786" strokeDasharray="3 3" />
+        <ReferenceLine yAxisId="p" x={current} stroke="#4F6CFF" strokeDasharray="4 3" label={{ value: "current", fill: "#4F6CFF", fontSize: 10, position: "top" }} />
+        <Line yAxisId="p" type="monotone" dataKey="profit" stroke="#2DD4BF" strokeWidth={2} dot={false} />
         <Line yAxisId="u" type="monotone" dataKey="units" stroke="#939EB3" strokeWidth={1.5} strokeDasharray="4 3" dot={false} />
       </ComposedChart>
     </ResponsiveContainer>
@@ -38,9 +38,9 @@ export function MarketingCurve({ data, current }: { data: NonNullable<SimResult[
         <XAxis dataKey="spend" tickFormatter={(v) => compactMoney(v)} {...AX} />
         <YAxis tickFormatter={compactMoney} {...AX} width={56} />
         <Tooltip {...TT} formatter={(v) => [money(Number(v)), "Operating profit"]} labelFormatter={(l) => `Marketing ${money(Number(l))}/mo`} />
-        <ReferenceLine y={0} stroke="#64718A" strokeDasharray="3 3" />
-        <ReferenceLine x={current} stroke="#FF9F2E" strokeDasharray="4 3" />
-        <Line type="monotone" dataKey="profit" stroke="#45E0A8" strokeWidth={2} dot={{ r: 2 }} />
+        <ReferenceLine y={0} stroke="#727786" strokeDasharray="3 3" />
+        <ReferenceLine x={current} stroke="#4F6CFF" strokeDasharray="4 3" />
+        <Line type="monotone" dataKey="profit" stroke="#2DD4BF" strokeWidth={2} dot={{ r: 2 }} />
       </ComposedChart>
     </ResponsiveContainer>
   );
@@ -66,8 +66,8 @@ export function Tornado({ data, base }: { data: NonNullable<SimResult["sensitivi
           }}
         />
         <ReferenceLine x={0} stroke="#939EB3" />
-        <Bar dataKey="range" fill="#FF9F2E" radius={2}>
-          {rows.map((r, i) => <Cell key={i} fill={r.raw.status === "user" ? "#C59BFF" : "#8A4B0F"} />)}
+        <Bar dataKey="range" fill="#4F6CFF" radius={2}>
+          {rows.map((r, i) => <Cell key={i} fill={r.raw.status === "user" ? "#C59BFF" : "#22307A"} />)}
         </Bar>
       </BarChart>
     </ResponsiveContainer>
@@ -83,7 +83,7 @@ export function ProfitHistogram({ mc }: { mc: NonNullable<SimResult["monte_carlo
         <XAxis dataKey="x" tickFormatter={compactMoney} {...AX} interval="preserveStartEnd" minTickGap={30} />
         <Tooltip {...TT} formatter={(v) => [`${v} draws`, "Count"]} labelFormatter={(l) => `Profit ≈ ${money(Number(l))}`} />
         <Bar dataKey="c">
-          {data.map((d, i) => <Cell key={i} fill={d.x < 0 ? "#f87171" : "#45E0A8"} fillOpacity={0.8} />)}
+          {data.map((d, i) => <Cell key={i} fill={d.x < 0 ? "#f87171" : "#2DD4BF"} fillOpacity={0.8} />)}
         </Bar>
       </BarChart>
     </ResponsiveContainer>

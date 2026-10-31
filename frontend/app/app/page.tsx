@@ -64,44 +64,49 @@ export default function Dashboard() {
 
   return (
     <main className="mx-auto w-full max-w-7xl px-4 py-10 md:px-10">
-      <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
+      <div className="rise flex flex-col justify-between gap-6 md:flex-row md:items-end">
         <div>
-          <p className="text-sm text-ink-400">{user?.name && user.name !== "Guest" ? `Namaste, ${user.name.split(" ")[0]}` : "Namaste"}</p>
-          <h1 className="font-display mt-2 max-w-3xl text-[clamp(2rem,4.4vw,3.6rem)] font-semibold leading-[0.98] tracking-[-0.04em]">What would you open, and where?</h1>
-          <p className="mt-3 max-w-xl text-[15px] text-ink-300">Describe any business and pick any street. StrataIQ loads the real market around it and simulates who would come.</p>
+          <p className="idx uppercase">{user?.name && user.name !== "Guest" ? `Namaste, ${user.name.split(" ")[0]}` : "Namaste"}</p>
+          <h1 className="font-display mt-3 max-w-3xl text-[clamp(2.2rem,4.6vw,4rem)] font-medium leading-[0.95] tracking-[-0.05em]">What would you open, and where?</h1>
+          <p className="mt-4 max-w-xl text-[15px] text-ink-300">Describe any business and pick any street. StrataIQ loads the real market around it and simulates who would come.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="secondary" onClick={liveDemo} loading={liveBusy}>
-            <span className="relative flex h-2 w-2"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-model opacity-70" /><span className="relative inline-flex h-2 w-2 rounded-full bg-model" /></span>
-            Live demo: café in Connaught Place
+            <span className="relative flex h-2 w-2"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-ok opacity-70" /><span className="relative inline-flex h-2 w-2 rounded-full bg-ok" /></span>
+            Live demo
           </Button>
           <ButtonLink href="/app/projects/new" variant="primary">New analysis <ArrowRight className="h-4 w-4" /></ButtonLink>
         </div>
       </div>
 
-      <div className="mt-8">
+      <div className="rise rise-1 mt-8">
         <QuickStart />
       </div>
 
-      <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {actions.map((a) => (
-          <Link key={a.t} href={a.href} className="group relative overflow-hidden rounded-3xl border border-white/[0.07] bg-gradient-to-b from-ink-850 to-ink-900 p-5 transition-[border-color,transform] duration-500 hover:-translate-y-0.5 hover:border-accent/40">
-            <span className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-accent/0 blur-2xl transition-colors duration-500 group-hover:bg-accent/20" />
-            <a.i className="h-5 w-5 text-accent" />
-            <div className="font-display mt-6 text-lg font-semibold tracking-tight">{a.t}</div>
-            <div className="mt-1 text-[13px] text-ink-400">{a.d}</div>
+      <div className="rise rise-2 mt-4 grid gap-px overflow-hidden rounded-xl border border-white/[0.07] bg-white/[0.07] sm:grid-cols-2 lg:grid-cols-4">
+        {actions.map((a, i) => (
+          <Link key={a.t} href={a.href} className="group relative bg-ink-950 p-5 transition-colors duration-300 hover:bg-ink-900">
+            <div className="flex items-center justify-between">
+              <span className="idx">0{i + 1}/</span>
+              <a.i className="h-4.5 w-4.5 text-ink-400 transition-colors group-hover:text-accent" />
+            </div>
+            <div className="font-display mt-8 text-[17px] font-medium tracking-tight">{a.t}</div>
+            <div className="mt-1 flex items-center justify-between text-[13px] text-ink-400">
+              {a.d}
+              <ArrowRight className="h-4 w-4 -translate-x-1 opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100" />
+            </div>
           </Link>
         ))}
       </div>
 
-      <div className="mt-12 flex items-center justify-between">
-        <h2 className="font-display text-xl font-semibold tracking-tight">Your simulations</h2>
+      <div className="mt-14 flex items-end justify-between border-b border-white/[0.06] pb-3">
+        <h2 className="font-display text-xl font-medium tracking-tight">Your simulations {projects && projects.length > 0 && <span className="num ml-1 font-mono text-sm text-ink-500">{projects.length}</span>}</h2>
         <Button size="sm" variant="ghost" onClick={demo} loading={busy}>
           <FlaskConical className="h-3.5 w-3.5" /> Open labelled demo
         </Button>
       </div>
 
-      <div className="mt-3">
+      <div className="mt-4">
         {error && <ErrorState message={error} onRetry={load} />}
         {!projects && !error && (
           <div className="grid gap-3 md:grid-cols-2">
@@ -119,48 +124,46 @@ export default function Dashboard() {
         {projects && projects.length > 0 && (
           <div className="grid gap-3 md:grid-cols-2">
             {projects.map((p) => (
-              <div key={p.id} className="flex flex-col rounded-3xl border border-white/[0.07] bg-gradient-to-b from-ink-850 to-ink-900 p-5 transition-colors hover:border-white/15">
+              <div key={p.id} className="lift group flex flex-col rounded-xl border border-white/[0.07] bg-ink-900/80 p-5 hover:border-white/15">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <Link href={`/app/projects/${p.id}`} className="font-display block truncate text-lg font-semibold tracking-tight hover:text-accent">{p.name}</Link>
+                    <Link href={`/app/projects/${p.id}`} className="font-display block truncate text-lg font-medium tracking-tight group-hover:text-[#9fb0ff]">{p.name}</Link>
                     <div className="mt-0.5 truncate text-xs text-ink-400">
                       {p.category.label} · {p.locations[0]?.address || `${p.locations[0]?.lat.toFixed(4)}, ${p.locations[0]?.lng.toFixed(4)}`}
                     </div>
                   </div>
-                  <button aria-label={`Delete ${p.name}`} onClick={() => setDel(p)} className="text-ink-500 hover:text-red-300">
+                  <button aria-label={`Delete ${p.name}`} onClick={() => setDel(p)} className="rounded-md p-1 text-ink-500 opacity-0 transition-opacity hover:text-red-300 focus:opacity-100 group-hover:opacity-100">
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-1.5">
                   {p.is_demo && <Evidence kind="demo" />}
                   {p.data_kinds?.connected_sources && !p.is_demo && <Evidence kind="observed" label="Live sources" />}
-                  <Evidence kind="user" label="Your inputs" />
-                  <Evidence kind="model" label="Synthetic estimates" />
                   <Badge>{OBJECTIVES[p.objective]}</Badge>
                 </div>
-                <div className="mt-4 flex-1 text-sm">
+                <div className="mt-5 flex-1 text-sm">
                   {p.summary ? (
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-3 gap-2 border-t border-white/[0.06] pt-4">
                       <div>
-                        <div className="text-[11px] text-ink-400">Baseline {p.summary.unit_label}</div>
-                        <div className="num font-display text-lg font-semibold">{num(p.summary.units_sold)}</div>
+                        <div className="text-[11px] text-ink-400">{p.summary.unit_label}</div>
+                        <div className="num font-display mt-0.5 text-lg font-medium">{num(p.summary.units_sold)}</div>
                       </div>
                       <div>
-                        <div className="text-[11px] text-ink-400">Monthly op. profit</div>
-                        <div className={`num font-display text-lg font-semibold ${p.summary.operating_profit < 0 ? "text-red-300" : "text-emerald-300"}`}>{money(p.summary.operating_profit, { compact: true })}</div>
+                        <div className="text-[11px] text-ink-400">Profit / month</div>
+                        <div className={`num font-display mt-0.5 text-lg font-medium ${p.summary.operating_profit < 0 ? "text-red-300" : "text-ok"}`}>{money(p.summary.operating_profit, { compact: true })}</div>
                       </div>
                       <div>
-                        <div className="text-[11px] text-ink-400">Modeled loss risk</div>
-                        <div className="num font-display text-lg font-semibold">{pct(p.summary.prob_loss)}</div>
+                        <div className="text-[11px] text-ink-400">Chance of a loss</div>
+                        <div className="num font-display mt-0.5 text-lg font-medium">{pct(p.summary.prob_loss)}</div>
                       </div>
                     </div>
                   ) : (
-                    <p className="text-xs text-ink-400">Not simulated yet.</p>
+                    <p className="border-t border-white/[0.06] pt-4 text-xs text-ink-400">Not simulated yet — open it and load the market.</p>
                   )}
                 </div>
                 <div className="mt-4 flex items-center justify-between text-xs text-ink-400">
                   <span>Updated {ago(p.updated_at)}</span>
-                  <Link href={`/app/projects/${p.id}`} className="inline-flex items-center gap-1 text-accent hover:underline">Open project <ArrowRight className="h-3 w-3" /></Link>
+                  <Link href={`/app/projects/${p.id}`} className="inline-flex items-center gap-1 text-[#9fb0ff] hover:underline">Open <ArrowRight className="h-3 w-3" /></Link>
                 </div>
               </div>
             ))}

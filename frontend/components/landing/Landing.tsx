@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUpRight, Loader2, Mic, RefreshCw } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Footprints, Loader2, Map as MapIcon, MessageSquareText, Mic, RefreshCw, Scale, Store, Users } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -13,11 +13,10 @@ const HeroMap = dynamic(() => import("./HeroMap"), { ssr: false, loading: () => 
 
 const CATS = [
   { key: "cafe", label: "Cafés" },
-  { key: "pizza", label: "Pizza" },
   { key: "gym", label: "Gyms" },
+  { key: "pizza", label: "Pizza" },
   { key: "pharmacy", label: "Pharmacies" },
   { key: "salon", label: "Salons" },
-  { key: "restaurant", label: "Restaurants" },
 ];
 
 interface Preview {
@@ -40,7 +39,7 @@ function useReveal() {
     const els = Array.from(document.querySelectorAll<HTMLElement>("[data-reveal], .reveal-lines"));
     const io = new IntersectionObserver(
       (es) => es.forEach((e) => e.isIntersecting && (e.target.classList.add("is-in"), io.unobserve(e.target))),
-      { threshold: 0.18, rootMargin: "0px 0px -8% 0px" },
+      { threshold: 0.15, rootMargin: "0px 0px -6% 0px" },
     );
     els.forEach((el) => io.observe(el));
     return () => io.disconnect();
@@ -53,7 +52,7 @@ function useLenis() {
     let raf = 0;
     let lenis: { raf: (t: number) => void; destroy: () => void } | null = null;
     import("lenis").then(({ default: Lenis }) => {
-      lenis = new Lenis({ lerp: 0.085, wheelMultiplier: 0.95 }) as unknown as typeof lenis;
+      lenis = new Lenis({ lerp: 0.09, wheelMultiplier: 0.95 }) as unknown as typeof lenis;
       const loop = (t: number) => {
         lenis?.raf(t);
         raf = requestAnimationFrame(loop);
@@ -72,12 +71,21 @@ function Lines({ lines, className, as: As = "h1" }: { lines: string[]; className
     <As className={cn("reveal-lines", className)}>
       {lines.map((l, i) => (
         <span key={i} className="line-mask">
-          <span style={{ transitionDelay: `${120 + i * 110}ms` }}>{l}</span>
+          <span style={{ transitionDelay: `${100 + i * 110}ms` }}>{l}</span>
         </span>
       ))}
     </As>
   );
 }
+
+const STEPS = [
+  { n: "01", icon: MapIcon, t: "Map the market", d: "Type any business and any place. Real competitors and real population load on a 3D map in seconds." },
+  { n: "02", icon: Footprints, t: "Check the street", d: "Maps miss informal shops and real prices. A researcher from your industry walks the area and records what is true." },
+  { n: "03", icon: Users, t: "Let 10,000 people decide", d: "Synthetic customers with real budgets and travel times choose you, a rival, or nothing — every day for 12 weeks." },
+  { n: "04", icon: Scale, t: "Decide with a range", d: "Bad month, typical month, good month. Break-even, chance of a loss, and what could make the answer wrong." },
+];
+
+const TICKER = ["Real competitors", "10,000 agents", "615 parameters each", "Field-verified ground data", "Profit range", "Break-even", "Best site", "Hinglish voice analyst"];
 
 export default function Landing() {
   const router = useRouter();
@@ -89,7 +97,6 @@ export default function Landing() {
   const [chapter, setChapter] = useState(0);
   const [busy, setBusy] = useState<null | "live" | "new">(null);
   const [goErr, setGoErr] = useState<string | null>(null);
-  const [now, setNow] = useState<number>(() => Date.now());
   useReveal();
   useLenis();
 
@@ -112,19 +119,15 @@ export default function Landing() {
   useEffect(() => {
     void load();
   }, [load]);
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 15_000);
-    return () => clearInterval(id);
-  }, []);
 
-  // scroll chapters drive the camera
+  // dark sections drive the camera of the city behind the page
   const chapters = useRef<HTMLElement[]>([]);
   useEffect(() => {
     const io = new IntersectionObserver(
       (es) => {
         for (const e of es) if (e.isIntersecting) setChapter(Number((e.target as HTMLElement).dataset.chapter || 0));
       },
-      { threshold: 0.45 },
+      { threshold: 0.4 },
     );
     chapters.current.forEach((c) => c && io.observe(c));
     return () => io.disconnect();
@@ -154,29 +157,28 @@ export default function Landing() {
   }
 
   const comps = preview && preview.spot.key === spot.key ? preview.competitors : [];
-  const agoMin = preview ? Math.max(0, Math.round((now - new Date(preview.source.retrieved_at).getTime()) / 60000)) : null;
   const catLabel = CATS.find((c) => c.key === cat)?.label.toLowerCase() || "businesses";
 
   return (
     <div className="relative bg-ink-950 text-ink-100">
-      {/* the city stays pinned behind every chapter */}
       <div className="fixed inset-0 z-0">
         <HeroMap spot={spot} comps={comps} chapter={chapter} showTrips={chapter >= 1 || !loading} />
       </div>
 
-      <header className="fixed inset-x-0 top-0 z-40">
-        <nav className="mx-auto flex h-20 max-w-[1400px] items-center justify-between px-5 md:px-10">
+      {/* ---------------- nav ---------------- */}
+      <header className="fixed inset-x-0 top-0 z-40 border-b border-white/[0.06] bg-ink-950/55 backdrop-blur-xl">
+        <nav className="mx-auto flex h-16 max-w-[1440px] items-center justify-between px-5 md:px-10">
           <Logo />
-          <div className="hidden items-center gap-8 text-[13.5px] text-ink-300 md:flex">
-            <a href="#real" className="transition-colors hover:text-ink-100">The data</a>
-            <a href="#agents" className="transition-colors hover:text-ink-100">The simulation</a>
-            <a href="#voice" className="transition-colors hover:text-ink-100">Voice analyst</a>
-            <Link href="/methodology" className="transition-colors hover:text-ink-100">Methodology</Link>
+          <div className="hidden items-center gap-8 font-mono text-[11.5px] uppercase tracking-wide text-ink-300 md:flex">
+            <a href="#how" className="transition-colors hover:text-ink-100"><span className="text-ink-500">01.</span> How it works</a>
+            <a href="#field" className="transition-colors hover:text-ink-100"><span className="text-ink-500">02.</span> Field research</a>
+            <a href="#trust" className="transition-colors hover:text-ink-100"><span className="text-ink-500">03.</span> Honesty</a>
+            <Link href="/methodology" className="transition-colors hover:text-ink-100"><span className="text-ink-500">04.</span> Methodology</Link>
           </div>
           <div className="flex items-center gap-2">
-            <Link href="/sign-in" className="hidden px-3 py-2 text-[13.5px] text-ink-200 hover:text-ink-100 sm:block">Sign in</Link>
-            <button onClick={() => go("new")} className="inline-flex h-10 items-center gap-1.5 rounded-full bg-ink-100 px-5 text-[13.5px] font-medium text-ink-950 transition-colors hover:bg-white">
-              {busy === "new" ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Start a simulation
+            <Link href="/sign-in" className="hidden px-3 py-2 text-[13.5px] text-ink-300 hover:text-ink-100 sm:block">Sign in</Link>
+            <button onClick={() => go("new")} className="sheen inline-flex h-9 items-center gap-1.5 bg-accent px-4 font-mono text-[11.5px] font-medium uppercase tracking-wide text-white transition-colors hover:bg-[#6580ff]">
+              {busy === "new" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null} Start free
             </button>
           </div>
         </nav>
@@ -184,218 +186,199 @@ export default function Landing() {
 
       <main className="relative z-10">
         {/* ---------------- hero ---------------- */}
-        <section ref={reg(0)} data-chapter={0} className="relative flex min-h-[100svh] flex-col justify-end px-5 pb-10 pt-28 md:px-10 md:pb-14">
-          <div className="mx-auto grid w-full max-w-[1400px] items-end gap-10 lg:grid-cols-[1.35fr_0.65fr]">
+        <section ref={reg(0)} data-chapter={0} className="relative flex min-h-[100svh] flex-col justify-end px-5 pb-10 pt-28 md:px-10 md:pb-12">
+          <div className="mx-auto grid w-full max-w-[1440px] items-end gap-10 lg:grid-cols-[1fr_360px]">
             <div>
-              <p data-reveal className="mb-6 flex items-center gap-3 text-[13px] text-ink-300">
-                <span className="font-deva text-base text-accent" lang="hi">बाज़ार</span>
-                Market simulation for India&apos;s small businesses
+              <p data-reveal className="idx mb-6 flex items-center gap-3 uppercase">
+                <span className="h-px w-8 bg-accent" /> Market simulation for India&apos;s small businesses
               </p>
-              <Lines
-                lines={["Every street", "is a market.", "Test yours first."]}
-                className="font-display text-[clamp(3.2rem,9.2vw,9.5rem)] font-semibold leading-[0.9] tracking-[-0.05em]"
-              />
-              <p data-reveal style={{ transitionDelay: "450ms" }} className="mt-8 max-w-[34rem] text-[17px] leading-[1.6] text-ink-200">
-                Pick any business and any place. StrataIQ pulls the real competitors and population around it, lets ten thousand simulated
-                customers choose, and shows profit, risk and break-even before you sign a lease.
-              </p>
-              <div data-reveal style={{ transitionDelay: "560ms" }} className="mt-9 flex flex-wrap items-center gap-3">
-                <button onClick={() => go("live")} className="group inline-flex h-14 items-center gap-3 rounded-full bg-accent pl-7 pr-2 text-[15px] font-semibold text-ink-950 shadow-[0_20px_60px_-15px_rgba(255,159,46,.8)] transition-transform hover:-translate-y-0.5">
+              <Lines lines={["Test the street", "before the lease."]} className="mega text-[clamp(3rem,9.6vw,10.5rem)]" />
+              <div className="mt-8 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+                <p data-reveal style={{ transitionDelay: "420ms" }} className="max-w-[30rem] text-[17px] leading-[1.55] text-ink-200">
+                  Pick any business and any place. See the real competitors, the people who live there, and what 10,000 simulated customers would do — before you invest.
+                </p>
+              </div>
+              <div data-reveal style={{ transitionDelay: "520ms" }} className="mt-8 flex flex-wrap items-center gap-3">
+                <button onClick={() => go("live")} className="sheen group inline-flex h-14 items-center gap-3 bg-accent pl-6 pr-2 text-[15px] font-medium text-white shadow-[0_20px_60px_-18px_rgba(79,108,255,.9)] transition-colors hover:bg-[#6580ff]">
                   {busy === "live" ? "Opening the live market…" : "Open the live demo"}
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-ink-950 text-accent transition-transform duration-500 group-hover:rotate-45">
+                  <span className="flex h-10 w-10 items-center justify-center bg-white text-accent transition-transform duration-500 group-hover:rotate-45">
                     {busy === "live" ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUpRight className="h-4 w-4" />}
                   </span>
                 </button>
-                <button onClick={() => go("new")} className="inline-flex h-14 items-center rounded-full border border-white/15 bg-ink-950/40 px-7 text-[15px] text-ink-100 backdrop-blur-md transition-colors hover:border-white/30">
-                  Test my own idea
+                <button onClick={() => go("new")} className="inline-flex h-14 items-center gap-2 border border-white/20 bg-ink-950/40 px-6 text-[15px] text-ink-100 backdrop-blur-md transition-colors hover:border-white/40">
+                  Test my own idea <ArrowRight className="h-4 w-4" />
                 </button>
-                <span className="flex items-center gap-2 pl-2 text-[13px] text-ink-400"><Mic className="h-3.5 w-3.5 text-accent" /> or press V and just ask</span>
+                <span className="flex items-center gap-2 pl-1 text-[13px] text-ink-400"><Mic className="h-3.5 w-3.5 text-accent" /> or press V and just ask</span>
               </div>
-              <p data-reveal style={{ transitionDelay: "640ms" }} className="mt-4 text-[13px] text-ink-400">
-                Live demo opens a {["cafe", "pizza", "gym"].includes(cat) ? (cat === "cafe" ? "specialty café" : cat === "pizza" ? "pizza outlet" : "gym") : "specialty café"} in {spot.label.split(",")[0]} with real competitors. Change the business or city in the panel.
-              </p>
               {goErr && <p className="mt-4 text-sm text-warn">{goErr}</p>}
             </div>
 
-            {/* live instrument: the one thing on this page that is fetched right now */}
-            <aside data-reveal style={{ transitionDelay: "700ms" }} className="panel w-full rounded-[28px] p-5 lg:mb-2">
-              <div className="flex items-center justify-between text-[12px] text-ink-400">
+            {/* the one live number on this page */}
+            <aside data-reveal style={{ transitionDelay: "650ms" }} className="panel w-full rounded-xl p-5">
+              <div className="flex items-center justify-between font-mono text-[10.5px] uppercase tracking-wide text-ink-400">
                 <span className="flex items-center gap-2">
                   <span className="relative flex h-2 w-2">
-                    <span className={cn("absolute inline-flex h-full w-full rounded-full opacity-75", loading ? "animate-ping bg-warn" : loadErr ? "bg-danger" : "animate-ping bg-model")} />
-                    <span className={cn("relative inline-flex h-2 w-2 rounded-full", loading ? "bg-warn" : loadErr ? "bg-danger" : "bg-model")} />
+                    <span className={cn("absolute inline-flex h-full w-full rounded-full opacity-75", loading ? "animate-ping bg-warn" : loadErr ? "bg-danger" : "animate-ping bg-ok")} />
+                    <span className={cn("relative inline-flex h-2 w-2 rounded-full", loading ? "bg-warn" : loadErr ? "bg-danger" : "bg-ok")} />
                   </span>
-                  {loading ? "Fetching live places" : loadErr ? "Live data unavailable" : "Live · OpenStreetMap + Foursquare"}
+                  {loading ? "Fetching live" : loadErr ? "Offline" : "Live now"}
                 </span>
-                <span className="coord">{spot.lat.toFixed(4)}°N {spot.lng.toFixed(4)}°E</span>
+                <span>{spot.label.split(",")[0]}</span>
               </div>
               <div className="mt-4 flex items-end gap-3">
-                <span className="num font-display text-[64px] font-semibold leading-none tracking-tight">{loading ? "—" : loadErr ? "?" : comps.length}</span>
-                <span className="pb-2 text-[14px] leading-snug text-ink-300">
-                  {catLabel} mapped within {((preview?.radius_m || 1600) / 1000).toFixed(1)} km of <span className="text-ink-100">{spot.label.split(",")[0]}</span>
-                </span>
+                <span className="num font-display text-[64px] font-medium leading-none tracking-[-0.05em]">{loading ? "—" : loadErr ? "?" : comps.length}</span>
+                <span className="pb-2 text-[13.5px] leading-snug text-ink-300">real {catLabel} within {((preview?.radius_m || 1600) / 1000).toFixed(1)} km</span>
               </div>
-              {loadErr ? (
-                <button onClick={() => void load()} className="mt-3 inline-flex items-center gap-1.5 text-xs text-ink-300 hover:text-ink-100">
+              {loadErr && (
+                <button onClick={() => void load()} className="mt-2 inline-flex items-center gap-1.5 text-xs text-ink-300 hover:text-ink-100">
                   <RefreshCw className="h-3.5 w-3.5" /> {loadErr}. Retry
                 </button>
-              ) : (
-                <div className="mt-3 line-clamp-1 text-xs text-ink-400">
-                  {comps.slice(0, 4).map((c) => c.name).filter((n) => n !== "Unnamed").join(", ") || (loading ? "Querying Overpass mirrors…" : "")}
-                </div>
               )}
               <div className="mt-5 flex flex-wrap gap-1.5">
                 {CATS.map((c) => (
-                  <button key={c.key} onClick={() => setCat(c.key)} className={cn("rounded-full px-3 py-1.5 text-[12px] transition-colors", cat === c.key ? "bg-ink-100 text-ink-950" : "bg-white/[0.05] text-ink-300 hover:text-ink-100")}>
+                  <button key={c.key} onClick={() => setCat(c.key)} className={cn("h-8 rounded-md px-3 text-[12px] transition-colors", cat === c.key ? "bg-ink-100 text-ink-950" : "bg-white/[0.05] text-ink-300 hover:text-ink-100")}>
                     {c.label}
                   </button>
                 ))}
               </div>
-              <div className="mt-2 flex flex-wrap gap-1.5">
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
                 {SPOTS.map((s) => (
-                  <button key={s.key} onClick={() => setSpot(s)} className={cn("rounded-full border px-3 py-1.5 text-[12px] transition-colors", spot.key === s.key ? "border-accent/60 text-ink-100" : "border-white/10 text-ink-400 hover:text-ink-100")}>
+                  <button key={s.key} onClick={() => setSpot(s)} className={cn("h-8 rounded-md border px-3 text-[12px] transition-colors", spot.key === s.key ? "border-accent text-ink-100" : "border-white/10 text-ink-400 hover:text-ink-100")}>
                     {s.label.split(",")[1]?.trim() || s.label}
                   </button>
                 ))}
               </div>
               <p className="mt-4 border-t border-white/[0.06] pt-3 text-[11px] leading-relaxed text-ink-500">
-                Blue pillars are real {catLabel} from OpenStreetMap and Foursquare Places{agoMin !== null && !loadErr ? `, retrieved ${agoMin === 0 ? "just now" : `${agoMin} min ago`}${preview?.source.from_cache ? " (cached)" : ""}` : ""}. Moving dots are simulated people, not real individuals.
+                <span className="text-observed">Amber</span> pillars: real shops from OpenStreetMap + Foursquare. <span className="text-[#9fb0ff]">Blue</span>: your site. Moving dots are simulated people.
               </p>
             </aside>
           </div>
         </section>
 
-        {/* ---------------- the data is real ---------------- */}
-        <section id="real" ref={reg(1)} data-chapter={1} className="relative flex min-h-[110vh] items-center px-5 md:px-10">
-          <div aria-hidden className="pointer-events-none absolute inset-y-0 left-0 w-full bg-gradient-to-r from-ink-950/90 via-ink-950/60 to-transparent md:w-[62%]" />
-          <div className="relative mx-auto w-full max-w-[1400px]">
-            <div className="max-w-xl">
-              <Lines as="h2" lines={["The map", "isn't a mock-up."]} className="font-display text-[clamp(2.6rem,6vw,5.6rem)] font-semibold leading-[0.95] tracking-[-0.045em]" />
-              <p data-reveal className="mt-7 text-[17px] leading-[1.65] text-ink-200">
-                Every building you see is an OpenStreetMap footprint, extruded to its mapped height. Competitors are queried live for the exact
-                category you type. Population comes from WorldPop&apos;s 100-metre grid and is spread across real buildings.
-              </p>
-              <dl data-reveal className="mt-10 grid grid-cols-2 gap-x-8 gap-y-6 border-t border-white/10 pt-8">
-                {[
-                  ["Competitors", "OpenStreetMap (racing Overpass mirrors + Photon) merged with Foursquare Places; a shop found in both is counted once."],
-                  ["Population", "WorldPop, constrained to mapped buildings inside your catchment."],
-                  ["Spending power", "MoSPI's HCES 2023-24 consumption curves for your state, rural or urban, placed tile by tile with Meta's Relative Wealth Index."],
-                  ["Distance", "Real road routes from every neighbourhood to every shop, walking and driving (OSRM on OpenStreetMap roads)."],
-                  ["Every value", "Tagged observed, user-entered, assumed or modeled — on screen, in reports, in the voice answers."],
-                  ["Gaps", "Unmapped shops are flagged, and you can add the ones you see on the street."],
-                ].map(([t, d]) => (
-                  <div key={t}>
-                    <dt className="font-display text-[15px] font-semibold">{t}</dt>
-                    <dd className="mt-1.5 text-[14px] leading-relaxed text-ink-300">{d}</dd>
-                  </div>
+        {/* ---------------- ticker ---------------- */}
+        <div className="relative overflow-hidden border-y border-white/10 bg-accent py-3.5">
+          <div className="ticker">
+            {[0, 1].map((k) => (
+              <div key={k} className="flex shrink-0 items-center" aria-hidden={k === 1}>
+                {TICKER.map((t) => (
+                  <span key={t} className="flex items-center gap-6 px-6 font-mono text-[13px] uppercase tracking-wide text-white">
+                    {t} <span className="h-1.5 w-1.5 bg-white/70" />
+                  </span>
                 ))}
-              </dl>
-            </div>
-          </div>
-        </section>
-
-        {/* ---------------- agents ---------------- */}
-        <section id="agents" ref={reg(2)} data-chapter={2} className="relative flex min-h-[110vh] items-center px-5 md:px-10">
-          <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 w-full bg-gradient-to-l from-ink-950/90 via-ink-950/60 to-transparent md:w-[62%]" />
-          <div className="relative mx-auto flex w-full max-w-[1400px] justify-end">
-            <div className="max-w-xl">
-              <Lines as="h2" lines={["Ten thousand", "people decide."]} className="font-display text-[clamp(2.6rem,6vw,5.6rem)] font-semibold leading-[0.95] tracking-[-0.045em]" />
-              <p data-reveal className="mt-7 text-[17px] leading-[1.65] text-ink-200">
-                Synthetic customers are placed at real population density, each with a 615-parameter profile. Their spending power follows the
-                area&apos;s real rich/poor mix from official survey data, so willingness to pay does too. For 84 simulated days they choose between
-                you, every competitor, or not buying at all.
-              </p>
-              <div data-reveal className="panel mt-10 rounded-3xl p-6">
-                <div className="grid grid-cols-3 gap-4">
-                  {[
-                    ["10,000", "agents per run"],
-                    ["615", "parameters each"],
-                    ["84", "simulated days"],
-                  ].map(([n, l]) => (
-                    <div key={l}>
-                      <div className="num font-display text-[34px] font-semibold tracking-tight">{n}</div>
-                      <div className="mt-1 text-xs text-ink-400">{l}</div>
-                    </div>
-                  ))}
-                </div>
-                <p className="mt-5 border-t border-white/[0.06] pt-4 text-[13px] leading-relaxed text-ink-300">
-                  Click any agent in the app to X-ray why it chose a competitor: price, travel, opening hours, down to the single parameter.
-                </p>
               </div>
-            </div>
+            ))}
           </div>
-        </section>
+        </div>
 
-        {/* ---------------- decision ---------------- */}
-        <section ref={reg(3)} data-chapter={3} className="relative flex min-h-[110vh] items-center px-5 md:px-10">
-          <div aria-hidden className="pointer-events-none absolute inset-y-0 left-0 w-full bg-gradient-to-r from-ink-950/90 via-ink-950/60 to-transparent md:w-[62%]" />
-          <div className="relative mx-auto w-full max-w-[1400px]">
-            <div className="max-w-xl">
-              <Lines as="h2" lines={["A range,", "not a promise."]} className="font-display text-[clamp(2.6rem,6vw,5.6rem)] font-semibold leading-[0.95] tracking-[-0.045em]" />
-              <p data-reveal className="mt-7 text-[17px] leading-[1.65] text-ink-200">
-                Eight hundred uncertainty runs turn into a bad month, a typical month and a good month, the chance of losing money, and the
-                customers you need to break even. Change the price, the rent or the site and the engine runs again.
-              </p>
-              <ProfitRange />
-            </div>
-          </div>
-        </section>
-
-        {/* ---------------- voice ---------------- */}
-        <section id="voice" ref={reg(4)} data-chapter={4} className="relative flex min-h-[110vh] items-center px-5 md:px-10">
-          <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 w-full bg-gradient-to-l from-ink-950/90 via-ink-950/60 to-transparent md:w-[62%]" />
-          <div className="relative mx-auto flex w-full max-w-[1400px] justify-end">
-            <div className="max-w-xl">
-              <Lines as="h2" lines={["Ask it out loud,", "in Hinglish."]} className="font-display text-[clamp(2.6rem,6vw,5.6rem)] font-semibold leading-[0.95] tracking-[-0.045em]" />
-              <p data-reveal className="mt-7 text-[17px] leading-[1.65] text-ink-200">
-                Strata keeps listening while you explore. It reads the live project, runs what-if prices through the real engine, and answers
-                with the model&apos;s numbers — never its own guesses.
-              </p>
-              <div data-reveal className="mt-10 space-y-3 text-[15px]">
-                <div className="ml-auto w-fit max-w-[85%] rounded-3xl rounded-br-md bg-white/[0.08] px-5 py-3 backdrop-blur-md">Kitne gyms hain paas mein?</div>
-                <div className="w-fit max-w-[90%] rounded-3xl rounded-bl-md bg-accent/15 px-5 py-3 ring-1 ring-accent/30 backdrop-blur-md">
-                  I&apos;m reading the live project… the nearest competitors come straight from OpenStreetMap and Foursquare, and I&apos;ll tell you which one the simulation says is strongest.
-                </div>
-                <div className="ml-auto w-fit max-w-[85%] rounded-3xl rounded-br-md bg-white/[0.08] px-5 py-3 backdrop-blur-md">What if I charge fifteen hundred?</div>
+        {/* ---------------- how it works (paper) ---------------- */}
+        <section id="how" className="paper relative px-5 py-24 md:px-10 md:py-32">
+          <div className="mx-auto max-w-[1440px]">
+            <div className="grid gap-8 md:grid-cols-[1fr_1fr] md:items-end">
+              <div>
+                <p className="font-mono text-[12px] text-black/50">01/</p>
+                <Lines as="h2" lines={["Four steps.", "No consultant."]} className="mega mt-3 text-[clamp(2.6rem,6.4vw,6.4rem)] text-[#111216]" />
               </div>
-              <p data-reveal className="mt-6 text-[13px] text-ink-400">Press <kbd className="rounded-md border border-white/15 px-1.5 py-0.5 text-ink-200">V</kbd> anywhere to talk. Works on English and Hindi speech.</p>
+              <p data-reveal className="max-w-md text-[17px] leading-relaxed text-black/60 md:justify-self-end">
+                What used to take a market-research firm weeks, in one guided flow. Every number says where it came from.
+              </p>
             </div>
+            <div className="mt-16 grid border-t border-black/15 md:grid-cols-4">
+              {STEPS.map((s, i) => (
+                <div key={s.n} data-reveal style={{ transitionDelay: `${i * 90}ms` }} className="group border-b border-black/15 py-8 md:border-b-0 md:border-r md:px-6 md:first:pl-0 md:last:border-r-0">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-[12px] text-black/45">{s.n}/</span>
+                    <s.icon className={cn("h-5 w-5 transition-transform duration-500 group-hover:-translate-y-0.5", i === 1 ? "text-[#5a7a00]" : "text-accent")} />
+                  </div>
+                  <h3 className="mt-10 text-[22px] font-medium leading-tight tracking-[-0.03em] text-[#111216]">{s.t}</h3>
+                  <p className="mt-3 text-[14.5px] leading-relaxed text-black/60">{s.d}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ---------------- field research ---------------- */}
+        <section id="field" ref={reg(1)} data-chapter={1} className="relative flex min-h-[100vh] items-center px-5 py-24 md:px-10">
+          <div aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-r from-ink-950 via-ink-950/85 to-ink-950/30" />
+          <div className="relative mx-auto grid w-full max-w-[1440px] items-center gap-14 lg:grid-cols-[1.1fr_0.9fr]">
+            <div>
+              <p className="idx">02/ GROUND TRUTH</p>
+              <Lines as="h2" lines={["When the map", "runs out, we", "walk the street."]} className="mega mt-4 text-[clamp(2.6rem,6vw,6rem)]" />
+              <p data-reveal className="mt-8 max-w-lg text-[17px] leading-[1.6] text-ink-300">
+                No data for your area? Request a field researcher from <span className="text-ink-100">your own industry</span> — a gym trainer for a gym, a chef for a café. They open a link on their phone, interview people, visit every rival and count footfall. The 10,000 agents re-run on what they find.
+              </p>
+              <ul data-reveal className="mt-10 grid max-w-lg grid-cols-2 gap-px overflow-hidden rounded-lg border border-white/10 bg-white/10">
+                {[
+                  [MessageSquareText, "Street interviews", "who buys, how often, the most they'd pay"],
+                  [Store, "Every rival visited", "real prices, quality, unmapped shops"],
+                  [Footprints, "Footfall counts", "a tap counter at your site"],
+                  [Users, "Agents re-run", "on field-verified parameters"],
+                ].map(([I, t, d]) => {
+                  const Icon = I as typeof Store;
+                  return (
+                    <li key={t as string} className="bg-ink-950 p-4">
+                      <Icon className="h-4 w-4 text-field" />
+                      <div className="mt-3 text-sm font-medium">{t as string}</div>
+                      <div className="mt-1 text-[12.5px] text-ink-400">{d as string}</div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+            <PhoneMock />
+          </div>
+        </section>
+
+        {/* ---------------- numbers ---------------- */}
+        <section ref={reg(2)} data-chapter={2} className="relative border-y border-white/10 bg-ink-950/90 px-5 py-20 backdrop-blur-sm md:px-10">
+          <div className="mx-auto grid max-w-[1440px] gap-10 md:grid-cols-4">
+            {[
+              ["10,000", "synthetic customers per run, placed at real population density"],
+              ["615", "parameters per customer — budget, travel, time, taste"],
+              ["84", "simulated days of choices: you, a rival, or nothing"],
+              ["800", "uncertainty runs turned into a bad, typical and good month"],
+            ].map(([n, l], i) => (
+              <div key={n} data-reveal style={{ transitionDelay: `${i * 80}ms` }}>
+                <div className="num font-display text-[clamp(3rem,5vw,4.6rem)] font-medium leading-none tracking-[-0.05em]">{n}</div>
+                <p className="mt-3 max-w-[16rem] text-[14px] leading-relaxed text-ink-400">{l}</p>
+              </div>
+            ))}
           </div>
         </section>
 
         {/* ---------------- honesty + CTA ---------------- */}
-        <section className="relative bg-gradient-to-b from-transparent via-ink-950/95 to-ink-950 px-5 pb-16 pt-40 md:px-10">
-          <div className="mx-auto max-w-[1400px]">
-            <div className="grid gap-12 border-t border-white/10 pt-14 lg:grid-cols-2">
+        <section id="trust" ref={reg(3)} data-chapter={3} className="relative bg-gradient-to-b from-ink-950/70 via-ink-950 to-ink-950 px-5 pb-12 pt-28 md:px-10">
+          <div className="mx-auto max-w-[1440px]">
+            <div className="grid gap-12 lg:grid-cols-2">
               <div>
-                <h2 data-reveal className="font-display text-[clamp(2rem,4vw,3.4rem)] font-semibold leading-[1] tracking-[-0.04em]">What StrataIQ won&apos;t pretend.</h2>
-                <p data-reveal className="mt-5 max-w-md text-[15px] leading-relaxed text-ink-300">
-                  A tool that helps people risk their savings has to be honest about its limits. These are on every result screen too.
-                </p>
+                <p className="idx">03/ HONESTY</p>
+                <h2 data-reveal className="font-display mt-4 text-[clamp(2rem,4vw,3.4rem)] font-medium leading-[1] tracking-[-0.045em]">What StrataIQ won&apos;t pretend.</h2>
               </div>
               <ul className="divide-y divide-white/10 border-y border-white/10">
                 {[
-                  "It doesn't know every shop. Informal businesses are often unmapped, so the gaps are shown and you can add what you see.",
-                  "Synthetic agents are not real people. They are a computational sample drawn from aggregate population data.",
+                  "It doesn't know every shop. Gaps are shown, and a field researcher can fill them.",
+                  "Synthetic agents are not real people — they are a sample drawn from official aggregate data.",
                   "No accuracy percentage is advertised, because none has been measured on real outcomes yet.",
-                  "Forecasts are conditional estimates, never a guarantee of profit or a substitute for financial advice.",
-                ].map((t) => (
-                  <li key={t} data-reveal className="py-5 text-[15px] leading-relaxed text-ink-200">{t}</li>
+                  "A forecast is a range, never a guarantee of profit or a substitute for financial advice.",
+                ].map((t, i) => (
+                  <li key={t} data-reveal className="flex gap-5 py-5 text-[15px] leading-relaxed text-ink-200">
+                    <span className="idx pt-0.5">0{i + 1}</span> {t}
+                  </li>
                 ))}
               </ul>
             </div>
 
-            <div className="mt-28 flex flex-col items-start justify-between gap-8 md:flex-row md:items-end">
-              <Lines as="h2" lines={["Before the lease,", "run the market."]} className="font-display text-[clamp(2.8rem,7vw,7rem)] font-semibold leading-[0.92] tracking-[-0.05em]" />
-              <button onClick={() => go("live")} className="group inline-flex h-16 shrink-0 items-center gap-3 rounded-full bg-accent pl-8 pr-2 text-base font-semibold text-ink-950 transition-transform hover:-translate-y-0.5">
+            <div className="mt-32 flex flex-col items-start justify-between gap-10 md:flex-row md:items-end">
+              <Lines as="h2" lines={["Run the market", "first."]} className="mega text-[clamp(3rem,8.4vw,8.8rem)]" />
+              <button onClick={() => go("live")} className="sheen group inline-flex h-16 shrink-0 items-center gap-3 bg-accent pl-7 pr-2 text-base font-medium text-white transition-colors hover:bg-[#6580ff]">
                 Open the live demo
-                <span className="flex h-12 w-12 items-center justify-center rounded-full bg-ink-950 text-accent transition-transform duration-500 group-hover:rotate-45"><ArrowUpRight className="h-5 w-5" /></span>
+                <span className="flex h-12 w-12 items-center justify-center bg-white text-accent transition-transform duration-500 group-hover:rotate-45"><ArrowUpRight className="h-5 w-5" /></span>
               </button>
             </div>
 
             <footer className="mt-24 flex flex-col gap-4 border-t border-white/10 pt-6 text-xs text-ink-500 md:flex-row md:items-center md:justify-between">
               <Logo />
-              <p>Map data © OpenStreetMap contributors (ODbL) · Places © Foursquare · Population © WorldPop (CC BY 4.0) · Tiles © OpenFreeMap / OpenMapTiles · Voice by ElevenLabs</p>
+              <p className="max-w-2xl">Map data © OpenStreetMap contributors (ODbL) · Places © Foursquare · Population © WorldPop (CC BY 4.0) · Tiles © OpenFreeMap / OpenMapTiles · Voice by ElevenLabs</p>
               <Link href="/methodology" className="hover:text-ink-200">Methodology and limitations</Link>
             </footer>
           </div>
@@ -405,25 +388,38 @@ export default function Landing() {
   );
 }
 
-/** Shape-only illustration of how results are shown (no figures): a distribution with P10 / P50 / P90 markers. */
-function ProfitRange() {
-  const bars = Array.from({ length: 44 }, (_, i) => {
-    const x = (i - 21) / 8;
-    return Math.exp(-x * x * 0.9) * (1 + 0.18 * Math.sin(i * 1.7));
-  });
+/** Illustration of the field app (what the researcher sees on their phone). Not live data. */
+function PhoneMock() {
   return (
-    <figure data-reveal className="panel mt-10 rounded-3xl p-6">
-      <div className="flex h-36 items-end gap-[3px]">
-        {bars.map((h, i) => (
-          <span key={i} className={cn("flex-1 rounded-t-[3px]", i < 13 ? "bg-danger/70" : i > 30 ? "bg-model/80" : "bg-accent/85")} style={{ height: `${Math.max(4, h * 100)}%` }} />
-        ))}
+    <div data-reveal className="relative mx-auto w-full max-w-[340px]">
+      <div aria-hidden className="absolute -inset-16 rounded-full bg-field/10 blur-3xl" />
+      <div className="relative overflow-hidden rounded-[34px] border border-white/15 bg-ink-900 p-3 shadow-[0_40px_120px_-30px_rgba(0,0,0,.9)]">
+        <div className="rounded-[26px] border border-white/[0.06] bg-ink-950 p-5">
+          <div className="flex items-center justify-between font-mono text-[10px] uppercase text-ink-500">
+            <span>StrataIQ Field</span>
+            <span className="flex items-center gap-1.5 text-field"><span className="h-1.5 w-1.5 rounded-full bg-field" /> collecting</span>
+          </div>
+          <div className="mt-4 text-[17px] font-medium leading-tight tracking-tight">Gym · Sector 18</div>
+          <div className="mt-4 grid grid-cols-4 gap-1">
+            {["Interview", "Rival", "Footfall", "Rent"].map((t, i) => (
+              <div key={t} className={cn("rounded-md border py-2 text-center text-[10px]", i === 0 ? "border-white/25 bg-white/[0.07] text-ink-100" : "border-white/[0.06] text-ink-500")}>{t}</div>
+            ))}
+          </div>
+          <div className="mt-5 text-[12.5px] text-ink-200"><span className="idx mr-2">01</span>Do you go to a gym now?</div>
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            <div className="rounded-md bg-field py-2.5 text-center text-[13px] font-medium text-ink-950">Yes</div>
+            <div className="rounded-md border border-white/10 py-2.5 text-center text-[13px] text-ink-300">No</div>
+          </div>
+          <div className="mt-4 text-[12.5px] text-ink-200"><span className="idx mr-2">02</span>Most you&apos;d pay a month?</div>
+          <div className="mt-2 rounded-md border border-accent bg-white/[0.03] px-3 py-2.5 font-mono text-[13px] text-ink-100">₹ 1,500<span className="ml-0.5 inline-block h-3.5 w-px animate-pulse bg-accent align-middle" /></div>
+          <div className="mt-4 text-[12.5px] text-ink-200"><span className="idx mr-2">03</span>How far do you travel?</div>
+          <div className="mt-2 flex gap-1.5">
+            {["1 km", "2 km", "3 km", "5 km"].map((t, i) => <span key={t} className={cn("rounded-md border px-2.5 py-1.5 text-[11px]", i === 1 ? "border-accent bg-accent text-white" : "border-white/10 text-ink-400")}>{t}</span>)}
+          </div>
+          <div className="mt-5 rounded-md bg-accent py-3 text-center text-[13px] font-medium text-white">Save interview · 18/25</div>
+        </div>
       </div>
-      <div className="mt-3 flex justify-between text-[12px] text-ink-400">
-        <span>Bad month (P10)</span>
-        <span className="text-ink-200">Typical (P50)</span>
-        <span>Good month (P90)</span>
-      </div>
-      <figcaption className="mt-4 border-t border-white/[0.06] pt-3 text-[12px] text-ink-500">Shape for illustration only. Your project shows the computed distribution.</figcaption>
-    </figure>
+      <p className="mt-4 text-center font-mono text-[10.5px] uppercase text-ink-500">Illustration of the field app</p>
+    </div>
   );
 }

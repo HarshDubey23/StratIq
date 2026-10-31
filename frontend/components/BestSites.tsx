@@ -111,7 +111,7 @@ export function BestSites({ projectId, scenarioId, locationKey, onData, onFocus 
   const better = data.top.filter((t) => t.profit > c.profit);
   return (
     <div className="space-y-3 text-xs">
-      <div className="rounded-2xl border border-model/40 bg-model/[0.06] p-3">
+      <div className="rounded-xl border border-model/40 bg-model/[0.06] p-3">
         <div className="mb-1 flex items-center gap-1.5 font-medium text-ink-100"><Crosshair className="h-3.5 w-3.5 text-model" /> Where should you open?</div>
         <p className="leading-relaxed text-ink-300">
           I tested your exact plan at {num(data.candidates.length)} spots. {better.length
@@ -134,7 +134,7 @@ export function BestSites({ projectId, scenarioId, locationKey, onData, onFocus 
 function SiteRow({ title, s, unit, base, current, onFocus, action }: { title: string; s: Site; unit: string; base: Site; current?: boolean; onFocus: () => void; action?: React.ReactNode }) {
   const d = s.profit - base.profit;
   return (
-    <div className={cn("rounded-2xl border p-3", current ? "border-accent/40 bg-accent/[0.04]" : "border-white/[0.07] bg-white/[0.025]")}>
+    <div className={cn("rounded-xl border p-3", current ? "border-accent/40 bg-accent/[0.04]" : "border-white/[0.07] bg-white/[0.025]")}>
       <div className="mb-1.5 flex items-center gap-2">
         <MapPin className={cn("h-3.5 w-3.5", current ? "text-accent" : "text-model")} />
         <span className="font-medium text-ink-100">{title}</span>

@@ -11,7 +11,7 @@ export interface MapCompetitor {
   name: string;
   lat: number;
   lng: number;
-  kind: "osm" | "fsq" | "user" | "hypothetical" | "demo";
+  kind: "osm" | "fsq" | "user" | "hypothetical" | "demo" | "field";
   inactive?: boolean;
 }
 
@@ -137,15 +137,15 @@ export default function MapView(props: Props) {
         m.addSource("siq-activity", { type: "geojson", data: EMPTY });
         m.addSource("siq-agents", { type: "geojson", data: EMPTY });
         m.addSource("siq-comps", { type: "geojson", data: EMPTY });
-        m.addLayer({ id: "siq-catchment-fill", type: "fill", source: "siq-catchment", paint: { "fill-color": "#FF9F2E", "fill-opacity": 0.035 } });
-        m.addLayer({ id: "siq-catchment-line", type: "line", source: "siq-catchment", paint: { "line-color": "#FF9F2E", "line-width": 1.5, "line-dasharray": [2, 2], "line-opacity": 0.8 } });
+        m.addLayer({ id: "siq-catchment-fill", type: "fill", source: "siq-catchment", paint: { "fill-color": "#4F6CFF", "fill-opacity": 0.035 } });
+        m.addLayer({ id: "siq-catchment-line", type: "line", source: "siq-catchment", paint: { "line-color": "#4F6CFF", "line-width": 1.5, "line-dasharray": [2, 2], "line-opacity": 0.8 } });
         m.addLayer({
           id: "siq-zones",
           type: "circle",
           source: "siq-zones",
           paint: {
             "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 4, 14, 14, 16, 34],
-            "circle-color": ["interpolate", ["linear"], ["get", "v"], 0, "#0b1a24", 0.25, "#0e4f5e", 0.5, "#8A4B0F", 0.75, "#E0801C", 1, "#FFC27A"],
+            "circle-color": ["interpolate", ["linear"], ["get", "v"], 0, "#0b1a24", 0.25, "#0e4f5e", 0.5, "#22307A", 0.75, "#6E5BFF", 1, "#96A8FF"],
             "circle-opacity": 0.45,
             "circle-blur": 0.6,
           },
@@ -154,7 +154,7 @@ export default function MapView(props: Props) {
           id: "siq-activity",
           type: "circle",
           source: "siq-activity",
-          paint: { "circle-radius": 3, "circle-color": "#94a3b8", "circle-opacity": 0.8, "circle-stroke-color": "#080C15", "circle-stroke-width": 1 },
+          paint: { "circle-radius": 3, "circle-color": "#94a3b8", "circle-opacity": 0.8, "circle-stroke-color": "#0D0E12", "circle-stroke-width": 1 },
         });
         m.addLayer({
           id: "siq-agents",
@@ -183,7 +183,7 @@ export default function MapView(props: Props) {
           paint: {
             "circle-radius": 5.5,
             "circle-color": ["get", "c"],
-            "circle-stroke-color": ["case", ["boolean", ["get", "hyp"], false], "#ffffff", "#080C15"],
+            "circle-stroke-color": ["case", ["boolean", ["get", "hyp"], false], "#ffffff", "#0D0E12"],
             "circle-stroke-width": ["case", ["boolean", ["get", "hyp"], false], 2, 1.5],
             "circle-opacity": ["case", ["boolean", ["get", "off"], false], 0.35, 1],
           },
@@ -258,14 +258,14 @@ export default function MapView(props: Props) {
     const m = map.current;
     if (!ready || !m) return;
     const mode = props.agentColor || "red";
-    const color = (choice: number) => (mode === "red" ? "#FF4F64" : choice === 0 ? "#FF9F2E" : choice < 0 ? "#475569" : "#FF4F64");
+    const color = (choice: number) => (mode === "red" ? "#FF4D5E" : choice === 0 ? "#4F6CFF" : choice < 0 ? "#475569" : "#FF4D5E");
     (m.getSource("siq-agents") as GeoJSONSource).setData(fc((props.agents || []).map(([lat, lng, seg, ch]) => pt(lng, lat, { c: color(ch), s: seg, ch }))));
   }, [ready, props.agents, props.agentColor]);
 
   useEffect(() => {
     const m = map.current;
     if (!ready || !m) return;
-    const col = { osm: "#6F8CFF", fsq: "#6F8CFF", user: "#C59BFF", hypothetical: "#C59BFF", demo: "#fbbf24" };
+    const col = { osm: "#FFB547", fsq: "#FFB547", user: "#C59BFF", hypothetical: "#C59BFF", demo: "#fbbf24", field: "#D4FF3A" };
     (m.getSource("siq-comps") as GeoJSONSource).setData(
       fc(
         (props.competitors || []).map((c) =>
@@ -284,9 +284,9 @@ export default function MapView(props: Props) {
       d.type = "button";
       d.setAttribute("aria-label", `Candidate ${c.label}`);
       d.style.cssText = `display:flex;align-items:center;gap:6px;padding:3px 8px 3px 4px;border-radius:999px;font:600 11px Geist,sans-serif;cursor:pointer;
-        background:${c.active ? "#FF9F2E" : "#0C111C"};color:${c.active ? "#04060B" : "#ECEFF5"};border:1px solid ${c.active ? "#FFC27A" : "#39475F"};box-shadow:0 2px 10px rgba(0,0,0,.5)`;
+        background:${c.active ? "#4F6CFF" : "#121318"};color:${c.active ? "#08090B" : "#F4F3EF"};border:1px solid ${c.active ? "#96A8FF" : "#454957"};box-shadow:0 2px 10px rgba(0,0,0,.5)`;
       const dot = document.createElement("span");
-      dot.style.cssText = `width:10px;height:10px;border-radius:999px;background:${c.active ? "#04060B" : "#FF9F2E"}`;
+      dot.style.cssText = `width:10px;height:10px;border-radius:999px;background:${c.active ? "#08090B" : "#4F6CFF"}`;
       const t = document.createElement("span");
       t.textContent = c.label;
       d.append(dot, t);
@@ -336,17 +336,17 @@ export default function MapView(props: Props) {
         }),
       depth && L.competitors !== false &&
         new DL.ColumnLayer({
-          id: "comp-pillars", data: comps.map((c) => ({ ...c, tip: `${c.name || "Unnamed"} — ${c.kind === "osm" ? "observed in OpenStreetMap" : c.kind === "fsq" ? "observed in Foursquare Places" : c.kind === "user" ? "entered by you" : c.kind}${w[c.id] ? `\nmodeled ${Math.round(w[c.id])} customers/mo` : ""}` })),
+          id: "comp-pillars", data: comps.map((c) => ({ ...c, tip: `${c.name || "Unnamed"} — ${c.kind === "osm" ? "observed in OpenStreetMap" : c.kind === "fsq" ? "observed in Foursquare Places" : c.kind === "user" ? "entered by you" : c.kind === "field" ? "verified on the ground by a field researcher" : c.kind}${w[c.id] ? `\nmodeled ${Math.round(w[c.id])} customers/mo` : ""}` })),
           diskResolution: 24, radius: 24, extruded: true,
           getPosition: (c: MapCompetitor) => [c.lng, c.lat], getElevation: (c: MapCompetitor) => 120 + ((w[c.id] || 0) / wmax) * 520,
-          getFillColor: (c: MapCompetitor) => (c.kind === "osm" || c.kind === "fsq" ? [...C.comp, 235] : [...C.user, 235]) as [number, number, number, number],
+          getFillColor: (c: MapCompetitor) => (c.kind === "osm" || c.kind === "fsq" ? [...C.comp, 235] : c.kind === "field" ? [...C.field, 235] : [...C.user, 235]) as [number, number, number, number],
           pickable: true, onClick: (info: { object?: MapCompetitor }) => { if (info.object) handlers.current.onCompetitorClick?.(info.object.id); },
           transitions: { getElevation: { duration: 900 } }, updateTriggers: { getElevation: [wmax, Object.keys(w).length] },
         }),
       depth && L.competitors !== false &&
         new DL.ScatterplotLayer({
           id: "comp-glow", data: comps, getPosition: (c: MapCompetitor) => [c.lng, c.lat], getRadius: 70, radiusUnits: "meters",
-          getFillColor: (c: MapCompetitor) => (c.kind === "osm" || c.kind === "fsq" ? [...C.comp, 55] : [...C.user, 55]) as [number, number, number, number], stroked: false,
+          getFillColor: (c: MapCompetitor) => (c.kind === "osm" || c.kind === "fsq" ? [...C.comp, 55] : c.kind === "field" ? [...C.field, 55] : [...C.user, 55]) as [number, number, number, number], stroked: false,
         }),
       depth && L.competitors !== false &&
         new DL.TextLayer({

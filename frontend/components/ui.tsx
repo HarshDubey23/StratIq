@@ -11,14 +11,14 @@ export function cn(...a: Parameters<typeof clsx>) {
 
 type BtnVariant = "primary" | "secondary" | "ghost" | "danger";
 const btnBase =
-  "inline-flex items-center justify-center gap-2 rounded-full text-sm font-medium transition-[background,color,box-shadow,transform] duration-300 ease-out active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap";
+  "inline-flex items-center justify-center gap-2 rounded-lg text-sm font-medium tracking-[-0.01em] transition-[background,color,box-shadow,transform,border-color] duration-300 ease-out active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap";
 const btnVariants: Record<BtnVariant, string> = {
-  primary: "bg-accent text-ink-950 shadow-[0_0_0_1px_rgba(255,159,46,.4),0_10px_30px_-10px_rgba(255,159,46,.7)] hover:bg-[#ffb357] hover:shadow-[0_0_0_1px_rgba(255,179,87,.6),0_14px_40px_-10px_rgba(255,159,46,.9)]",
-  secondary: "border border-white/10 bg-white/[0.04] text-ink-100 hover:border-white/20 hover:bg-white/[0.08]",
-  ghost: "text-ink-200 hover:bg-white/[0.06] hover:text-ink-100",
-  danger: "border border-red-500/40 bg-red-500/10 text-red-300 hover:bg-red-500/20",
+  primary: "sheen bg-accent text-white shadow-[0_8px_30px_-10px_rgba(79,108,255,.75)] hover:bg-[#6580ff] hover:shadow-[0_12px_40px_-10px_rgba(79,108,255,.95)]",
+  secondary: "border border-white/10 bg-white/[0.035] text-ink-100 hover:border-white/20 hover:bg-white/[0.07]",
+  ghost: "text-ink-300 hover:bg-white/[0.06] hover:text-ink-100",
+  danger: "border border-danger/40 bg-danger/10 text-red-300 hover:bg-danger/20",
 };
-const btnSizes = { sm: "h-8 px-3.5 text-xs", md: "h-10 px-5", lg: "h-12 px-7 text-[15px]" };
+const btnSizes = { sm: "h-8 px-3 text-xs", md: "h-10 px-4.5", lg: "h-12 px-6 text-[15px]" };
 
 export function Button({
   variant = "secondary",
@@ -58,7 +58,7 @@ export function ButtonLink({
 
 export function Card({ className, children, ...rest }: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn("rounded-2xl border border-white/[0.07] bg-gradient-to-b from-ink-850 to-ink-900", className)} {...rest}>
+    <div className={cn("rounded-xl border border-white/[0.07] bg-ink-900/80", className)} {...rest}>
       {children}
     </div>
   );
@@ -66,9 +66,9 @@ export function Card({ className, children, ...rest }: React.HTMLAttributes<HTML
 
 export function CardHeader({ title, subtitle, right, className }: { title: React.ReactNode; subtitle?: React.ReactNode; right?: React.ReactNode; className?: string }) {
   return (
-    <div className={cn("flex items-start justify-between gap-3 border-b border-white/[0.06] px-5 py-4", className)}>
+    <div className={cn("flex items-start justify-between gap-3 border-b border-white/[0.06] px-5 py-3.5", className)}>
       <div className="min-w-0">
-        <h3 className="font-display text-[15px] font-semibold tracking-tight text-ink-100">{title}</h3>
+        <h3 className="font-display text-[15px] font-medium tracking-tight text-ink-100">{title}</h3>
         {subtitle && <p className="mt-0.5 text-xs text-ink-300">{subtitle}</p>}
       </div>
       {right}
@@ -77,7 +77,7 @@ export function CardHeader({ title, subtitle, right, className }: { title: React
 }
 
 /** Evidence-type label. Every number on screen should carry one of these. */
-export type EvidenceKind = "observed" | "user" | "assumption" | "model" | "demo" | "unknown" | "official" | "ai";
+export type EvidenceKind = "observed" | "user" | "assumption" | "model" | "demo" | "unknown" | "official" | "ai" | "field";
 const kindStyle: Record<EvidenceKind, string> = {
   observed: "border-observed/40 bg-observed/10 text-observed",
   user: "border-userdata/40 bg-userdata/10 text-userdata",
@@ -87,6 +87,7 @@ const kindStyle: Record<EvidenceKind, string> = {
   unknown: "border-ink-500 bg-ink-800 text-ink-300",
   official: "border-sky-400/40 bg-sky-400/10 text-sky-300",
   ai: "border-fuchsia-400/40 bg-fuchsia-400/10 text-fuchsia-300",
+  field: "border-field/50 bg-field/10 text-field",
 };
 const kindLabel: Record<EvidenceKind, string> = {
   observed: "Observed",
@@ -97,6 +98,7 @@ const kindLabel: Record<EvidenceKind, string> = {
   unknown: "Unknown",
   official: "Official est.",
   ai: "AI text",
+  field: "Field-verified",
 };
 const kindTitle: Record<EvidenceKind, string> = {
   observed: "Observed in a data source (e.g. OpenStreetMap)",
@@ -107,13 +109,14 @@ const kindTitle: Record<EvidenceKind, string> = {
   unknown: "Not available from any source",
   official: "Official modelled estimate (e.g. WorldPop)",
   ai: "Written by an AI model from the computed results",
+  field: "Collected on the ground by a StrataIQ field researcher",
 };
 
 export function Evidence({ kind, label, className, title }: { kind: EvidenceKind; label?: string; className?: string; title?: string }) {
   return (
     <span
       title={title ?? kindTitle[kind]}
-      className={cn("inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border px-2 py-px text-[10.5px] font-medium", kindStyle[kind], className)}
+      className={cn("inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md border px-1.5 py-px text-[10.5px] font-medium", kindStyle[kind], className)}
     >
       {label ?? kindLabel[kind]}
     </span>
@@ -124,6 +127,7 @@ export function statusToKind(status: string | null | undefined): EvidenceKind {
   if (!status) return "unknown";
   if (["user", "known"].includes(status)) return "user";
   if (status === "observed") return "observed";
+  if (status === "field") return "field";
   if (["official", "industry", "literature"].includes(status)) return "official";
   if (status.startsWith("derived")) return "model";
   if (status.startsWith("assum") || status === "assumed") return "assumption";
@@ -137,9 +141,9 @@ export function Badge({ children, tone = "neutral", className }: { children: Rea
     ok: "bg-emerald-500/10 text-emerald-300 border-emerald-500/30",
     warn: "bg-amber-500/10 text-amber-300 border-amber-500/30",
     danger: "bg-red-500/10 text-red-300 border-red-500/30",
-    accent: "bg-orange-400/10 text-orange-300 border-orange-400/30",
+    accent: "bg-accent/10 text-[#9fb0ff] border-accent/40",
   };
-  return <span className={cn("inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs", tones[tone], className)}>{children}</span>;
+  return <span className={cn("inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs", tones[tone], className)}>{children}</span>;
 }
 
 export function Field({
@@ -172,7 +176,7 @@ export function Field({
 }
 
 export const inputCls =
-  "h-10 w-full rounded-xl border border-white/10 bg-white/[0.03] px-3.5 text-sm text-ink-100 placeholder:text-ink-400 transition-colors focus:border-accent/70 focus:bg-white/[0.05] focus:outline-none";
+  "h-10 w-full rounded-lg border border-white/10 bg-white/[0.03] px-3.5 text-sm text-ink-100 placeholder:text-ink-500 transition-[border-color,background,box-shadow] focus:border-accent focus:bg-white/[0.05] focus:shadow-[0_0_0_3px_rgba(79,108,255,.18)] focus:outline-none";
 
 export function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return <input {...props} className={cn(inputCls, props.className)} />;
@@ -258,7 +262,7 @@ export function NumberInput({
 }
 
 export function Skeleton({ className }: { className?: string }) {
-  return <div className={cn("animate-pulse rounded-xl bg-white/[0.05]", className)} />;
+  return <div className={cn("animate-pulse rounded-lg bg-white/[0.05]", className)} />;
 }
 
 export function Spinner({ label }: { label?: string }) {
@@ -272,9 +276,9 @@ export function Spinner({ label }: { label?: string }) {
 
 export function EmptyState({ icon, title, body, action }: { icon?: React.ReactNode; title: string; body?: React.ReactNode; action?: React.ReactNode }) {
   return (
-    <div className="contours flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-white/10 px-6 py-14 text-center">
+    <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-white/10 px-6 py-14 text-center">
       {icon && <div className="text-ink-400">{icon}</div>}
-      <h3 className="font-display text-lg font-semibold text-ink-100">{title}</h3>
+      <h3 className="font-display text-lg font-medium text-ink-100">{title}</h3>
       {body && <p className="max-w-md text-sm text-ink-300">{body}</p>}
       {action}
     </div>
@@ -283,7 +287,7 @@ export function EmptyState({ icon, title, body, action }: { icon?: React.ReactNo
 
 export function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
-    <div className="flex items-start gap-3 rounded-2xl border border-red-500/30 bg-red-500/5 p-4 text-sm" role="alert">
+    <div className="flex items-start gap-3 rounded-xl border border-red-500/30 bg-red-500/5 p-4 text-sm" role="alert">
       <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-300" />
       <div className="flex-1 text-red-200">{message}</div>
       {onRetry && (
@@ -299,7 +303,7 @@ export function Notice({ tone = "info", children, className }: { tone?: "info" |
   return (
     <div
       className={cn(
-        "flex items-start gap-2.5 rounded-xl border p-3 text-xs leading-relaxed",
+        "flex items-start gap-2.5 rounded-lg border p-3 text-xs leading-relaxed",
         tone === "warn" ? "border-warn/30 bg-warn/[0.06] text-amber-100" : "border-white/[0.08] bg-white/[0.03] text-ink-200",
         className,
       )}
@@ -343,9 +347,9 @@ export function Dialog({ open, onClose, title, children, footer }: { open: boole
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm" onClick={onClose}>
-      <div role="dialog" aria-modal="true" aria-label={title} className="panel w-full max-w-md rounded-2xl" onClick={(e) => e.stopPropagation()}>
+      <div role="dialog" aria-modal="true" aria-label={title} className="panel rise w-full max-w-md rounded-xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between border-b border-white/[0.06] px-5 py-3.5">
-          <h2 className="font-display text-base font-semibold">{title}</h2>
+          <h2 className="font-display text-base font-medium">{title}</h2>
           <button onClick={onClose} aria-label="Close" className="text-ink-400 hover:text-ink-100">
             <X className="h-4 w-4" />
           </button>
@@ -375,14 +379,14 @@ export function Metric({
   className?: string;
 }) {
   return (
-    <div className={cn("rounded-2xl border border-white/[0.07] bg-white/[0.025] p-3.5", className)}>
+    <div className={cn("rounded-xl border border-white/[0.07] bg-white/[0.025] p-3.5", className)}>
       <div className="flex items-start justify-between gap-2">
         <span className="min-w-0 text-xs leading-tight text-ink-300">{label}</span>
         {kind && <Evidence kind={kind} className="-mr-1 -mt-0.5 scale-90" />}
       </div>
-      <div className="num font-display mt-2 text-[22px] font-semibold tracking-tight text-ink-100">{value}</div>
+      <div className="num font-display mt-2 text-[22px] font-medium tracking-tight text-ink-100">{value}</div>
       <div className="mt-0.5 flex items-center gap-2 text-xs">
-        {delta && <span className={cn("num", deltaGood === null || deltaGood === undefined ? "text-ink-300" : deltaGood ? "text-emerald-300" : "text-red-300")}>{delta}</span>}
+        {delta && <span className={cn("num", deltaGood === null || deltaGood === undefined ? "text-ink-300" : deltaGood ? "text-ok" : "text-red-300")}>{delta}</span>}
         {sub && <span className="text-ink-400">{sub}</span>}
       </div>
     </div>
@@ -391,14 +395,14 @@ export function Metric({
 
 export function Segmented<T extends string>({ value, options, onChange, className }: { value: T; options: { value: T; label: string }[]; onChange: (v: T) => void; className?: string }) {
   return (
-    <div role="radiogroup" className={cn("inline-flex rounded-full border border-white/10 bg-white/[0.03] p-0.5", className)}>
+    <div role="radiogroup" className={cn("inline-flex rounded-lg border border-white/10 bg-white/[0.03] p-0.5", className)}>
       {options.map((o) => (
         <button
           key={o.value}
           role="radio"
           aria-checked={value === o.value}
           onClick={() => onChange(o.value)}
-          className={cn("rounded-full px-3 py-1 text-xs transition-colors", value === o.value ? "bg-ink-100 text-ink-950" : "text-ink-300 hover:text-ink-100")}
+          className={cn("rounded-md px-3 py-1 text-xs transition-colors", value === o.value ? "bg-ink-100 text-ink-950" : "text-ink-300 hover:text-ink-100")}
         >
           {o.label}
         </button>

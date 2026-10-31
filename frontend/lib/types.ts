@@ -117,6 +117,77 @@ export interface Project {
   archetype?: Archetype;
   data_kinds?: { connected_sources: boolean; user_provided: boolean; demo: boolean; synthetic_estimates: boolean; user_competitors: boolean };
   snapshots?: Record<string, { id: string; retrieved_at: string; status: string } | null>;
+  field?: { records: number; status: FieldStatus | null };
+}
+
+// ---------------------------------------------------------------- field research
+export type FieldKind = "interview" | "competitor" | "footfall" | "rent";
+export type FieldStatus = "requested" | "in_field" | "submitted" | "closed";
+
+export interface FieldRequest {
+  id: string;
+  token?: string;
+  specialty: string;
+  researcher_name: string;
+  status: FieldStatus;
+  brief: string;
+  due_date: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FieldRecord {
+  id: string;
+  kind: FieldKind;
+  lat: number | null;
+  lng: number | null;
+  data: Record<string, unknown>;
+  collected_by: string;
+  competitor_id: string | null;
+  created_at: string;
+}
+
+export interface FieldTask {
+  kind: FieldKind;
+  target: number;
+  min: number;
+  title: string;
+  how: string;
+}
+
+export interface FieldParam {
+  value: number;
+  low: number;
+  high: number;
+  status: string;
+  source: string;
+}
+
+export interface FieldSummary {
+  params: Record<string, FieldParam>;
+  counts: Partial<Record<FieldKind, number>>;
+  interviews: { n: number; users: number; visits_per_month_mean: number | null; travel_km_p80: number | null; max_price_median: number | null; travel_modes: Record<string, number> };
+  footfall: { sessions: number; people_per_hour: number } | null;
+  rent: { quotes: number; median: number; min: number; max: number } | null;
+  competitor_prices: { n: number; median: number | null };
+  notes: string[];
+}
+
+export interface FieldPayload {
+  specialty: string;
+  request: FieldRequest | null;
+  records: FieldRecord[];
+  summary: FieldSummary;
+  checklist: FieldTask[];
+}
+
+export interface FieldBrief {
+  project: { name: string; category: string; price_label: string; unit_label: string };
+  location: { lat: number; lng: number; address: string; radius_km: number | null } | null;
+  request: Omit<FieldRequest, "token">;
+  checklist: FieldTask[];
+  counts: Partial<Record<FieldKind, number>>;
+  recent: FieldRecord[];
 }
 
 export interface Provenance {
@@ -160,7 +231,7 @@ export interface Snapshot {
 
 export interface CompetitorRec {
   id: string;
-  source: "osm" | "foursquare" | "user" | "demo";
+  source: "osm" | "foursquare" | "user" | "demo" | "field";
   source_ref: string | null;
   name: string;
   lat: number;

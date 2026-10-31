@@ -153,6 +153,34 @@ class ActualOutcome(TimestampMixin, Base):
     __table_args__ = (UniqueConstraint("project_id", "period", name="uq_outcome_period"),)
 
 
+class FieldRequest(TimestampMixin, Base):
+    """A request for a StrataIQ field researcher from the project's industry to collect ground data in the catchment."""
+    __tablename__ = "field_requests"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    project_id: Mapped[str] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), index=True, nullable=False)
+    token: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)  # researcher's no-login field link
+    specialty: Mapped[str] = mapped_column(String(160), nullable=False)  # industry the researcher must come from
+    researcher_name: Mapped[str] = mapped_column(String(120), default="", nullable=False)
+    status: Mapped[str] = mapped_column(String(20), default="requested", nullable=False)  # requested | in_field | submitted | closed
+    brief: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    due_date: Mapped[str | None] = mapped_column(String(10), nullable=True)  # YYYY-MM-DD
+
+
+class FieldRecord(Base):
+    """One observation collected on the ground (interview, competitor visit, footfall count, rent quote)."""
+    __tablename__ = "field_records"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    project_id: Mapped[str] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), index=True, nullable=False)
+    request_id: Mapped[str | None] = mapped_column(ForeignKey("field_requests.id", ondelete="SET NULL"), nullable=True)
+    kind: Mapped[str] = mapped_column(String(20), nullable=False)  # interview | competitor | footfall | rent
+    lat: Mapped[float | None] = mapped_column(Float, nullable=True)
+    lng: Mapped[float | None] = mapped_column(Float, nullable=True)
+    data: Mapped[dict] = mapped_column(JSONB, default=dict, nullable=False)
+    collected_by: Mapped[str] = mapped_column(String(120), default="", nullable=False)
+    competitor_id: Mapped[str | None] = mapped_column(ForeignKey("competitors.id", ondelete="SET NULL"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
+
+
 class Report(Base):
     __tablename__ = "reports"
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)

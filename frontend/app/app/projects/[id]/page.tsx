@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, CheckCircle2, Circle } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import MarketGlance from "@/components/MarketGlance";
 import { useProject } from "@/components/ProjectContext";
@@ -19,6 +19,7 @@ export default function Overview() {
   const alt = scen.length > 1;
   const steps = [
     { done: hasSnap, t: "Load live market evidence", href: `${base}/market` },
+    { done: (p.field?.records ?? 0) > 0, t: "Check the street with a field researcher", href: `${base}/field` },
     { done: ran, t: "Run the live market (10,000 agents)", href: `${base}/live` },
     { done: false, t: "X-ray agents & read the Market DNA", href: `${base}/genome` },
     { done: alt && scen.filter((s) => s.latest_run).length > 1, t: "Test an alternative scenario", href: `${base}/simulation` },
@@ -34,10 +35,10 @@ export default function Overview() {
 
   const profile = p.profile as Record<string, unknown>;
   return (
-    <main className="mx-auto w-full max-w-7xl space-y-5 p-4 md:p-8">
+    <main className="rise mx-auto w-full max-w-7xl space-y-5 p-4 md:p-8">
       <MarketGlance project={p} />
       {next && (
-        <Link href={next.href} className="flex items-center justify-between rounded-2xl border border-accent/40 bg-accent/[0.06] px-5 py-4 text-sm transition-colors hover:bg-accent/10">
+        <Link href={next.href} className="group flex items-center justify-between rounded-xl border border-accent/40 bg-accent/[0.08] px-5 py-4 text-sm transition-colors hover:bg-accent/15">
           <span><span className="text-ink-300">Next step:</span> <span className="font-medium text-ink-100">{next.t}</span></span>
           <ArrowRight className="h-4 w-4 text-accent" />
         </Link>
@@ -70,19 +71,13 @@ export default function Overview() {
             </div>
           </div>
         </Card>
-        <Card>
-          <CardHeader title="Journey" />
-          <ol className="space-y-1 p-3">
-            {steps.map((s) => (
-              <li key={s.t}>
-                <Link href={s.href} className="flex items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-ink-850">
-                  {s.done ? <CheckCircle2 className="h-4 w-4 text-model" /> : <Circle className="h-4 w-4 text-ink-500" />}
-                  <span className={s.done ? "text-ink-300" : "text-ink-100"}>{s.t}</span>
-                </Link>
-              </li>
-            ))}
-          </ol>
-        </Card>
+        <Link href={`${base}/field`} className="lift group relative overflow-hidden rounded-xl border border-field/25 bg-ink-900/80 p-5 hover:border-field/50">
+          <div aria-hidden className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-field/10 blur-2xl" />
+          <p className="idx">GROUND TRUTH</p>
+          <div className="font-display mt-2 text-lg font-medium tracking-tight">Field research</div>
+          <p className="mt-1 text-[13px] text-ink-400">{(p.field?.records ?? 0) > 0 ? `${p.field?.records} records collected on the street. The agents use them on the next run.` : "No data for this area? Send a researcher from your industry to the street."}</p>
+          <span className="mt-4 inline-flex items-center gap-1 text-xs text-field">Open field research <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" /></span>
+        </Link>
       </div>
 
       <div className="grid gap-5 lg:grid-cols-2">

@@ -494,17 +494,17 @@ function VoiceDockInner() {
     thinking: "Checking the numbers",
     speaking: "Speaking",
   };
-  const hidden = path.startsWith("/r/") || path === "/sign-in" || path === "/sign-up";
+  const hidden = path.startsWith("/r/") || path.startsWith("/field/") || path === "/sign-in" || path === "/sign-up";
   if (hidden) return null;
 
   return (
     <div className="no-print pointer-events-none fixed bottom-5 right-5 z-[90] flex flex-col items-end gap-3">
       {open && (
-        <div className="panel pointer-events-auto w-[min(380px,calc(100vw-2.5rem))] overflow-hidden rounded-3xl" role="dialog" aria-label="Strata voice analyst">
+        <div className="panel pointer-events-auto w-[min(380px,calc(100vw-2.5rem))] overflow-hidden rounded-xl" role="dialog" aria-label="Strata voice analyst">
           <div className="flex items-center gap-4 px-5 pt-5">
             <Orb level={level} phase={phase} size={64} />
             <div className="min-w-0 flex-1">
-              <div className="font-display text-xl font-semibold tracking-tight" aria-live="polite">{statusText[phase]}</div>
+              <div className="font-display text-xl font-medium tracking-tight" aria-live="polite">{statusText[phase]}</div>
               <div className="mt-0.5 text-xs text-ink-400">
                 {engine === "realtime" ? "Realtime voice" : "Browser voice"} · {projectId ? "reading this project's live data" : "no project open"}
               </div>
@@ -522,12 +522,12 @@ function VoiceDockInner() {
             )}
             {turns.map((t) => (
               <div key={t.ts + t.who} className={cn("flex", t.who === "you" ? "justify-end" : "justify-start")}>
-                <div className={cn("max-w-[85%] rounded-2xl px-3.5 py-2", t.who === "you" ? "bg-white/[0.07] text-ink-100" : "bg-accent/10 text-ink-100 ring-1 ring-accent/25")}>{t.text}</div>
+                <div className={cn("max-w-[85%] rounded-xl px-3.5 py-2", t.who === "you" ? "bg-white/[0.07] text-ink-100" : "bg-accent/10 text-ink-100 ring-1 ring-accent/25")}>{t.text}</div>
               </div>
             ))}
             {interim && (
               <div className="flex justify-end">
-                <div className="max-w-[85%] rounded-2xl bg-white/[0.04] px-3.5 py-2 italic text-ink-300">{interim}</div>
+                <div className="max-w-[85%] rounded-xl bg-white/[0.04] px-3.5 py-2 italic text-ink-300">{interim}</div>
               </div>
             )}
           </div>
@@ -557,7 +557,7 @@ function VoiceDockInner() {
                   aria-label="Type a question"
                   className="h-10 flex-1 rounded-full border border-white/10 bg-white/[0.04] px-4 text-sm outline-none focus:border-accent/60"
                 />
-                <button type="submit" className="flex h-10 w-10 items-center justify-center rounded-full bg-accent text-ink-950" aria-label="Send"><Send className="h-4 w-4" /></button>
+                <button type="submit" className="flex h-10 w-10 items-center justify-center rounded-full bg-accent text-white" aria-label="Send"><Send className="h-4 w-4" /></button>
               </form>
             ) : (
               <div className="flex flex-1 items-center gap-2 px-2 text-xs text-ink-400">
@@ -567,7 +567,7 @@ function VoiceDockInner() {
             <button onClick={() => setTyping((x) => !x)} className="rounded-full p-2 text-ink-300 hover:bg-white/5 hover:text-ink-100" aria-label="Toggle keyboard input"><Keyboard className="h-4 w-4" /></button>
             <button
               onClick={() => (active ? void stop() : void start())}
-              className={cn("flex h-10 items-center gap-1.5 rounded-full px-4 text-xs font-medium", active ? "bg-white/10 text-ink-100 hover:bg-white/15" : "bg-accent text-ink-950")}
+              className={cn("flex h-10 items-center gap-1.5 rounded-full px-4 text-xs font-medium", active ? "bg-white/10 text-ink-100 hover:bg-white/15" : "bg-accent text-white")}
             >
               {active ? <><MicOff className="h-3.5 w-3.5" /> Stop</> : <><Mic className="h-3.5 w-3.5" /> Talk</>}
             </button>
@@ -611,7 +611,7 @@ function Orb({ level, phase, size }: { level: number; phase: Phase; size: number
         style={{
           transform: `scale(${s})`,
           transition: "transform 90ms linear",
-          background: "conic-gradient(from 210deg, #ff9f2e, #ff4f64, #6f8cff, #45e0a8, #ff9f2e)",
+          background: "conic-gradient(from 210deg, #4F6CFF, #FF4D5E, #FFB547, #2DD4BF, #4F6CFF)",
           filter: "blur(6px)",
           opacity: phase === "idle" ? 0.55 : 0.95,
           animation: busy ? "orb-spin 1.6s linear infinite" : "orb-spin 9s linear infinite",
@@ -621,8 +621,8 @@ function Orb({ level, phase, size }: { level: number; phase: Phase; size: number
         className="absolute rounded-full"
         style={{
           inset: size * 0.12,
-          background: "radial-gradient(circle at 35% 30%, #fff7ea 0%, #ffcf8f 18%, #ff9f2e 45%, #3a2a6a 85%, #0c111c 100%)",
-          boxShadow: "inset 0 -6px 14px rgba(0,0,0,.45), 0 0 24px rgba(255,159,46,.45)",
+          background: "radial-gradient(circle at 35% 30%, #ffffff 0%, #c9d2ff 18%, #4F6CFF 45%, #1d2366 85%, #121318 100%)",
+          boxShadow: "inset 0 -6px 14px rgba(0,0,0,.45), 0 0 24px rgba(79,108,255,.45)",
           animation: phase === "idle" ? "orb-breathe 4s ease-in-out infinite" : undefined,
         }}
       />

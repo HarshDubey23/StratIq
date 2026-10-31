@@ -268,7 +268,7 @@ export function Wizard() {
             </Field>
             {resolveErr && <ErrorState message={resolveErr} />}
             {category && arch && (
-              <div className="space-y-4 rounded-2xl border border-white/[0.07] bg-white/[0.02] p-4">
+              <div className="space-y-4 rounded-xl border border-white/[0.07] bg-white/[0.02] p-4">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-sm font-semibold">{category.label}</span>
                   <Badge tone={category.method === "taxonomy" || category.method === "manual" ? "ok" : "warn"}>

@@ -40,3 +40,22 @@ a success with placeholder numbers. All routes are synchronous request/response;
 | POST/GET | /projects/{id}/actual-outcomes · /projects/{id}/monitor | WAPE vs baseline |
 | POST | /demo | labelled offline demo project |
 | GET | /api/health | DB check |
+
+## Field research (ground truth)
+
+When open data is thin, the owner requests a field researcher from the project's own industry. The researcher gets a
+no-login link that can only read the brief and add records to that one project.
+
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| GET | `/api/v1/projects/{id}/field` | owner | Request, records, checklist, and the agent evidence derived from them |
+| POST | `/api/v1/projects/{id}/field/request` | owner | Create (or update) the request; returns the researcher token |
+| PATCH | `/api/v1/projects/{id}/field/request` | owner | Status (`requested`, `in_field`, `submitted`, `closed`), name, brief, due date |
+| POST | `/api/v1/projects/{id}/field/records` | owner | Add a record yourself |
+| DELETE | `/api/v1/projects/{id}/field/records/{rid}` | owner | Remove a record (and its field competitor) |
+| GET | `/api/v1/field/{token}` | link | Researcher brief: project, site, checklist, counts |
+| POST | `/api/v1/field/{token}/records` | link | Add `interview`, `competitor`, `footfall` or `rent` record |
+| POST | `/api/v1/field/{token}/submit` | link | Mark the collection as submitted |
+
+Competitor visits become competitor rows with `source = "field"` and `price_status = "field"`. Interviews become agent
+evidence (see MODEL.md, "Field evidence").

@@ -4,7 +4,7 @@
  * Guidance for people who have never done a market study: a five-step journey with the next step always one
  * click away, a short welcome tour, and a plain-language glossary of every term the app uses.
  */
-import { BookA, Check, ChevronRight, Compass, Crosshair, Map as MapIcon, Mic, Scale, Users, Wand2, X } from "lucide-react";
+import { BookA, Check, ChevronDown, ChevronRight, Crosshair, Footprints, Map as MapIcon, Mic, Users, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -32,6 +32,7 @@ function markVisited(id: string, seg: string) {
 export const GLOSSARY: [string, string][] = [
   ["Catchment", "The area your customers realistically come from — the dashed circle on the map. People outside it are not counted."],
   ["Competitor (observed)", "A real business found in OpenStreetMap or Foursquare near you. Its price is unknown unless you enter it."],
+  ["Field-verified", "Collected on the street by a field researcher from your industry: interviews, real competitor prices, footfall, rent. It outranks map data and assumptions."],
   ["Agent", "One simulated person, placed where real people live. Each stands for many residents. Not a real individual."],
   ["615 parameters", "The numbers that describe one agent: budget, travel, free hours, tastes, media habits, loyalty and more."],
   ["In the market", "People who need what you sell right now (today, this month)."],
@@ -52,25 +53,34 @@ export const GLOSSARY: [string, string][] = [
 
 interface Step {
   key: string;
+  seg: string;
   label: string;
   hint: string;
-  href: string;
-  icon: React.ComponentType<{ className?: string }>;
   done: boolean;
 }
 
+const MORE = [
+  { seg: "", label: "Overview" },
+  { seg: "/genome", label: "Market DNA" },
+  { seg: "/factors", label: "615 factors" },
+  { seg: "/monitor", label: "Monitoring" },
+];
+
+/** The project's whole navigation: six numbered steps with their progress, the next step, and help. */
 export function Journey({ project }: { project: Project }) {
   const path = usePathname() || "";
   const base = `/app/projects/${project.id}`;
   const [visited, setVisited] = useState<string[]>([]);
   const [tour, setTour] = useState(false);
   const [words, setWords] = useState(false);
+  const [more, setMore] = useState(false);
 
   useEffect(() => {
     const seg = path.slice(base.length).replace(/^\//, "") || "overview";
     const tab = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("tab") : null;
     markVisited(project.id, tab === "sites" ? "sites" : seg);
     setVisited(readVisited(project.id));
+    setMore(false);
   }, [path, base, project.id]);
   useEffect(() => {
     const h = () => {
@@ -99,42 +109,68 @@ export function Journey({ project }: { project: Project }) {
   const hasData = !!project.snapshots && Object.values(project.snapshots).some(Boolean);
   const base0 = project.scenarios?.find((s) => s.is_baseline);
   const ran = !!base0?.latest_run;
-  const explored = (project.scenarios || []).some((s) => s.name.startsWith("Strategy:") || s.name.startsWith("Voice:")) || project.locations.length > 1 || visited.includes("sites");
+  const explored = (project.scenarios || []).some((s) => s.name.startsWith("Strategy:") || s.name.startsWith("Voice:")) || project.locations.length > 1 || visited.includes("sites") || visited.includes("simulation");
   const steps: Step[] = [
-    { key: "market", label: "Load the real market", hint: "Real competitors and population around your place", href: `${base}/market`, icon: MapIcon, done: hasData },
-    { key: "run", label: "Simulate customers", hint: "10,000 people decide between you, rivals or nothing", href: `${base}/market`, icon: Users, done: ran },
-    { key: "live", label: "Watch the live market", hint: "Day by day: who comes, who goes to rivals, why", href: `${base}/live`, icon: Compass, done: visited.includes("live") },
-    { key: "improve", label: "Find best site & strategy", hint: "Let StrataIQ search hundreds of options for you", href: `${base}/live`, icon: Wand2, done: explored },
-    { key: "decide", label: "Get the verdict", hint: "Go / no-go, risks, and what to verify before you invest", href: `${base}/decisions`, icon: Scale, done: visited.includes("decisions") },
+    { key: "market", seg: "/market", label: "Market map", hint: "Real competitors and people around your place", done: hasData },
+    { key: "field", seg: "/field", label: "Field data", hint: "A researcher checks the street for what maps miss", done: (project.field?.records ?? 0) > 0 },
+    { key: "live", seg: "/live", label: "Live market", hint: "10,000 agents choose you, a rival or nothing", done: ran && visited.includes("live") },
+    { key: "lab", seg: "/simulation", label: "Simulation lab", hint: "Try prices, sites and budgets side by side", done: explored },
+    { key: "decide", seg: "/decisions", label: "Decisions", hint: "Go / no-go and what could make it wrong", done: visited.includes("decisions") },
+    { key: "report", seg: "/report", label: "Report", hint: "Share a feasibility report", done: visited.includes("report") },
   ];
   const next = steps.find((s) => !s.done);
   const doneN = steps.filter((s) => s.done).length;
+  const moreActive = MORE.find((m) => (m.seg === "" ? path === base : path.startsWith(base + m.seg)));
 
   return (
     <>
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-white/[0.06] bg-ink-950/60 px-4 py-2 text-xs md:px-8">
-        <div className="flex items-center gap-1">
-          {steps.map((s, i) => (
-            <Link key={s.key} href={s.href} title={`${s.label} — ${s.hint}`} className="flex items-center gap-1">
-              <span className={cn("flex h-5 w-5 items-center justify-center rounded-full border text-[10px]", s.done ? "border-model/60 bg-model/15 text-model" : s === next ? "border-accent bg-accent/15 text-accent" : "border-white/10 text-ink-500")}>
-                {s.done ? <Check className="h-3 w-3" /> : i + 1}
-              </span>
-              {i < steps.length - 1 && <span className={cn("h-px w-4", s.done ? "bg-model/50" : "bg-white/10")} />}
+      <div className="mt-4 flex items-center gap-3">
+        <nav aria-label="Project" className="-mb-px flex min-w-0 flex-1 items-stretch overflow-x-auto">
+          {steps.map((s, i) => {
+            const active = path.startsWith(base + s.seg);
+            return (
+              <Link
+                key={s.key}
+                href={base + s.seg}
+                title={s.hint}
+                className={cn("group relative flex shrink-0 items-center gap-2 px-3 pb-3 pt-1.5 text-[13px] transition-colors", active ? "text-ink-100" : "text-ink-400 hover:text-ink-100")}
+              >
+                <span
+                  className={cn(
+                    "num flex h-5 w-5 items-center justify-center rounded-md font-mono text-[10px] transition-colors",
+                    active ? "bg-accent text-white" : s.done ? "bg-field/15 text-field" : "bg-white/[0.06] text-ink-400 group-hover:bg-white/10",
+                  )}
+                >
+                  {s.done && !active ? <Check className="h-3 w-3" /> : i + 1}
+                </span>
+                {s.label}
+                {s.key === "field" && (project.field?.records ?? 0) > 0 && <span className="num rounded bg-field/15 px-1 font-mono text-[10px] text-field">{project.field?.records}</span>}
+                <span className={cn("absolute inset-x-3 -bottom-px h-[2px] rounded-full bg-accent transition-transform duration-500", active ? "scale-x-100" : "scale-x-0")} style={{ transitionTimingFunction: "cubic-bezier(.16,1,.3,1)" }} />
+              </Link>
+            );
+          })}
+          <div className="relative shrink-0">
+            <button onClick={() => setMore((m) => !m)} aria-expanded={more} className={cn("flex items-center gap-1 px-3 pb-3 pt-1.5 text-[13px]", moreActive ? "text-ink-100" : "text-ink-400 hover:text-ink-100")}>
+              {moreActive?.label || "More"} <ChevronDown className="h-3.5 w-3.5" />
+            </button>
+            {more && (
+              <div className="panel rise absolute left-0 top-full z-50 w-44 rounded-lg p-1">
+                {MORE.map((m) => (
+                  <Link key={m.label} href={base + m.seg} className="block rounded-md px-3 py-2 text-[13px] text-ink-200 hover:bg-white/[0.06] hover:text-ink-100">{m.label}</Link>
+                ))}
+              </div>
+            )}
+          </div>
+        </nav>
+        <div className="mb-2 hidden shrink-0 items-center gap-1 lg:flex">
+          <span className="num mr-1 font-mono text-[11px] text-ink-500">{doneN}/6</span>
+          <button onClick={() => setTour(true)} className="rounded-md px-2.5 py-1.5 text-xs text-ink-400 hover:bg-white/5 hover:text-ink-100">How it works</button>
+          <button onClick={() => setWords(true)} className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs text-ink-400 hover:bg-white/5 hover:text-ink-100"><BookA className="h-3.5 w-3.5" /> Glossary</button>
+          {next && (
+            <Link href={base + next.seg} className="sheen group ml-1 inline-flex h-8 items-center gap-1.5 rounded-lg bg-accent px-3 text-xs font-medium text-white hover:bg-[#6580ff]" title={next.hint}>
+              Next: {next.label} <ChevronRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
             </Link>
-          ))}
-          <span className="num ml-2 text-ink-500">{doneN}/5</span>
-        </div>
-        {next ? (
-          <Link href={next.href} className="group inline-flex items-center gap-1.5 rounded-full border border-accent/40 bg-accent/10 px-3 py-1 text-ink-100 hover:bg-accent/20">
-            <span className="text-accent">Next:</span> {next.label} <span className="hidden text-ink-400 sm:inline">— {next.hint}</span>
-            <ChevronRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-          </Link>
-        ) : (
-          <span className="inline-flex items-center gap-1.5 text-model"><Check className="h-3.5 w-3.5" /> All steps done — share the Report or test another idea</span>
-        )}
-        <div className="ml-auto flex items-center gap-1">
-          <button onClick={() => setTour(true)} className="rounded-full px-2.5 py-1 text-ink-400 hover:bg-white/5 hover:text-ink-100">How it works</button>
-          <button onClick={() => setWords(true)} className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-ink-400 hover:bg-white/5 hover:text-ink-100"><BookA className="h-3.5 w-3.5" /> Words explained</button>
+          )}
         </div>
       </div>
       {tour && <Tour onClose={() => { setTour(false); try { localStorage.setItem("siq-tour-seen", "1"); } catch { /* ignore */ } }} base={base} />}
@@ -144,33 +180,33 @@ export function Journey({ project }: { project: Project }) {
 }
 
 const SLIDES = [
-  { icon: MapIcon, t: "1 · Your real market", d: "We load every real competitor near your place (OpenStreetMap + Foursquare) and how many people live around it (WorldPop). Blue pillars are rivals, the orange pillar is you, the dashed circle is where customers come from." },
-  { icon: Users, t: "2 · 10,000 simulated people decide", d: "Each simulated person has a budget, a way to travel, free hours and tastes. Every day, those who need what you sell pick you, a rival or nothing — based on price, distance, hours and quality. That gives your orders, profit and risk." },
-  { icon: Crosshair, t: "3 · Find the best place", d: "On the Market map, open \"Best sites\": we test your exact plan at every spot nearby and show where profit is highest. One click opens that spot with its own live data." },
-  { icon: Wand2, t: "4 · Find the best strategy", d: "On the Live market, \"Find my best strategy\" tests hundreds of price, marketing and capacity combinations (extra costs included). Verify any of them with the 10,000 people on the map." },
-  { icon: Mic, t: "5 · Just ask", d: "Press V and talk, in English or Hinglish: \"how can I grow?\", \"best location kahan hai?\", \"double the marketing\", \"what is break-even?\". Strata reads your screen and answers from the simulation." },
-];
+  { icon: MapIcon, t: "1 · Your real market", d: "We load every real competitor near your place (OpenStreetMap + Foursquare) and how many people live around it (WorldPop). Amber pillars are rivals, the blue pillar is you, the dashed circle is where customers come from." },
+  { icon: Footprints, t: "2 · Check the street", d: "Maps miss informal shops and real prices. Request a field researcher from your industry: they open a link on their phone, interview people, visit every rival and count footfall. The agents switch to that ground data." },
+  { icon: Users, t: "3 · 10,000 simulated people decide", d: "Each simulated person has a budget, a way to travel, free hours and tastes. Every day, those who need what you sell pick you, a rival or nothing. That gives your orders, profit and risk." },
+  { icon: Crosshair, t: "4 · Try other plans", d: "In the Simulation lab change price, rent, marketing or the site and run again. \"Best sites\" on the map tests your plan at every spot nearby." },
+  { icon: Mic, t: "5 · Just ask", d: "Press V and talk, in English or Hinglish: \"how can I grow?\", \"best location kahan hai?\", \"what is break-even?\". Strata answers from the simulation." },
+]
 
 function Tour({ onClose, base }: { onClose: () => void; base: string }) {
   const [i, setI] = useState(0);
   const s = SLIDES[i];
   return (
     <div className="fixed inset-0 z-[95] flex items-center justify-center bg-ink-950/70 p-4 backdrop-blur-sm" role="dialog" aria-label="How StrataIQ works">
-      <div className="panel w-full max-w-lg rounded-3xl p-6">
+      <div className="panel rise w-full max-w-lg rounded-xl p-6">
         <div className="flex items-start justify-between">
           <s.icon className="h-7 w-7 text-accent" />
           <button onClick={onClose} aria-label="Close" className="rounded-full p-1 text-ink-400 hover:text-ink-100"><X className="h-4 w-4" /></button>
         </div>
-        <h2 className="font-display mt-4 text-2xl font-semibold tracking-tight">{s.t}</h2>
+        <h2 className="font-display mt-4 text-2xl font-medium tracking-tight">{s.t}</h2>
         <p className="mt-2 text-[15px] leading-relaxed text-ink-300">{s.d}</p>
         <div className="mt-6 flex items-center gap-2">
           {SLIDES.map((_, k) => <button key={k} onClick={() => setI(k)} aria-label={`Slide ${k + 1}`} className={cn("h-1.5 rounded-full transition-all", k === i ? "w-6 bg-accent" : "w-1.5 bg-white/20")} />)}
           <div className="ml-auto flex gap-2">
-            {i > 0 && <button onClick={() => setI(i - 1)} className="rounded-full px-4 py-2 text-sm text-ink-300 hover:text-ink-100">Back</button>}
+            {i > 0 && <button onClick={() => setI(i - 1)} className="rounded-lg px-4 py-2 text-sm text-ink-300 hover:text-ink-100">Back</button>}
             {i < SLIDES.length - 1 ? (
-              <button onClick={() => setI(i + 1)} className="rounded-full bg-accent px-5 py-2 text-sm font-medium text-ink-950">Next</button>
+              <button onClick={() => setI(i + 1)} className="rounded-lg bg-accent px-5 py-2 text-sm font-medium text-white">Next</button>
             ) : (
-              <Link href={`${base}/market`} onClick={onClose} className="rounded-full bg-accent px-5 py-2 text-sm font-medium text-ink-950">Start with the map</Link>
+              <Link href={`${base}/market`} onClick={onClose} className="rounded-lg bg-accent px-5 py-2 text-sm font-medium text-white">Start with the map</Link>
             )}
           </div>
         </div>
@@ -186,10 +222,10 @@ function Glossary({ onClose }: { onClose: () => void }) {
     <div className="fixed inset-0 z-[95] flex justify-end bg-ink-950/60 backdrop-blur-sm" role="dialog" aria-label="Words explained" onClick={onClose}>
       <div className="panel h-full w-full max-w-md overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between">
-          <h2 className="font-display text-xl font-semibold">Words explained</h2>
+          <h2 className="font-display text-xl font-medium">Words explained</h2>
           <button onClick={onClose} aria-label="Close" className="rounded-full p-1 text-ink-400 hover:text-ink-100"><X className="h-4 w-4" /></button>
         </div>
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search a word…" aria-label="Search a word" className="mt-4 h-10 w-full rounded-full border border-white/10 bg-white/[0.04] px-4 text-sm outline-none focus:border-accent/60" />
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search a word…" aria-label="Search a word" className="mt-4 h-10 w-full rounded-lg border border-white/10 bg-white/[0.04] px-4 text-sm outline-none focus:border-accent/60" />
         <dl className="mt-4 space-y-4">
           {items.map(([k, v]) => (
             <div key={k}>

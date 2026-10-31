@@ -44,7 +44,7 @@ const api = (path, method = "GET", body) => page.evaluate(async ([p, m, b]) => {
   return { status: r.status, body: j };
 }, [path, method, body]);
 
-await step("landing", async () => { await page.goto(BASE); await page.getByText("is a market.").first().waitFor(); await page.waitForTimeout(6000); await shot("01-landing"); });
+await step("landing", async () => { await page.goto(BASE); await page.getByText("before the lease.").first().waitFor(); await page.waitForTimeout(6000); await shot("01-landing"); });
 await step("methodology", async () => { await page.goto(`${BASE}/methodology`); await page.getByText("Customer-choice model").waitFor(); });
 await step("sign up", async () => {
   await page.goto(`${BASE}/sign-up`);
@@ -83,7 +83,7 @@ await step("demo project", async () => {
   await page.getByText("Full genome · 615 parameters").waitFor({ timeout: 60000 });
   await page.waitForTimeout(2500);
   await shot("04b-demo-agent-xray");
-  await page.getByLabel("Project").getByRole("link", { name: "Market DNA" }).click();
+  await page.goto(`${BASE}/app/projects/${pid}/genome`);
   await page.getByText("Every synthetic customer, every parameter").waitFor({ timeout: 30000 });
   await page.locator("canvas").first().waitFor({ timeout: 90000 });
   await page.waitForTimeout(1500);
@@ -116,6 +116,30 @@ await step("demo project", async () => {
   await page.getByLabel("Project").getByRole("link", { name: "Market map" }).click();
   await page.waitForTimeout(3000);
   await shot("08-demo-market");
+});
+
+// ---------- Field research (ground truth) ----------
+await step("field research", async () => {
+  const projs = (await api("/projects")).body;
+  const pid = projs[0].id;
+  await page.goto(`${BASE}/app/projects/${pid}/field`);
+  await page.getByText("Field research").first().waitFor({ timeout: 30000 });
+  await shot("08b-field-request");
+  await page.getByRole("button", { name: /Request field researcher/ }).click();
+  await page.getByText("ASSIGNMENT").waitFor({ timeout: 30000 });
+  const f = (await api(`/projects/${pid}/field`)).body;
+  for (let i = 0; i < 9; i++) await api(`/field/${f.request.token}/records`, "POST", { kind: "interview", data: { uses_category: i % 3 === 0, max_price: 200 + 25 * i, visits_per_month: 4, travel_km: 1 + i * 0.3 } });
+  await page.reload();
+  await page.getByText("What the agents now use from the street").waitFor({ timeout: 30000 });
+  await shot("08c-field-progress");
+  const mob = await ctx.newPage();
+  await mob.setViewportSize({ width: 390, height: 844 });
+  await mob.goto(`${BASE}/field/${f.request.token}`);
+  await mob.getByText("StrataIQ Field").waitFor({ timeout: 30000 });
+  await mob.waitForTimeout(800);
+  await mob.screenshot({ path: `${OUT}/08d-field-app-mobile.png` });
+  L("shot 08d-field-app-mobile");
+  await mob.close();
 });
 
 // ---------- Wizard UI ----------

@@ -95,7 +95,7 @@ export function StrategyLab({ projectId, scenario, arch, unit, busy, onRun }: {
   void projectId;
 
   return (
-    <div className="rounded-2xl border border-accent/30 bg-accent/[0.04] p-3 text-xs">
+    <div className="rounded-xl border border-accent/30 bg-accent/[0.04] p-3 text-xs">
       <div className="mb-2 flex items-center gap-2">
         <FlaskConical className="h-3.5 w-3.5 text-accent" />
         <span className="font-medium text-ink-100">Change your strategy</span>
@@ -156,7 +156,7 @@ export function CompareCard({ out, unit }: { out: StrategyOut; unit: string }) {
   ];
   const good = c.verdict === "better";
   return (
-    <div className={cn("rounded-2xl border p-3 text-xs", good ? "border-model/40 bg-model/[0.06]" : "border-danger/40 bg-danger/[0.06]")}>
+    <div className={cn("rounded-xl border p-3 text-xs", good ? "border-model/40 bg-model/[0.06]" : "border-danger/40 bg-danger/[0.06]")}>
       <div className="mb-1 flex items-center gap-2">
         {good ? <ArrowUpRight className="h-4 w-4 text-model" /> : <ArrowDownRight className="h-4 w-4 text-danger" />}
         <span className="font-medium text-ink-100">{c.grows && good ? "Growing — this strategy works" : good ? "More profit, similar volume" : c.grows ? "More sales, less profit" : "Not better"}</span>
@@ -202,7 +202,7 @@ export function StrataRead({ projectId, scenarioId, runId, busy, onTest }: { pro
   }, [projectId, scenarioId, runId]);
   if (!runId) return null;
   return (
-    <div className="rounded-2xl border border-white/[0.07] bg-white/[0.025] p-3 text-xs">
+    <div className="rounded-xl border border-white/[0.07] bg-white/[0.025] p-3 text-xs">
       <div className="mb-2 flex items-center gap-2"><Lightbulb className="h-3.5 w-3.5 text-warn" /><span className="font-medium text-ink-100">Strata&apos;s read of this run</span></div>
       {err && <p className="text-ink-400">{err}</p>}
       {!items && !err && <p className="text-ink-500">Reading the simulation…</p>}
@@ -238,7 +238,7 @@ export function HowAgentsDecide({ abm, price }: { abm: Abm; price: number | unde
     [abm, m, price],
   );
   return (
-    <div className="rounded-2xl border border-white/[0.07] bg-white/[0.025] p-3 text-xs">
+    <div className="rounded-xl border border-white/[0.07] bg-white/[0.025] p-3 text-xs">
       <button onClick={() => setOpen((x) => !x)} className="flex w-full items-center gap-2 text-left">
         <Brain className="h-3.5 w-3.5 text-agent" />
         <span className="font-medium text-ink-100">How an agent decides</span>

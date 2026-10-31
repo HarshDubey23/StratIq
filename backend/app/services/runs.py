@@ -194,6 +194,14 @@ def baseline_price(project: Project) -> float | None:
     return float(base.inputs["price"]) if base else None
 
 
+def field_summary(db: Session, project: Project):
+    from ..engine.field import field_evidence  # local: keeps the run module import-light
+    from ..models import FieldRecord
+    recs = db.scalars(select(FieldRecord).where(FieldRecord.project_id == project.id)).all()
+    fq = get_archetype(project.category["archetype"]).params.get("frequency")
+    return field_evidence([{"kind": r.kind, "data": r.data} for r in recs], frequency_fixed=bool(fq and fq.low == fq.high))
+
+
 EVIDENCE_VERSION = "real-data-1"  # bump when the evidence layer changes (part of the run's input hash)
 
 
@@ -231,9 +239,13 @@ class MarketInputs:
         _, walk, _ = rt.matrix_for(self.routing, self.routing["dest_keys"], pts, self.zone_ll, self.circuity, 4.5, "foot")
         return (km if share > 0 else None), walk, share
 
+    def add_field(self, evidence: dict) -> None:
+        """Ground data collected by a field researcher outranks published and derived evidence (user overrides still win)."""
+        self._field = dict(evidence or {})
+
     @property
     def evidence_params(self) -> dict:
-        return self.behaviour.params if self.behaviour else {}
+        return {**(self.behaviour.params if self.behaviour else {}), **getattr(self, "_field", {})}
 
     @property
     def seg_share_z(self):
@@ -270,14 +282,17 @@ def execute_run(db: Session, project: Project, scenario: Scenario) -> Simulation
     base_params = em.ResolvedParams.from_archetype(arch, inputs.get("param_overrides") or {})
     mi = MarketInputs(arch, (project.category or {}).get("key"), snap, seed, base_params.values.get("circuity", 1.3),
                       base_params.values.get("urban_speed_kmh", 20.0))
+    field = field_summary(db, project)
+    mi.add_field(field.evidence)
     zones = mi.zones
-    ecomps = [em.Competitor(c.id, c.name, c.lat, c.lng, price=c.price, quality=c.quality, source="user" if c.source == "user" else "osm") for c in comps]
+    ecomps = [em.Competitor(c.id, c.name, c.lat, c.lng, price=c.price, quality=c.quality, source=c.source if c.source in ("user", "field") else "osm") for c in comps]
     snapshot_inputs = {
         "scenario": inputs, "category": project.category, "location": {"lat": loc.lat, "lng": loc.lng, "catchment": loc.catchment},
         "snapshot_id": snap.id, "competitors": [{"id": c.id, "name": c.name, "price": c.price, "quality": c.quality, "lat": c.lat, "lng": c.lng} for c in comps],
         "reference_price_filled": ref_fill, "model_version": em.MODEL_VERSION,
         "profile": {k: (project.profile or {}).get(k) for k in ("positioning", "operating_hours")}, "month0": gm.month_now(), "radius_km": radius,
         "n_agents": get_settings().abm_agents, "evidence_version": EVIDENCE_VERSION,
+        "field": {k: list(v) for k, v in field.evidence.items()},
     }
     run.inputs_snapshot = snapshot_inputs
     run.input_hash = _hash(snapshot_inputs)
@@ -318,6 +333,8 @@ def execute_run(db: Session, project: Project, scenario: Scenario) -> Simulation
             "coverage": snap.coverage, "n_competitors": len(ecomps),
             "n_user_competitors": sum(1 for c in comps if c.source == "user"),
             "n_hypothetical": sum(1 for c in comps if c.is_hypothetical),
+            "n_field_competitors": sum(1 for c in comps if c.source == "field"),
+            "field": field.public(),
             "failed_layers": sorted({e.get("source") for e in (snap.errors or []) if e.get("source")}),
         }
         run.results, run.status = res, "succeeded"
@@ -364,6 +381,7 @@ def population_for_run(db: Session, run: SimulationRun):
         if ins.get("evidence_version"):
             mi = MarketInputs(arch, (ins.get("category") or project.category or {}).get("key"), snap, int(run.seed),
                               base_params.values.get("circuity", 1.3), base_params.values.get("urban_speed_kmh", 20.0))
+            mi.add_field({k: tuple(v) for k, v in (ins.get("field") or {}).items()})
             zones, arch = mi.zones, mi.arch
         else:  # runs made before the real-data layer: rebuild exactly as they were made
             zones = [em.Zone(z["lat"], z["lng"], z["population"], z.get("activity", 0)) for z in snap.zones if z["population"] > 0]

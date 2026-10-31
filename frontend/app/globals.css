@@ -1,40 +1,42 @@
 @import "tailwindcss";
 
 /*
-  StrataIQ — "Night cartography"
-  A market seen the way a city looks at night from above: deep blue-black ground,
-  saffron for *you* (your site, your customers), cobalt for observed competitors,
-  ember for synthetic people. Colour always encodes provenance, never decoration.
+  StrataIQ — "Signal on graphite"
+  Graphite ground, one electric cobalt for *you* (your site, your customers), amber for observed
+  competitors, lime for ground-truth field data, red for synthetic agents. Colour always encodes
+  provenance, never decoration.
 */
 @theme {
-  --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-bricolage), var(--font-geist), ui-sans-serif, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
+  --font-sans: var(--font-inter-tight), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-inter-tight), ui-sans-serif, sans-serif;
+  --font-mono: var(--font-jbmono), ui-monospace, SFMono-Regular, monospace;
   --font-deva: var(--font-tiro), serif;
 
-  --color-ink-950: #04060b;
-  --color-ink-900: #080c15;
-  --color-ink-850: #0c111c;
-  --color-ink-800: #111826;
-  --color-ink-700: #192233;
-  --color-ink-600: #243045;
-  --color-ink-500: #39475f;
-  --color-ink-400: #64718a;
-  --color-ink-300: #939eb3;
-  --color-ink-200: #c2cad8;
-  --color-ink-100: #eceff5;
+  --color-ink-950: #08090b;
+  --color-ink-900: #0d0e12;
+  --color-ink-850: #121318;
+  --color-ink-800: #17191f;
+  --color-ink-700: #20222a;
+  --color-ink-600: #2c2f39;
+  --color-ink-500: #454957;
+  --color-ink-400: #727786;
+  --color-ink-300: #a0a4b1;
+  --color-ink-200: #cdd0d8;
+  --color-ink-100: #f4f3ef;
+  --color-paper: #ecebe6;
 
   /* Semantic data colours. Same meaning on the map, in charts, in labels. */
-  --color-accent: #ff9f2e;      /* you: candidate site, your customers (saffron / sodium light) */
-  --color-accent-dim: #8a4b0f;
-  --color-observed: #6f8cff;    /* observed competitor (OpenStreetMap) */
+  --color-accent: #4f6cff;      /* you: candidate site, your customers (electric cobalt) */
+  --color-accent-dim: #22307a;
+  --color-observed: #ffb547;    /* observed competitor (OpenStreetMap / Foursquare) */
+  --color-field: #d4ff3a;       /* verified on the ground by a field researcher */
   --color-userdata: #c59bff;    /* user-entered evidence */
-  --color-model: #45e0a8;       /* model estimate */
-  --color-assumption: #9aa4b8;  /* assumption */
-  --color-agent: #ff4f64;       /* synthetic agents */
-  --color-warn: #ffd166;
-  --color-danger: #ff6a6a;
-  --color-ok: #45e0a8;
+  --color-model: #2dd4bf;       /* model estimate */
+  --color-assumption: #9aa0ae;  /* assumption */
+  --color-agent: #ff4d5e;       /* synthetic agents */
+  --color-warn: #ffc24d;
+  --color-danger: #ff5d5d;
+  --color-ok: #3ddc97;
 
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in-out-quart: cubic-bezier(0.76, 0, 0.24, 1);
@@ -52,21 +54,21 @@ body {
 }
 
 body {
-  font-feature-settings: "ss01", "cv11";
+  font-feature-settings: "ss01", "cv11", "calt";
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
 }
 
 ::selection {
-  background: rgb(255 159 46 / 0.35);
+  background: rgb(79 108 255 / 0.45);
   color: #fff;
 }
 
 .font-display {
   font-family: var(--font-display);
   font-optical-sizing: auto;
-  letter-spacing: -0.035em;
+  letter-spacing: -0.04em;
 }
 
 .num {
@@ -88,10 +90,9 @@ body {
   inset: -50%;
   pointer-events: none;
   background-image: var(--grain);
-  opacity: 0.06;
+  opacity: 0.045;
   z-index: 60;
   mix-blend-mode: overlay;
-  animation: grain 1.2s steps(6) infinite;
 }
 @keyframes grain {
   0% { transform: translate(0, 0); }
@@ -103,15 +104,15 @@ body {
 }
 
 .grid-bg {
-  background-image: linear-gradient(to right, rgb(160 180 220 / 0.04) 1px, transparent 1px),
-    linear-gradient(to bottom, rgb(160 180 220 / 0.04) 1px, transparent 1px);
+  background-image: linear-gradient(to right, rgb(255 255 255 / 0.035) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(255 255 255 / 0.035) 1px, transparent 1px);
   background-size: 56px 56px;
 }
 
 /* glass instrument panel used over maps */
 .panel {
-  background: linear-gradient(180deg, rgb(12 17 28 / 0.82), rgb(8 12 21 / 0.9));
-  border: 1px solid rgb(160 180 220 / 0.12);
+  background: linear-gradient(180deg, rgb(18 19 24 / 0.84), rgb(10 11 14 / 0.92));
+  border: 1px solid rgb(255 255 255 / 0.08);
   backdrop-filter: blur(18px) saturate(1.3);
   -webkit-backdrop-filter: blur(18px) saturate(1.3);
   box-shadow: 0 1px 0 rgb(255 255 255 / 0.04) inset, 0 24px 60px -24px rgb(0 0 0 / 0.7);
@@ -119,7 +120,7 @@ body {
 
 /* contour-line texture (survey map) */
 .contours {
-  background-image: repeating-radial-gradient(circle at 70% 40%, transparent 0 22px, rgb(160 180 220 / 0.05) 22px 23px);
+  background-image: repeating-radial-gradient(circle at 70% 40%, transparent 0 22px, rgb(255 255 255 / 0.04) 22px 23px);
 }
 
 .text-balance {
@@ -186,20 +187,20 @@ html.lenis body {
 
 /* MapLibre */
 .maplibregl-ctrl-group {
-  background: rgb(12 17 28 / 0.85) !important;
-  border: 1px solid rgb(160 180 220 / 0.14) !important;
+  background: rgb(18 19 24 / 0.88) !important;
+  border: 1px solid rgb(255 255 255 / 0.1) !important;
   backdrop-filter: blur(10px);
   border-radius: 10px !important;
   overflow: hidden;
 }
 .maplibregl-ctrl-group button + button {
-  border-top: 1px solid rgb(160 180 220 / 0.12) !important;
+  border-top: 1px solid rgb(255 255 255 / 0.08) !important;
 }
 .maplibregl-ctrl button .maplibregl-ctrl-icon {
   filter: invert(0.85);
 }
 .maplibregl-ctrl-attrib {
-  background: rgb(4 6 11 / 0.7) !important;
+  background: rgb(8 9 11 / 0.7) !important;
   color: var(--color-ink-300) !important;
   font-size: 10px;
 }
@@ -207,22 +208,22 @@ html.lenis body {
   color: var(--color-ink-200) !important;
 }
 .maplibregl-ctrl-scale {
-  background: rgb(4 6 11 / 0.6) !important;
+  background: rgb(8 9 11 / 0.6) !important;
   color: var(--color-ink-200) !important;
   border-color: var(--color-ink-400) !important;
 }
 .maplibregl-popup-content {
-  background: rgb(12 17 28 / 0.95) !important;
+  background: rgb(18 19 24 / 0.96) !important;
   color: var(--color-ink-100);
-  border: 1px solid rgb(160 180 220 / 0.16);
+  border: 1px solid rgb(255 255 255 / 0.1);
   border-radius: 10px;
   padding: 8px 10px;
   font-size: 12px;
   backdrop-filter: blur(10px);
 }
 .maplibregl-popup-tip {
-  border-top-color: rgb(12 17 28 / 0.95) !important;
-  border-bottom-color: rgb(12 17 28 / 0.95) !important;
+  border-top-color: rgb(18 19 24 / 0.96) !important;
+  border-bottom-color: rgb(18 19 24 / 0.96) !important;
 }
 
 /* voice orb */
@@ -277,14 +278,100 @@ select {
 }
 select option,
 select optgroup {
-  background-color: #0c111c;
-  color: #eceff5;
+  background-color: #121318;
+  color: #f4f3ef;
 }
 select option:checked,
 select option:hover {
-  background-color: #243045;
+  background-color: #2c2f39;
   color: #ffffff;
 }
 select option:disabled {
-  color: #64718a;
+  color: #727786;
+}
+
+/* ---------- 2026 motion & surface kit ---------- */
+
+/* numbered section index, e.g. "01/" */
+.idx {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: var(--color-ink-400);
+}
+
+/* big uppercase display, Razorpay-Sprint style */
+.mega {
+  font-family: var(--font-display);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: -0.055em;
+  line-height: 0.86;
+}
+
+/* infinite ticker strip */
+.ticker {
+  display: flex;
+  width: max-content;
+  animation: marquee 38s linear infinite;
+}
+.ticker:hover {
+  animation-play-state: paused;
+}
+
+/* button sheen on hover */
+.sheen {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.sheen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(110deg, transparent 30%, rgb(255 255 255 / 0.22) 50%, transparent 70%);
+  transform: translateX(-120%);
+  transition: transform 0.9s var(--ease-out-expo);
+}
+.sheen:hover::after {
+  transform: translateX(120%);
+}
+
+/* soft cobalt glow behind hero art */
+.halo {
+  background: radial-gradient(60% 50% at 50% 40%, rgb(79 108 255 / 0.22), transparent 70%);
+}
+
+/* page enter */
+@keyframes rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+.rise {
+  animation: rise 0.7s var(--ease-out-expo) both;
+}
+.rise-1 { animation-delay: 60ms; }
+.rise-2 { animation-delay: 120ms; }
+.rise-3 { animation-delay: 180ms; }
+.rise-4 { animation-delay: 240ms; }
+
+/* light "paper" section on the landing page */
+.paper {
+  background: var(--color-paper);
+  color: #111216;
+}
+
+/* card that lifts on hover */
+.lift {
+  transition: transform 0.5s var(--ease-out-expo), border-color 0.3s, background-color 0.3s;
+}
+.lift:hover {
+  transform: translateY(-3px);
+}
+
+/* scan line used on the field-research card */
+@keyframes scan {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(400%); }
 }

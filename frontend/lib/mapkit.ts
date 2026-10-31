@@ -12,17 +12,18 @@ export const STYLE_DARK = "https://tiles.openfreemap.org/styles/dark";
 export const STYLE_FALLBACK = "https://tiles.openfreemap.org/styles/positron";
 
 export const C = {
-  ground: "#04060b",
-  water: "#06101f",
-  park: "#07130f",
-  road: "#1a2438",
-  roadMajor: "#26344f",
-  label: "#7d889e",
-  you: [255, 159, 46] as [number, number, number],
-  youSoft: [255, 194, 122] as [number, number, number],
-  comp: [111, 140, 255] as [number, number, number],
-  agent: [255, 79, 100] as [number, number, number],
+  ground: "#08090b",
+  water: "#0b1020",
+  park: "#0c1210",
+  road: "#1c1e25",
+  roadMajor: "#2a2d38",
+  label: "#7d8190",
+  you: [79, 108, 255] as [number, number, number],
+  youSoft: [150, 168, 255] as [number, number, number],
+  comp: [255, 181, 71] as [number, number, number],
+  agent: [255, 77, 94] as [number, number, number],
   user: [197, 155, 255] as [number, number, number],
+  field: [212, 255, 58] as [number, number, number],
 };
 
 export async function pickStyle(): Promise<string> {
@@ -76,7 +77,7 @@ export function enhanceMap(m: MLMap, opts: { buildingsMinZoom?: number; building
           paint: {
             "fill-extrusion-color": [
               "interpolate", ["linear"], ["coalesce", ["get", "render_height"], 6],
-              0, "#0f1626", 12, "#152036", 30, "#1d2c4a", 80, "#2a3e66", 200, "#3b5590",
+              0, "#14151a", 12, "#1a1c23", 30, "#22252e", 80, "#2d3140", 200, "#3b4156",
             ],
             "fill-extrusion-height": ["interpolate", ["linear"], ["zoom"], 12.5, 0, 14, ["coalesce", ["get", "render_height"], 6]],
             "fill-extrusion-base": ["coalesce", ["get", "render_min_height"], 0],
@@ -88,13 +89,13 @@ export function enhanceMap(m: MLMap, opts: { buildingsMinZoom?: number; building
       ),
     );
   }
-  safe(() => m.setLight({ anchor: "viewport", color: "#c9d4ff", intensity: 0.42, position: [1.4, 200, 35] }));
+  safe(() => m.setLight({ anchor: "viewport", color: "#e6e8ff", intensity: 0.45, position: [1.4, 200, 35] }));
   const anyMap = m as unknown as { setSky?: (s: Record<string, unknown>) => void };
   safe(() =>
     anyMap.setSky?.({
-      "sky-color": "#0a1226",
-      "horizon-color": "#1b2a4d",
-      "fog-color": "#04060b",
+      "sky-color": "#0b0d18",
+      "horizon-color": "#1a2050",
+      "fog-color": "#08090b",
       "sky-horizon-blend": 0.6,
       "horizon-fog-blend": 0.7,
       "fog-ground-blend": 0.35,
@@ -135,7 +136,7 @@ export async function attachDeck(m: MLMap): Promise<DeckHandle | null> {
       layers: [],
       getTooltip: (info: { object?: unknown }) => {
         const t = tip?.(info);
-        return t ? { text: t, style: { background: "rgba(12,17,28,.95)", color: "#eceff5", border: "1px solid rgba(160,180,220,.18)", borderRadius: "10px", fontSize: "12px", padding: "6px 9px", fontFamily: "var(--font-geist), sans-serif" } } : null;
+        return t ? { text: t, style: { background: "rgba(18,19,24,.96)", color: "#f4f3ef", border: "1px solid rgba(255,255,255,.1)", borderRadius: "8px", fontSize: "12px", padding: "6px 9px", fontFamily: "var(--font-inter-tight), sans-serif" } } : null;
       },
     } as ConstructorParameters<DeckMods["MapboxOverlay"]>[0]);
     m.addControl(overlay as unknown as IControl);
@@ -158,14 +159,14 @@ export async function attachDeck(m: MLMap): Promise<DeckHandle | null> {
   }
 }
 
-/** colour ramp for population columns: night → cobalt → saffron */
+/** colour ramp for population columns: graphite → cobalt → violet → red */
 export function popColor(t: number, alpha = 150): [number, number, number, number] {
   const s = Math.max(0, Math.min(1, t));
   const stops: [number, [number, number, number]][] = [
-    [0, [20, 30, 60]],
-    [0.45, [60, 86, 170]],
-    [0.75, [140, 120, 210]],
-    [1, [255, 159, 46]],
+    [0, [24, 28, 52]],
+    [0.45, [62, 84, 210]],
+    [0.75, [150, 110, 230]],
+    [1, [255, 77, 94]],
   ];
   for (let i = 1; i < stops.length; i++) {
     if (s <= stops[i][0]) {
@@ -175,7 +176,7 @@ export function popColor(t: number, alpha = 150): [number, number, number, numbe
       return [c0[0] + (c1[0] - c0[0]) * k, c0[1] + (c1[1] - c0[1]) * k, c0[2] + (c1[2] - c0[2]) * k, alpha];
     }
   }
-  return [255, 159, 46, alpha];
+  return [255, 77, 94, alpha];
 }
 
 export function metersPerZoneRadius(spacingKm: number | undefined | null): number {

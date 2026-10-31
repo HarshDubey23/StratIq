@@ -33,11 +33,11 @@ function MiniMap({ loc, snap, comps }: { loc: Location; snap: ReportContent["loc
   const sy = (y: number) => W - ((y - y0) / (y1 - y0 || 1)) * W;
   return (
     <svg viewBox={`-10 -10 ${W + 20} ${W + 20}`} className="h-56 w-56 shrink-0 rounded border border-white/[0.07] bg-ink-900" role="img" aria-label="Catchment and competitors">
-      <polygon points={ring.map((c) => `${sx(c[0])},${sy(c[1])}`).join(" ")} fill="rgba(34,211,238,0.07)" stroke="#FF9F2E" strokeDasharray="4 3" />
+      <polygon points={ring.map((c) => `${sx(c[0])},${sy(c[1])}`).join(" ")} fill="rgba(34,211,238,0.07)" stroke="#4F6CFF" strokeDasharray="4 3" />
       {comps.filter((c) => c.active).map((c) => (
-        <circle key={c.id} cx={sx(c.lng)} cy={sy(c.lat)} r={4} fill={c.source === "user" ? "#C59BFF" : "#6F8CFF"} stroke="#080C15" />
+        <circle key={c.id} cx={sx(c.lng)} cy={sy(c.lat)} r={4} fill={c.source === "user" ? "#C59BFF" : "#FFB547"} stroke="#0D0E12" />
       ))}
-      <circle cx={sx(loc.lng)} cy={sy(loc.lat)} r={6} fill="#FF9F2E" stroke="#080C15" strokeWidth={2} />
+      <circle cx={sx(loc.lng)} cy={sy(loc.lat)} r={6} fill="#4F6CFF" stroke="#0D0E12" strokeWidth={2} />
     </svg>
   );
 }

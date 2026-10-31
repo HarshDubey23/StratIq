@@ -80,14 +80,16 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
   }
 
   return (
-    <div className="contours flex min-h-screen items-center justify-center bg-ink-950 px-4">
-      <div className="w-full max-w-sm">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-ink-950 px-4">
+      <div aria-hidden className="halo pointer-events-none absolute inset-0" />
+      <div aria-hidden className="grid-bg pointer-events-none absolute inset-0 [mask-image:radial-gradient(60%_50%_at_50%_45%,black,transparent)]" />
+      <div className="rise relative w-full max-w-sm">
         <div className="mb-10 flex justify-center">
           <Logo />
         </div>
-        <form onSubmit={submit} className="panel space-y-4 rounded-3xl p-7" noValidate>
+        <form onSubmit={submit} className="panel space-y-4 rounded-xl p-7" noValidate>
           <div>
-            <h1 className="font-display text-2xl font-semibold tracking-tight">{mode === "sign-up" ? "Create your account" : "Sign in"}</h1>
+            <h1 className="font-display text-2xl font-medium tracking-tight">{mode === "sign-up" ? "Create your account" : "Sign in"}</h1>
             <p className="mt-1 text-sm text-ink-300">
               {demo ? "Sign in to open the labelled demo scenario." : mode === "sign-up" ? "Start testing business ideas against a model of the real market." : "Welcome back."}
             </p>
@@ -110,15 +112,15 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
           <button
             type="button"
             onClick={guest}
-            className="w-full rounded-full border border-white/10 py-2.5 text-sm text-ink-200 transition-colors hover:border-white/25 hover:text-ink-100"
+            className="w-full rounded-lg border border-white/10 py-2.5 text-sm text-ink-200 transition-colors hover:border-white/25 hover:text-ink-100"
           >
             Continue as guest
           </button>
           <p className="text-center text-xs text-ink-400">
             {mode === "sign-up" ? (
-              <>Already have an account? <Link className="text-accent hover:underline" href={`/sign-in${demo ? "?demo=1" : ""}`}>Sign in</Link></>
+              <>Already have an account? <Link className="text-[#9fb0ff] hover:underline" href={`/sign-in${demo ? "?demo=1" : ""}`}>Sign in</Link></>
             ) : (
-              <>New here? <Link className="text-accent hover:underline" href={`/sign-up${demo ? "?demo=1" : ""}`}>Create an account</Link></>
+              <>New here? <Link className="text-[#9fb0ff] hover:underline" href={`/sign-up${demo ? "?demo=1" : ""}`}>Create an account</Link></>
             )}
           </p>
           {mode === "sign-in" && (
