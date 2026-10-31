@@ -1,37 +1,45 @@
 "use client";
 
 /**
- * Landing-page city: a real 3D street (OpenStreetMap buildings), real competitors fetched live
- * from OpenStreetMap through the StrataIQ API, and an ILLUSTRATIVE crowd of people who walk to
- * a shop. The scroll story drives `scene`:
- *   0 hero (everything)  1 the street  2 rivals rise  3 people appear  4 each one chooses  5 the answer
- * The crowd here is a drawing, not the model: the real run uses the choice model inside the app.
+ * Landing-page city, drawn as a survey blueprint: real OpenStreetMap buildings and roads, real
+ * competitors fetched live through the StrataIQ API, and an ILLUSTRATIVE crowd that walks to a shop.
+ *
+ * The camera is scrubbed by scroll: `progress` (0..5, a ref so scrolling never re-renders React) is
+ * interpolated between one camera per chapter. `scene` (the nearest whole chapter) switches layers:
+ *   0 hero  1 the street  2 rivals rise  3 people appear  4 each one chooses  5 the answer
+ * The crowd is a drawing, not the model: the real run uses the choice model inside the app.
  */
 import maplibregl, { type Map as MLMap } from "maplibre-gl";
-import { useEffect, useRef, useState } from "react";
-import { attachDeck, C, enhanceMap, pickStyle, type DeckHandle } from "@/lib/mapkit";
+import { useEffect, useRef, useState, type MutableRefObject } from "react";
+import { attachDeck, enhanceMap, pickStyle, type DeckHandle } from "@/lib/mapkit";
 import type { PreviewComp, Spot } from "./spots";
 
 export type { Spot, PreviewComp };
 
-const CAMERAS = [
-  { zoom: 15.25, pitch: 62, bearing: -28 },
-  { zoom: 15.7, pitch: 12, bearing: 0 },
-  { zoom: 15.4, pitch: 68, bearing: 42 },
-  { zoom: 14.1, pitch: 50, bearing: -18 },
-  { zoom: 15.0, pitch: 62, bearing: 96 },
-  { zoom: 14.1, pitch: 46, bearing: 168 },
+type Cam = { zoom: number; pitch: number; bearing: number };
+const CAMERAS: Cam[] = [
+  { zoom: 15.1, pitch: 64, bearing: -30 },
+  { zoom: 15.8, pitch: 8, bearing: 0 },
+  { zoom: 15.5, pitch: 70, bearing: 50 },
+  { zoom: 14.3, pitch: 55, bearing: 10 },
+  { zoom: 15.1, pitch: 66, bearing: 110 },
+  { zoom: 14.0, pitch: 48, bearing: 190 },
 ];
+
+const WHITE: [number, number, number] = [255, 255, 255];
+const INK: [number, number, number] = [0, 0, 0];
+const RED: [number, number, number] = [255, 75, 62];
+const HAZE: [number, number, number] = [170, 184, 255];
+const rgba = (c: [number, number, number], a: number) => [c[0], c[1], c[2], a] as [number, number, number, number];
 
 function rand(seed: number) {
   let s = Math.abs(Math.round(seed)) % 2147483647 || 7;
   return () => (s = (s * 16807) % 2147483647) / 2147483647;
 }
 
-type Choice = "you" | "rival" | "none";
 interface Person {
   home: [number, number];
-  choice: Choice;
+  choice: "you" | "rival" | "none";
   path: [number, number][];
   ts: number[];
 }
@@ -40,7 +48,7 @@ interface Bin {
   n: number;
 }
 
-/** Illustrative crowd: homes around the street; each walks to the nearest-ish shop, or stays home if everything is far. */
+/** Illustrative crowd: homes around the street; some aren't buying today, the rest walk to the nearest-ish shop. */
 function makePeople(spot: Spot, comps: PreviewComp[], n = 1400): Person[] {
   const r = rand(spot.lat * 1e4 + spot.lng * 1e3 + comps.length);
   const dests = [{ lat: spot.lat, lng: spot.lng, you: true }, ...comps.slice(0, 60).map((c) => ({ lat: c.lat, lng: c.lng, you: false }))];
@@ -48,7 +56,6 @@ function makePeople(spot: Spot, comps: PreviewComp[], n = 1400): Person[] {
   const kmLng = 1 / (111.32 * Math.cos((spot.lat * Math.PI) / 180));
   const out: Person[] = [];
   for (let i = 0; i < n; i++) {
-    // denser near the centre, like a real high street
     const a = r() * Math.PI * 2;
     const d = 0.12 + Math.pow(r(), 0.7) * 1.7;
     const home: [number, number] = [spot.lng + Math.cos(a) * d * kmLng, spot.lat + Math.sin(a) * d * kmLat];
@@ -61,7 +68,6 @@ function makePeople(spot: Spot, comps: PreviewComp[], n = 1400): Person[] {
         best = dst;
       }
     }
-    // some people are simply not in the market today; others find everything too far
     const none = r() < 0.35 || bs > 1.1 + r() * 0.6;
     const mid: [number, number] = r() < 0.5 ? [best.lng, home[1]] : [home[0], best.lat];
     const t0 = r() * 1000;
@@ -91,17 +97,24 @@ function binPeople(people: Person[], spot: Spot, cellKm = 0.22): Bin[] {
   return [...m.values()];
 }
 
-const GREY: [number, number, number] = [169, 165, 155];
-const rgba = (c: [number, number, number], a: number) => [c[0], c[1], c[2], a] as [number, number, number, number];
+const smooth = (t: number) => t * t * (3 - 2 * t);
+const easeOut = (t: number) => 1 - Math.pow(1 - t, 4);
 
-export default function HeroMap({
-  spot, comps, scene = 0, framed = false,
-}: { spot: Spot; comps: PreviewComp[]; scene?: number; framed?: boolean }) {
+function camAt(p: number): Cam {
+  const i = Math.max(0, Math.min(CAMERAS.length - 1, Math.floor(p)));
+  const j = Math.min(CAMERAS.length - 1, i + 1);
+  const k = smooth(Math.max(0, Math.min(1, p - i)));
+  const a = CAMERAS[i];
+  const b = CAMERAS[j];
+  return { zoom: a.zoom + (b.zoom - a.zoom) * k, pitch: a.pitch + (b.pitch - a.pitch) * k, bearing: a.bearing + (b.bearing - a.bearing) * k };
+}
+
+export default function HeroMap({ spot, comps, scene = 0, progress }: { spot: Spot; comps: PreviewComp[]; scene?: number; progress?: MutableRefObject<number> }) {
   const el = useRef<HTMLDivElement>(null);
   const map = useRef<MLMap | null>(null);
   const deck = useRef<DeckHandle | null>(null);
   const [ready, setReady] = useState(false);
-  const state = useRef({ spot, comps, scene, people: [] as Person[], bins: [] as Bin[], walkers: [] as Person[], born: 0 });
+  const state = useRef({ spot, comps, scene, people: [] as Person[], bins: [] as Bin[], walkers: [] as Person[], free: false, cur: CAMERAS[0] as Cam, t0: 0 });
   state.current.spot = spot;
   state.current.comps = comps;
   state.current.scene = scene;
@@ -114,9 +127,9 @@ export default function HeroMap({
       if (cancelled || !el.current) return;
       let m: MLMap;
       try {
-        // start high and flat; the first flyTo is the "descent into the street"
+        // start high and flat; the first flight is the descent into the street
         m = new maplibregl.Map({
-          container: el.current, style, center: [spot.lng, spot.lat], zoom: 12.2, pitch: 0, bearing: -70, interactive: false,
+          container: el.current, style, center: [spot.lng, spot.lat], zoom: 12, pitch: 0, bearing: -80, interactive: false,
           attributionControl: { compact: true }, maxPitch: 80, fadeDuration: 0, pixelRatio: Math.min(window.devicePixelRatio || 1, 1.5),
         });
       } catch {
@@ -124,44 +137,48 @@ export default function HeroMap({
       }
       map.current = m;
       m.on("load", async () => {
-        enhanceMap(m, { buildingsMinZoom: 12 });
+        enhanceMap(m, { buildingsMinZoom: 12, theme: "blueprint" });
         const d = await attachDeck(m);
         if (cancelled) return;
         deck.current = d;
         setReady(true);
-        let last = performance.now();
         const loop = (now: number) => {
-          const dt = Math.min(64, now - last);
-          last = now;
-          if (!m.isMoving()) m.setBearing(m.getBearing() + dt * 0.003);
           const S = state.current;
+          // scroll scrubs the camera; a slow drift keeps the city alive when the page is still
+          if (S.free && !m.isMoving()) {
+            const target = camAt(progress?.current ?? S.scene);
+            const c = S.cur;
+            const k = 0.075;
+            S.cur = { zoom: c.zoom + (target.zoom - c.zoom) * k, pitch: c.pitch + (target.pitch - c.pitch) * k, bearing: c.bearing + (target.bearing - c.bearing) * k };
+            m.jumpTo({ center: [S.spot.lng, S.spot.lat], zoom: S.cur.zoom, pitch: S.cur.pitch, bearing: S.cur.bearing + (now - S.t0) * 0.0016 });
+          }
           const sc = S.scene;
           const all = sc === 0;
           const showComps = all || sc >= 2;
           const showPeople = all || sc >= 3;
           const choose = all || sc >= 4;
-          const showTrips = all || sc === 4 || sc === 5;
+          const showTrips = all || sc >= 4;
           const t = (now / 22) % 1400;
           const pulse = (now / 12) % 260;
-          const pc = (p: Person) => (!choose ? rgba(C.agent, 220) : p.choice === "you" ? rgba(C.you, 240) : p.choice === "rival" ? rgba(C.agent, 200) : rgba(GREY, 150));
           const binMax = Math.max(1, ...S.bins.map((b) => b.n));
+          const pc = (p: Person) => (!choose ? rgba(RED, 235) : p.choice === "you" ? rgba(WHITE, 255) : p.choice === "rival" ? rgba(INK, 210) : rgba(HAZE, 120));
           d?.setLayers((DL) => [
             new DL.ScatterplotLayer({
               id: "catchment", data: [S.spot], getPosition: (s: Spot) => [s.lng, s.lat], radiusUnits: "meters",
-              getRadius: sc === 1 || sc === 5 ? 1500 : 0, getFillColor: rgba(C.you, 14), getLineColor: rgba(C.you, 150),
+              getRadius: sc === 1 || sc === 5 ? 1500 : 0, getFillColor: rgba(WHITE, 16), getLineColor: rgba(WHITE, 200),
               stroked: true, lineWidthMinPixels: 1.5, transitions: { getRadius: { duration: 1400, easing: easeOut } }, updateTriggers: { getRadius: sc },
             }),
             new DL.ColumnLayer({
-              id: "density", data: S.bins, diskResolution: 6, angle: 30, radius: 80, coverage: 0.86, extruded: true,
-              getPosition: (b: Bin) => b.pos, getElevation: (b: Bin) => (sc === 3 ? 10 + (b.n / binMax) * 230 : 0),
-              getFillColor: (b: Bin) => rgba(mix(C.youSoft, C.agent, b.n / binMax), sc === 3 ? 95 : 0),
-              transitions: { getElevation: { duration: 1300, easing: easeOut }, getFillColor: { duration: 700 } }, updateTriggers: { getElevation: [sc, binMax], getFillColor: [sc === 3, binMax] },
-              material: { ambient: 0.55, diffuse: 0.55, shininess: 12 },
+              id: "density", data: S.bins, diskResolution: 6, angle: 30, radius: 80, coverage: 0.86, extruded: true, wireframe: true,
+              getPosition: (b: Bin) => b.pos, getElevation: (b: Bin) => (sc === 3 ? 10 + (b.n / binMax) * 260 : 0),
+              getFillColor: rgba(WHITE, sc === 3 ? 28 : 0), getLineColor: rgba(WHITE, sc === 3 ? 170 : 0),
+              transitions: { getElevation: { duration: 1300, easing: easeOut }, getFillColor: { duration: 600 }, getLineColor: { duration: 600 } },
+              updateTriggers: { getElevation: [sc, binMax], getFillColor: sc === 3, getLineColor: sc === 3 },
             }),
             showTrips && new DL.TripsLayer({
               id: "trips", data: S.walkers, getPath: (x: Person) => x.path, getTimestamps: (x: Person) => x.ts,
-              getColor: (x: Person) => (x.choice === "you" ? C.you : C.agent), widthMinPixels: 2.2, trailLength: 80, currentTime: t,
-              fadeTrail: true, capRounded: true, jointRounded: true, opacity: sc === 5 ? 0.45 : 0.9,
+              getColor: (x: Person) => (x.choice === "you" ? WHITE : INK), widthMinPixels: 2, trailLength: 80, currentTime: t,
+              fadeTrail: true, capRounded: true, jointRounded: true, opacity: sc === 5 ? 0.5 : 0.9,
             }),
             new DL.ScatterplotLayer({
               id: "people", data: S.people, getPosition: (p: Person) => p.home, radiusUnits: "meters", radiusMinPixels: 0,
@@ -169,28 +186,21 @@ export default function HeroMap({
               transitions: { getRadius: { duration: 900, easing: easeOut }, getFillColor: { duration: 900 } },
               updateTriggers: { getRadius: showPeople, getFillColor: choose },
             }),
-            new DL.ScatterplotLayer({
-              id: "comp-glow", data: S.comps, getPosition: (c: PreviewComp) => [c.lng, c.lat], radiusUnits: "meters",
-              getRadius: showComps ? 38 : 0, getFillColor: rgba(C.comp, 42), stroked: false,
-              transitions: { getRadius: { duration: 900 } }, updateTriggers: { getRadius: showComps },
-            }),
             new DL.ColumnLayer({
-              id: "comps", data: S.comps, diskResolution: 18, radius: 11, extruded: true,
-              getPosition: (c: PreviewComp) => [c.lng, c.lat], getElevation: showComps ? 95 : 0, getFillColor: rgba(C.comp, 240),
-              // each pillar rises when a new street loads, and again when the "rivals" chapter enters
+              id: "comps", data: S.comps, diskResolution: 4, angle: 45, radius: 13, extruded: true, wireframe: true,
+              getPosition: (c: PreviewComp) => [c.lng, c.lat], getElevation: showComps ? 110 : 0,
+              getFillColor: rgba(INK, 235), getLineColor: rgba(WHITE, 150),
               transitions: { getElevation: { duration: 1400, easing: easeOut, enter: () => [0] } }, updateTriggers: { getElevation: showComps },
-              material: { ambient: 0.6, diffuse: 0.6, shininess: 40 },
             }),
             new DL.ScatterplotLayer({
               id: "site-ring", data: [S.spot], getPosition: (s: Spot) => [s.lng, s.lat], radiusUnits: "meters",
-              getRadius: 40 + pulse, getFillColor: [0, 0, 0, 0], getLineColor: rgba(C.you, Math.max(0, 210 - pulse * 0.8)),
+              getRadius: 40 + pulse, getFillColor: [0, 0, 0, 0], getLineColor: rgba(WHITE, Math.max(0, 230 - pulse * 0.88)),
               stroked: true, filled: false, lineWidthMinPixels: 2, updateTriggers: { getRadius: now, getLineColor: now },
             }),
             new DL.ColumnLayer({
-              id: "site", data: [S.spot], diskResolution: 36, radius: 22, extruded: true,
-              getPosition: (s: Spot) => [s.lng, s.lat], getElevation: sc === 5 ? 1100 : 640, getFillColor: rgba(C.you, 255),
+              id: "site", data: [S.spot], diskResolution: 36, radius: 20, extruded: true,
+              getPosition: (s: Spot) => [s.lng, s.lat], getElevation: sc === 5 ? 1100 : 640, getFillColor: rgba(WHITE, 255),
               transitions: { getElevation: { duration: 1400, easing: easeOut, enter: () => [0] } }, updateTriggers: { getElevation: sc === 5 },
-              material: { ambient: 0.65, diffuse: 0.5, shininess: 60 },
             }),
           ].filter(Boolean));
           raf = requestAnimationFrame(loop);
@@ -216,29 +226,29 @@ export default function HeroMap({
     state.current.bins = binPeople(people, spot);
   }, [spot, comps]);
 
-  // camera choreography: one shot per scene; the first one is a slow descent from above
-  const first = useRef(true);
+  // the descent (on load and when the street changes), then hand the camera to the scroll
   useEffect(() => {
     const m = map.current;
     if (!ready || !m) return;
-    const cam = CAMERAS[scene % CAMERAS.length];
-    const intro = first.current;
-    first.current = false;
-    m.flyTo({ center: [spot.lng, spot.lat], ...cam, duration: intro ? 4200 : 2400, curve: intro ? 1.1 : 1.35, essential: true });
-  }, [ready, scene, spot]);
+    const S = state.current;
+    S.free = false;
+    const cam = camAt(progress?.current ?? S.scene);
+    m.flyTo({ center: [spot.lng, spot.lat], ...cam, duration: 4000, curve: 1.15, essential: true });
+    const done = () => {
+      S.cur = { zoom: m.getZoom(), pitch: m.getPitch(), bearing: m.getBearing() };
+      S.t0 = performance.now();
+      S.free = true;
+    };
+    m.once("moveend", done);
+    return () => {
+      m.off("moveend", done);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, spot]);
 
   return (
     <div className="absolute inset-0" aria-hidden>
       <div ref={el} style={{ position: "absolute", inset: 0 }} />
-      {!framed && <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-ink-950/80 to-transparent" />}
     </div>
   );
-}
-
-function easeOut(t: number) {
-  return 1 - Math.pow(1 - t, 4);
-}
-function mix(a: [number, number, number], b: [number, number, number], t: number): [number, number, number] {
-  const k = Math.max(0, Math.min(1, t));
-  return [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k];
 }

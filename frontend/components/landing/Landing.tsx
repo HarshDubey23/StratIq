@@ -1,15 +1,14 @@
 "use client";
 
-import { ArrowDown, ArrowRight, ArrowUpRight, Loader2, Mic, RefreshCw } from "lucide-react";
+import { ArrowUpRight, Loader2, Mic, RefreshCw } from "lucide-react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Logo } from "@/components/brand";
 import { cn } from "@/components/ui";
 import { SPOTS, type PreviewComp, type Spot } from "./spots";
 
-const HeroMap = dynamic(() => import("./HeroMap"), { ssr: false, loading: () => <div className="absolute inset-0 bg-ink-800" /> });
+const HeroMap = dynamic(() => import("./HeroMap"), { ssr: false, loading: () => null });
 
 const CATS = [
   { key: "cafe", label: "Cafés" },
@@ -22,11 +21,11 @@ const CATS = [
 const IDEAS = ["A gym in Bandra West, fees ₹2,000", "A café in Indiranagar, coffee at ₹250", "A salon in Sector 18, Noida", "A pharmacy near Connaught Place"];
 
 const CHAPTERS = [
-  { k: "Street", title: <>Start with the <span className="serif">real</span> street.</>, body: "Every building and road comes from OpenStreetMap. Pick any lane in India — the map is the place you'd actually sign for." },
-  { k: "Rivals", title: <>Every rival, <span className="serif">counted.</span></>, body: "Competitors load live from OpenStreetMap and Foursquare. Anything the maps miss, a field researcher adds by walking the lane." },
-  { k: "People", title: <>Ten thousand people, where they <span className="serif">live.</span></>, body: "Simulated customers are placed by real population data, each with a budget, habits and a limit on how far they'll travel." },
-  { k: "Choice", title: <>Each one <span className="serif">chooses.</span></>, body: "You, a rival, or nothing — every day for twelve weeks. Price, distance, quality and opening hours all pull on the decision." },
-  { k: "Answer", title: <>Then you get the <span className="serif">answer.</span></>, body: "Profit in a bad, normal and good month. Break-even. The best spot nearby. And exactly what could make it wrong." },
+  { title: "Start with the real street.", body: "Every building and road comes from OpenStreetMap. Pick any lane in India — the one you'd actually sign for." },
+  { title: "Every rival, counted.", body: "Competitors load live from OpenStreetMap and Foursquare. Anything the maps miss, a field researcher adds by walking the lane." },
+  { title: "Ten thousand people, where they live.", body: "Simulated customers are placed by real population data, each with a budget, habits and a limit on how far they'll travel." },
+  { title: "Each one chooses.", body: "You, a rival, or nothing — every day for twelve weeks. Price, distance, quality and opening hours all pull on the decision." },
+  { title: "Then you get the answer.", body: "Profit in a bad, normal and good month. Break-even. The best spot nearby. And what could make it wrong." },
 ];
 
 interface Preview {
@@ -46,26 +45,13 @@ async function ensureSession(): Promise<void> {
 
 const reduced = () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-function useReveal(deps: unknown[] = []) {
-  useEffect(() => {
-    const els = Array.from(document.querySelectorAll<HTMLElement>("[data-reveal]:not(.is-in), .reveal-lines:not(.is-in)"));
-    const io = new IntersectionObserver(
-      (es) => es.forEach((e) => e.isIntersecting && (e.target.classList.add("is-in"), io.unobserve(e.target))),
-      { threshold: 0.15, rootMargin: "0px 0px -6% 0px" },
-    );
-    els.forEach((el) => io.observe(el));
-    return () => io.disconnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps);
-}
-
 function useLenis() {
   useEffect(() => {
     if (reduced()) return;
     let raf = 0;
     let lenis: { raf: (t: number) => void; destroy: () => void } | null = null;
     import("lenis").then(({ default: Lenis }) => {
-      lenis = new Lenis({ lerp: 0.09, wheelMultiplier: 0.95 }) as unknown as typeof lenis;
+      lenis = new Lenis({ lerp: 0.085, wheelMultiplier: 0.9 }) as unknown as typeof lenis;
       const loop = (t: number) => {
         lenis?.raf(t);
         raf = requestAnimationFrame(loop);
@@ -110,71 +96,42 @@ function useTypewriter(lines: string[]) {
   return text;
 }
 
-/** Which scroll chapter is in the middle of the screen (0 = hero). */
-function useScene(count: number) {
+/** Scroll position as a chapter number with a fraction (0 = hero, 5 = last chapter), plus the nearest whole chapter. */
+function useStoryProgress() {
+  const progress = useRef(0);
   const [scene, setScene] = useState(0);
   useEffect(() => {
     const els = Array.from(document.querySelectorAll<HTMLElement>("[data-scene]"));
-    const io = new IntersectionObserver(
-      (es) => es.forEach((e) => e.isIntersecting && setScene(Number((e.target as HTMLElement).dataset.scene))),
-      { rootMargin: "-50% 0px -50% 0px" },
-    );
-    els.forEach((el) => io.observe(el));
-    return () => io.disconnect();
-  }, [count]);
-  return scene;
-}
-
-/** Buttons drift a little toward the cursor. */
-function Magnetic({ children, className }: { children: React.ReactNode; className?: string }) {
-  const ref = useRef<HTMLSpanElement>(null);
-  return (
-    <span
-      ref={ref}
-      className={cn("inline-block transition-transform duration-500 ease-[cubic-bezier(.16,1,.3,1)]", className)}
-      onMouseMove={(e) => {
-        if (reduced() || !ref.current) return;
-        const r = ref.current.getBoundingClientRect();
-        ref.current.style.transform = `translate(${(e.clientX - r.left - r.width / 2) * 0.22}px, ${(e.clientY - r.top - r.height / 2) * 0.3}px)`;
-      }}
-      onMouseLeave={() => ref.current && (ref.current.style.transform = "")}
-    >
-      {children}
-    </span>
-  );
-}
-
-/** Counts up once when scrolled into view. */
-function CountUp({ to, className, format = (n: number) => Math.round(n).toLocaleString("en-IN") }: { to: number; className?: string; format?: (n: number) => string }) {
-  const ref = useRef<HTMLSpanElement>(null);
-  const [v, setV] = useState(0);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    if (reduced()) return setV(to);
-    let raf = 0;
-    const io = new IntersectionObserver(([e]) => {
-      if (!e.isIntersecting) return;
-      io.disconnect();
-      const t0 = performance.now();
-      const tick = (now: number) => {
-        const k = Math.min(1, (now - t0) / 1400);
-        setV(to * (1 - Math.pow(1 - k, 4)));
-        if (k < 1) raf = requestAnimationFrame(tick);
-      };
-      raf = requestAnimationFrame(tick);
-    });
-    io.observe(el);
-    return () => {
-      io.disconnect();
-      cancelAnimationFrame(raf);
+    const on = () => {
+      const mid = window.innerHeight / 2;
+      let p = els.length - 1;
+      for (let i = 0; i < els.length; i++) {
+        const r = els[i].getBoundingClientRect();
+        if (r.top > mid) {
+          p = i - 0.5;
+          break;
+        }
+        if (r.bottom > mid) {
+          p = i + (mid - r.top) / r.height - 0.5;
+          break;
+        }
+      }
+      progress.current = Math.max(0, Math.min(els.length - 1, p));
+      setScene(Math.round(progress.current));
     };
-  }, [to]);
-  return <span ref={ref} className={className}>{format(v)}</span>;
+    on();
+    window.addEventListener("scroll", on, { passive: true });
+    window.addEventListener("resize", on);
+    return () => {
+      window.removeEventListener("scroll", on);
+      window.removeEventListener("resize", on);
+    };
+  }, []);
+  return { progress, scene };
 }
 
-/** Opening curtain: a counter and the wordmark, then the page lifts away. Once per session. */
-function Intro() {
+/** Opening: blueprint lines draw across the blue, the wordmark sets, the sheet lifts. Once per session. */
+function Intro({ onDone }: { onDone: () => void }) {
   const [phase, setPhase] = useState<"on" | "lift" | "off">("on");
   const [n, setN] = useState(0);
   useEffect(() => {
@@ -185,44 +142,70 @@ function Intro() {
     } catch {
       /* storage blocked */
     }
-    if (seen || reduced()) return setPhase("off");
+    if (seen || reduced()) {
+      setPhase("off");
+      onDone();
+      return;
+    }
     let raf = 0;
     const t0 = performance.now();
     const tick = (now: number) => {
-      const k = Math.min(1, (now - t0) / 1300);
+      const k = Math.min(1, (now - t0) / 1500);
       setN(Math.round(100 * (1 - Math.pow(1 - k, 3))));
       if (k < 1) raf = requestAnimationFrame(tick);
-      else setTimeout(() => setPhase("lift"), 180);
+      else setTimeout(() => setPhase("lift"), 150);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useEffect(() => {
     if (phase !== "lift") return;
-    const id = setTimeout(() => setPhase("off"), 1000);
+    onDone();
+    const id = setTimeout(() => setPhase("off"), 1100);
     return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
   if (phase === "off") return null;
   return (
-    <div aria-hidden className={cn("intro fixed inset-0 z-[80] flex flex-col justify-between bg-ink-100 p-6 text-white md:p-10", phase === "lift" && "intro-lift")}>
-      <div className="flex justify-between font-mono text-[12px] text-white/50">
-        <span>StrataIQ — market simulation</span>
-        <span>India · live data</span>
-      </div>
-      <div>
-        <div className="line-mask is-in">
-          <span className="intro-word font-display text-[clamp(3.5rem,13vw,13rem)] font-medium leading-[0.85] tracking-[-0.06em]">
-            Strata<span className="serif text-[#8a9bff]">IQ</span>
-          </span>
+    <div aria-hidden className={cn("lp-intro fixed inset-0 z-[80] overflow-hidden bg-[#2F49FF] text-white", phase === "lift" && "is-lift")}>
+      {[18, 34, 50, 66, 82].map((y, i) => <span key={`h${y}`} className="lp-rule-h" style={{ top: `${y}%`, animationDelay: `${i * 90}ms` }} />)}
+      {[12, 30, 48, 66, 84].map((x, i) => <span key={`v${x}`} className="lp-rule-v" style={{ left: `${x}%`, animationDelay: `${120 + i * 90}ms` }} />)}
+      <div className="absolute inset-x-6 bottom-8 md:inset-x-10 md:bottom-10">
+        <div className="overflow-hidden">
+          <div className="lp-wide lp-intro-word text-[clamp(3.6rem,15vw,15rem)] leading-[0.82]">StrataIQ</div>
         </div>
-        <div className="mt-6 flex items-end justify-between">
-          <div className="h-px flex-1 bg-white/15">
-            <div className="h-px bg-white" style={{ width: `${n}%` }} />
-          </div>
-          <span className="num ml-6 font-mono text-[13px] text-white/70">{String(n).padStart(3, "0")}</span>
+        <div className="mt-5 flex items-center gap-6">
+          <div className="h-px flex-1 bg-white/25"><div className="h-px bg-white" style={{ width: `${n}%` }} /></div>
+          <span className="lp-num lp-cond text-[15px]">{n}</span>
         </div>
       </div>
     </div>
+  );
+}
+
+/** Headline set letter by letter when the page opens: the one orchestrated moment. */
+function Rise({ text, go, delay = 0 }: { text: string; go: boolean; delay?: number }) {
+  return (
+    <span aria-label={text} className={cn("lp-rise", go && "is-go")}>
+      {text.split("").map((c, i) => (
+        <span key={i} aria-hidden style={{ transitionDelay: `${delay + i * 28}ms` }}>{c === " " ? " " : c}</span>
+      ))}
+    </span>
+  );
+}
+
+function Wordmark() {
+  return (
+    <Link href="/" aria-label="StrataIQ home" className="flex items-center gap-2.5 text-white">
+      <svg width="26" height="26" viewBox="0 0 32 32" fill="none" aria-hidden>
+        <path d="M4 20.5 16 26l12-5.5" stroke="currentColor" strokeOpacity=".45" strokeWidth="1.6" strokeLinecap="round" />
+        <path d="M4 15.5 16 21l12-5.5" stroke="currentColor" strokeOpacity=".7" strokeWidth="1.6" strokeLinecap="round" />
+        <path d="M4 10.5 16 16l12-5.5L16 5 4 10.5Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+        <circle cx="16" cy="10.6" r="2.2" fill="currentColor" />
+      </svg>
+      <span className="lp-wide text-[17px] tracking-[-0.02em]">StrataIQ</span>
+    </Link>
   );
 }
 
@@ -236,9 +219,9 @@ export default function Landing() {
   const [idea, setIdea] = useState("");
   const [busy, setBusy] = useState<null | "live" | "idea">(null);
   const [goErr, setGoErr] = useState<string | null>(null);
+  const [opened, setOpened] = useState(false);
   const placeholder = useTypewriter(IDEAS);
-  const scene = useScene(CHAPTERS.length);
-  useReveal();
+  const { progress, scene } = useStoryProgress();
   useLenis();
 
   const load = useCallback(async () => {
@@ -296,138 +279,124 @@ export default function Landing() {
   const area = spot.label.split(",")[0];
 
   return (
-    <div className="relative bg-ink-950 text-ink-100">
-      <Intro />
+    <div className="lp relative">
+      <Intro onDone={() => setOpened(true)} />
 
-      {/* ---------------- nav (floats over the city) ---------------- */}
       <header className="fixed inset-x-0 top-0 z-40">
-        <nav className="mx-auto mt-3 flex h-14 max-w-[1320px] items-center justify-between rounded-full px-3 md:px-4">
-          <div className="panel flex h-11 items-center rounded-full px-4"><Logo /></div>
-          <div className="panel hidden h-11 items-center gap-7 rounded-full px-6 text-[14px] text-ink-300 md:flex">
-            <a href="#story" className="transition-colors hover:text-ink-100">How it works</a>
-            <a href="#field" className="transition-colors hover:text-ink-100">Field research</a>
-            <a href="#voice" className="transition-colors hover:text-ink-100">Voice</a>
-            <Link href="/methodology" className="transition-colors hover:text-ink-100">Methodology</Link>
+        <nav className="mx-auto flex h-[72px] max-w-[1400px] items-center justify-between px-5 md:px-10">
+          <Wordmark />
+          <div className="hidden items-center gap-8 text-[14.5px] text-white/75 md:flex">
+            <a href="#story" className="lp-link">How it works</a>
+            <a href="#field" className="lp-link">Field research</a>
+            <a href="#voice" className="lp-link">Voice</a>
+            <Link href="/methodology" className="lp-link">Methodology</Link>
           </div>
-          <div className="panel flex h-11 items-center gap-1 rounded-full p-1">
-            <Link href="/sign-in" className="hidden h-9 items-center rounded-full px-4 text-[14px] text-ink-200 transition-colors hover:bg-black/[0.05] sm:inline-flex">Sign in</Link>
-            <Link href="/sign-up" className="inline-flex h-9 items-center rounded-full bg-ink-100 px-4 text-[14px] font-medium text-white transition-colors hover:bg-black">Start free</Link>
+          <div className="flex items-center gap-2">
+            <Link href="/sign-in" className="hidden h-10 items-center px-3 text-[14.5px] text-white/80 transition-colors hover:text-white sm:inline-flex">Sign in</Link>
+            <Link href="/sign-up" className="inline-flex h-10 items-center rounded-full bg-white px-5 text-[14.5px] font-semibold text-[#2F49FF] transition-transform hover:scale-[1.03]">Start free</Link>
           </div>
         </nav>
       </header>
 
       <main>
-        {/* ---------------- the stage: one pinned 3D city under the hero and the story ---------------- */}
+        {/* ---------------- the stage: one pinned blueprint city under the hero and the story ---------------- */}
         <div className="relative">
           <div className="sticky top-0 h-[100svh] overflow-hidden">
-            <HeroMap spot={spot} comps={comps} scene={scene} />
-            {/* chapter rail */}
-            <ol className={cn("pointer-events-none absolute right-5 top-1/2 hidden -translate-y-1/2 flex-col gap-3 transition-opacity duration-700 md:flex", scene > 0 ? "opacity-100" : "opacity-0")} aria-hidden>
+            <HeroMap spot={spot} comps={comps} scene={scene} progress={progress} />
+            <div aria-hidden className="lp-grid pointer-events-none absolute inset-0" />
+            <div aria-hidden className={cn("pointer-events-none absolute inset-0 transition-opacity duration-700", scene === 0 ? "opacity-100" : "opacity-0")} style={{ background: "radial-gradient(90% 75% at 0% 100%, rgba(16,28,160,.9), rgba(16,28,160,.35) 45%, transparent 70%)" }} />
+            <ol aria-hidden className={cn("pointer-events-none absolute right-5 top-1/2 hidden -translate-y-1/2 flex-col gap-3 transition-opacity duration-700 md:flex md:right-10", scene > 0 ? "opacity-100" : "opacity-0")}>
               {CHAPTERS.map((c, i) => (
-                <li key={c.k} className="flex items-center justify-end gap-3">
-                  <span className={cn("font-mono text-[11px] transition-all duration-500", scene === i + 1 ? "translate-x-0 text-ink-100 opacity-100" : "translate-x-2 text-ink-400 opacity-0")}>{c.k}</span>
-                  <span className={cn("h-px transition-all duration-500", scene === i + 1 ? "w-10 bg-accent" : scene > i + 1 ? "w-5 bg-ink-100" : "w-5 bg-ink-500")} />
-                </li>
+                <li key={c.title} className={cn("h-px transition-all duration-500", scene === i + 1 ? "w-12 bg-white" : scene > i + 1 ? "w-6 bg-white/70" : "w-6 bg-white/30")} />
               ))}
             </ol>
+            <div aria-hidden className="lp-num absolute bottom-5 right-5 hidden text-[12px] text-white/60 md:right-10 md:block">
+              {spot.lat.toFixed(4)}° N&nbsp;&nbsp;{spot.lng.toFixed(4)}° E
+            </div>
           </div>
 
           <div className="relative -mt-[100svh]">
             {/* ---------------- hero ---------------- */}
-            <section data-scene={0} className="relative flex min-h-[100svh] flex-col justify-end pb-6 pt-24 md:pb-8">
-              <div aria-hidden className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,#F5F3EE_0%,rgba(245,243,238,.92)_30%,rgba(245,243,238,.35)_58%,rgba(245,243,238,0)_75%)] max-md:bg-[linear-gradient(180deg,rgba(245,243,238,.2)_0%,rgba(245,243,238,.9)_45%,#F5F3EE_100%)]" />
-              <div className="relative mx-auto w-full max-w-[1320px] px-5 md:px-8">
-                <p data-reveal className="inline-flex items-center gap-2 rounded-full border border-black/[0.08] bg-white/80 px-3 py-1.5 text-[13px] text-ink-300 backdrop-blur">
-                  <span className="relative flex h-1.5 w-1.5"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-ok opacity-60" /><span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-ok" /></span>
-                  Live market data for any street in India
-                </p>
-                <h1 className="reveal-lines mt-5 max-w-[900px] font-display text-[clamp(2.8rem,6.3vw,6.4rem)] font-medium leading-[0.92] tracking-[-0.06em]">
-                  <span className="line-mask"><span style={{ transitionDelay: "120ms" }}>Know if your shop</span></span>
-                  <span className="line-mask"><span style={{ transitionDelay: "220ms" }}>will <span className="serif text-accent">work</span>,</span></span>
-                  <span className="line-mask"><span style={{ transitionDelay: "320ms" }} className="text-[0.52em] leading-[1.1] tracking-[-0.04em] text-ink-300">before you sign the lease.</span></span>
-                </h1>
-
-                <div className="mt-7 grid items-end gap-6 lg:grid-cols-[minmax(0,640px)_1fr]">
-                  <div>
-                    <form
-                      data-reveal
-                      style={{ transitionDelay: "420ms" }}
-                      onSubmit={(e) => { e.preventDefault(); void simulate(idea || placeholder); }}
-                      className="flex flex-col gap-2 rounded-2xl border border-black/[0.08] bg-white p-2 shadow-[0_1px_2px_rgba(20,18,10,.04),0_24px_60px_-28px_rgba(20,18,10,.3)] sm:flex-row"
-                    >
-                      <label htmlFor="idea" className="sr-only">Your business idea</label>
-                      <input
-                        id="idea"
-                        value={idea}
-                        onChange={(e) => setIdea(e.target.value)}
-                        placeholder={placeholder || " "}
-                        className="h-14 min-w-0 flex-1 rounded-xl bg-transparent px-4 text-[17px] outline-none placeholder:text-ink-500"
-                      />
-                      <Magnetic className="w-full sm:w-auto">
-                        <button type="submit" className="sheen inline-flex h-14 w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-accent px-6 text-[16px] font-medium text-white transition-colors hover:bg-[#2238e0]">
-                          {busy === "idea" ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Simulate my idea <ArrowRight className="h-4 w-4" />
-                        </button>
-                      </Magnetic>
-                    </form>
-                    <div data-reveal style={{ transitionDelay: "480ms" }} className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-[14px] text-ink-400">
-                      <button onClick={liveDemo} className="inline-flex items-center gap-1.5 font-medium text-ink-100 underline decoration-black/20 underline-offset-4 transition-colors hover:decoration-black">
-                        {busy === "live" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null} Open the live demo
-                      </button>
-                      <span className="inline-flex items-center gap-1.5"><Mic className="h-3.5 w-3.5 text-accent" /> or press <kbd className="rounded border border-black/15 bg-white px-1.5 font-mono text-[11px] text-ink-200">V</kbd> and say it in Hinglish</span>
-                      {goErr && <span className="text-danger">{goErr}</span>}
-                    </div>
+            <section data-scene={0} className="relative flex min-h-[100svh] flex-col justify-end pb-10 pt-28 md:pb-14">
+              <div className="mx-auto grid w-full max-w-[1400px] items-end gap-10 px-5 md:px-10 lg:grid-cols-[1fr_380px]">
+                <div>
+                  <h1 className="lp-wide text-[clamp(3.4rem,10vw,10.5rem)] leading-[0.84] tracking-[-0.045em] text-white">
+                    <Rise text="Test the" go={opened} />
+                    <br />
+                    <Rise text="street." go={opened} delay={220} />
+                  </h1>
+                  <p className={cn("lp-fade mt-7 max-w-[30rem] text-[clamp(1.15rem,1.6vw,1.45rem)] leading-[1.35] text-white", opened && "is-go")} style={{ transitionDelay: "600ms" }}>
+                    Know if your shop will work, before you sign the lease.
+                  </p>
+                  <form
+                    onSubmit={(e) => { e.preventDefault(); void simulate(idea || placeholder); }}
+                    className={cn("lp-fade mt-7 flex max-w-[640px] flex-col gap-1.5 rounded-[10px] bg-white p-1.5 sm:flex-row", opened && "is-go")}
+                    style={{ transitionDelay: "720ms" }}
+                  >
+                    <label htmlFor="idea" className="sr-only">Your business idea</label>
+                    <input
+                      id="idea"
+                      value={idea}
+                      onChange={(e) => setIdea(e.target.value)}
+                      placeholder={placeholder || " "}
+                      className="h-14 min-w-0 flex-1 bg-transparent px-4 text-[17px] text-black outline-none placeholder:text-black/40"
+                    />
+                    <button type="submit" className="inline-flex h-14 shrink-0 items-center justify-center gap-2 rounded-[7px] bg-black px-6 text-[16px] font-semibold text-white transition-colors hover:bg-[#1a1a1a]">
+                      {busy === "idea" && <Loader2 className="h-4 w-4 animate-spin" />} Simulate my idea
+                    </button>
+                  </form>
+                  <div className={cn("lp-fade mt-5 flex flex-wrap items-center gap-x-6 gap-y-2 text-[14.5px] text-white/75", opened && "is-go")} style={{ transitionDelay: "820ms" }}>
+                    <button onClick={liveDemo} className="inline-flex items-center gap-1.5 font-semibold text-white underline decoration-white/40 underline-offset-[5px] transition-colors hover:decoration-white">
+                      {busy === "live" && <Loader2 className="h-3.5 w-3.5 animate-spin" />} Open the live demo
+                    </button>
+                    <span className="inline-flex items-center gap-2"><Mic className="h-4 w-4" /> Or press <kbd className="rounded-[4px] border border-white/40 px-1.5 text-[12px] text-white">V</kbd> and say it in Hinglish</span>
+                    {goErr && <span className="rounded bg-black px-2 py-0.5 text-white">{goErr}</span>}
                   </div>
+                </div>
 
-                  {/* live data ticket: change the street and the category, the city above reloads */}
-                  <div data-reveal style={{ transitionDelay: "560ms" }} className="panel w-full max-w-[420px] justify-self-end rounded-2xl p-4">
-                    <div className="flex items-center justify-between text-[12px] text-ink-400">
-                      <span className="flex items-center gap-2">
-                        <span className={cn("h-1.5 w-1.5 rounded-full", loading ? "animate-pulse bg-warn" : loadErr ? "bg-danger" : "bg-ok")} />
-                        {loading ? "Fetching live…" : loadErr ? "Live data offline" : "Live · OpenStreetMap + Foursquare"}
-                      </span>
-                      {loadErr && <button onClick={() => void load()} className="inline-flex items-center gap-1 hover:text-ink-100"><RefreshCw className="h-3 w-3" /> Retry</button>}
-                    </div>
-                    <div className="mt-2 flex items-end gap-3">
-                      <span className="num font-display text-[54px] font-medium leading-none tracking-[-0.05em]">{loading ? "—" : loadErr ? "?" : comps.length}</span>
-                      <span className="pb-1 text-[13.5px] leading-tight text-ink-300">real {catLabel}<br />around {area}</span>
-                    </div>
-                    <div className="mt-3 flex flex-wrap gap-1">
+                {/* live billboard: the city above is this street, these rivals */}
+                <aside className={cn("lp-fade w-full rounded-[6px] bg-black p-5 text-white", opened && "is-go")} style={{ transitionDelay: "900ms" }}>
+                  <div className="flex items-center justify-between text-[13px] text-white/60">
+                    <span className="flex items-center gap-2">
+                      <span className={cn("h-1.5 w-1.5 rounded-full", loading ? "animate-pulse bg-white/60" : loadErr ? "bg-[#FF4B3E]" : "bg-white")} />
+                      {loading ? "Loading live data" : loadErr ? "Live data offline" : "Live from OpenStreetMap"}
+                    </span>
+                    {loadErr && <button onClick={() => void load()} className="inline-flex items-center gap-1 text-white hover:underline"><RefreshCw className="h-3 w-3" /> Retry</button>}
+                  </div>
+                  <div className="mt-3 flex items-end gap-3">
+                    <span className="lp-num lp-cond text-[88px] leading-[0.8]">{loading ? "··" : loadErr ? "?" : comps.length}</span>
+                    <span className="pb-1 text-[15px] leading-tight text-white/80">{catLabel} around<br />{area}</span>
+                  </div>
+                  <div className="mt-5 grid gap-3 border-t border-white/15 pt-4 text-[13.5px]">
+                    <div className="flex flex-wrap gap-x-4 gap-y-1">
                       {SPOTS.map((s) => (
-                        <button key={s.key} onClick={() => setSpot(s)} className={cn("h-7 rounded-full px-2.5 text-[12.5px] transition-colors", spot.key === s.key ? "bg-ink-100 text-white" : "bg-black/[0.04] text-ink-300 hover:bg-black/[0.08]")}>
+                        <button key={s.key} onClick={() => setSpot(s)} aria-pressed={spot.key === s.key} className={cn("transition-colors", spot.key === s.key ? "text-white underline decoration-2 underline-offset-[6px]" : "text-white/50 hover:text-white")}>
                           {s.label.split(",")[0]}
                         </button>
                       ))}
                     </div>
-                    <div className="mt-1.5 flex flex-wrap gap-1">
+                    <div className="flex flex-wrap gap-x-4 gap-y-1">
                       {CATS.map((c) => (
-                        <button key={c.key} onClick={() => setCat(c.key)} className={cn("h-7 rounded-full border px-2.5 text-[12.5px] transition-colors", cat === c.key ? "border-accent bg-accent-dim text-accent" : "border-transparent text-ink-300 hover:bg-black/[0.05]")}>
+                        <button key={c.key} onClick={() => setCat(c.key)} aria-pressed={cat === c.key} className={cn("transition-colors", cat === c.key ? "text-white underline decoration-2 underline-offset-[6px]" : "text-white/50 hover:text-white")}>
                           {c.label}
                         </button>
                       ))}
                     </div>
                   </div>
-                </div>
-
-                <a href="#story" className="mt-6 hidden items-center gap-2 text-[13px] text-ink-400 transition-colors hover:text-ink-100 md:inline-flex">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full border border-black/10 bg-white/70"><ArrowDown className="scroll-cue h-3.5 w-3.5" /></span>
-                  Scroll to walk the street
-                </a>
+                </aside>
               </div>
             </section>
 
-            {/* ---------------- the story: the city above changes with each chapter ---------------- */}
+            {/* ---------------- the story: scroll drives the camera over the same city ---------------- */}
             <div id="story">
               {CHAPTERS.map((c, i) => (
-                <section key={c.k} data-scene={i + 1} className={cn("flex min-h-[115svh] items-center px-5 md:px-8", i % 2 ? "md:justify-end" : "md:justify-start")}>
-                  <div className={cn("mx-auto w-full max-w-[1320px]", i % 2 && "flex md:justify-end")}>
-                    <article data-reveal className="panel w-full max-w-[460px] rounded-[28px] p-7 md:p-9">
-                      <div className="flex items-center justify-between font-mono text-[12px] text-ink-400">
-                        <span>({String(i + 1).padStart(2, "0")})</span>
-                        <span>{c.k}</span>
-                      </div>
-                      <h2 className="mt-8 font-display text-[clamp(2rem,3.6vw,3.2rem)] font-medium leading-[0.98] tracking-[-0.05em]">{c.title}</h2>
-                      <p className="mt-4 text-[16px] leading-relaxed text-ink-300">{c.body}</p>
-                      <ChapterStat i={i} area={area} comps={comps.length} loading={loading} catLabel={catLabel} />
+                <section key={c.title} data-scene={i + 1} className="flex min-h-[120svh] items-center px-5 md:px-10">
+                  <div className={cn("mx-auto flex w-full max-w-[1400px]", i % 2 ? "justify-end" : "justify-start")}>
+                    <article className={cn("lp-bb w-full max-w-[470px] rounded-[6px] bg-black p-7 text-white md:p-9", i % 2 && "lp-bb-r", scene === i + 1 && "is-on")}>
+                      <div className="lp-num text-[13px] text-white/50">{i + 1} / {CHAPTERS.length}</div>
+                      <h2 className="lp-wide mt-6 text-[clamp(1.9rem,3.2vw,2.9rem)] leading-[0.98] tracking-[-0.035em]">{c.title}</h2>
+                      <p className="mt-4 text-[16.5px] leading-[1.55] text-white/70">{c.body}</p>
+                      <ChapterFact i={i} area={area} comps={comps.length} loading={loading} catLabel={catLabel} on={scene === i + 1} />
                     </article>
                   </div>
                 </section>
@@ -436,91 +405,61 @@ export default function Landing() {
           </div>
         </div>
 
-        {/* ---------------- marquee ---------------- */}
-        <section aria-label="Categories" className="overflow-hidden border-y border-black/[0.07] bg-white py-8">
-          <div className="ticker">
-            {[0, 1].map((k) => (
-              <div key={k} className="flex shrink-0 items-center gap-10 pr-10 font-display text-[clamp(2.4rem,5vw,4.6rem)] font-medium tracking-[-0.05em]">
-                {["Cafés", "Gyms", "Clinics", "Salons", "Pharmacies", "Bakeries", "Pizza", "Coaching", "Kirana"].map((w, j) => (
-                  <span key={w} className="flex items-center gap-10">
-                    <span className={j % 2 ? "serif text-ink-400" : ""}>{w}</span>
-                    <span className="h-2.5 w-2.5 rounded-full bg-accent" />
-                  </span>
-                ))}
-              </div>
-            ))}
-          </div>
-        </section>
-
         {/* ---------------- field research ---------------- */}
-        <section id="field" className="mx-auto grid max-w-[1320px] items-center gap-14 px-5 py-28 md:px-8 md:py-36 lg:grid-cols-[1.1fr_0.9fr]">
-          <div>
-            <p data-reveal className="font-mono text-[12px] text-field">(06) Field research</p>
-            <h2 className="reveal-lines mt-5 font-display text-[clamp(2.4rem,5vw,4.6rem)] font-medium leading-[0.95] tracking-[-0.055em]">
-              <span className="line-mask"><span>When the map runs out,</span></span>
-              <span className="line-mask"><span style={{ transitionDelay: "100ms" }}>a person <span className="serif text-field">walks</span> the street.</span></span>
-            </h2>
-            <p data-reveal className="mt-6 max-w-lg text-[17px] leading-relaxed text-ink-300">
-              No data for your lane? Request a researcher from your own industry — a trainer for a gym, a chef for a café. They open a link on their phone, interview people, visit every rival and count footfall. Your simulation re-runs on what they find.
-            </p>
-            <dl className="mt-10 grid max-w-lg grid-cols-2 gap-x-8 gap-y-6">
-              {[
-                ["Interviews", "who buys, how often, the most they'd pay"],
-                ["Rival visits", "real prices, quality, unmapped shops"],
-                ["Footfall", "a tap counter at your site"],
-                ["Re-run", "agents switch to street data"],
-              ].map(([t, d], i) => (
-                <div key={t} data-reveal style={{ transitionDelay: `${i * 80}ms` }} className="border-t border-black/[0.1] pt-3">
-                  <dt className="text-[15px] font-medium">{t}</dt>
-                  <dd className="mt-1 text-[14px] text-ink-400">{d}</dd>
-                </div>
-              ))}
-            </dl>
+        <section id="field" className="relative border-t border-white/15">
+          <div className="mx-auto grid max-w-[1400px] items-center gap-16 px-5 py-28 md:px-10 md:py-40 lg:grid-cols-[1.15fr_0.85fr]">
+            <div>
+              <h2 className="lp-wide text-[clamp(2.4rem,5.4vw,5.4rem)] leading-[0.9] tracking-[-0.045em]">When the map runs out, someone walks the street.</h2>
+              <p className="mt-8 max-w-[34rem] text-[18px] leading-[1.6] text-white/75">
+                No data for your lane? Request a researcher from your own industry — a trainer for a gym, a chef for a café. They open a link on their phone, interview people, visit every rival and count footfall. Your simulation re-runs on what they find.
+              </p>
+              <dl className="mt-12 grid max-w-[34rem] grid-cols-2 gap-x-10 gap-y-7">
+                {[
+                  ["Interviews", "Who buys, how often, the most they'd pay"],
+                  ["Rival visits", "Real prices, quality, unmapped shops"],
+                  ["Footfall", "A tap counter at your site"],
+                  ["Re-run", "The agents switch to street data"],
+                ].map(([t, d]) => (
+                  <div key={t} className="border-t border-white/30 pt-3">
+                    <dt className="text-[16px] font-semibold">{t}</dt>
+                    <dd className="mt-1 text-[14.5px] text-white/65">{d}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+            <PhoneMock />
           </div>
-          <PhoneMock />
         </section>
 
         {/* ---------------- voice ---------------- */}
-        <section id="voice" className="relative overflow-hidden bg-ink-100 text-white">
-          <div className="mx-auto grid max-w-[1320px] gap-14 px-5 py-28 md:px-8 md:py-36 lg:grid-cols-2 lg:items-center">
+        <section id="voice" className="bg-black">
+          <div className="mx-auto grid max-w-[1400px] gap-16 px-5 py-28 md:px-10 md:py-40 lg:grid-cols-2 lg:items-center">
             <div>
-              <p className="font-mono text-[12px] text-[#8a9bff]">(07) Strata, the voice analyst</p>
-              <h2 className="reveal-lines mt-5 font-display text-[clamp(2.6rem,6vw,5.6rem)] font-medium leading-[0.92] tracking-[-0.055em]">
-                <span className="line-mask"><span>Don&apos;t click.</span></span>
-                <span className="line-mask"><span style={{ transitionDelay: "100ms" }}>Just <span className="serif text-[#8a9bff]">talk.</span></span></span>
-              </h2>
+              <h2 className="lp-wide text-[clamp(2.6rem,6vw,6rem)] leading-[0.88] tracking-[-0.045em]">Don&apos;t click. Just talk.</h2>
               <Wave />
-              <p data-reveal className="mt-8 max-w-md text-[17px] leading-relaxed text-white/60">
+              <p className="mt-8 max-w-md text-[18px] leading-[1.6] text-white/70">
                 Strata runs the whole app by voice — starts your project, loads the market, changes your rent, finds the best spot, sends a field researcher and builds the report. In proper Hinglish, with numbers only from the simulation.
               </p>
-              <p data-reveal className="mt-6 text-[14px] text-white/50">Press <kbd className="rounded border border-white/20 px-1.5 font-mono text-[12px] text-white">V</kbd> anywhere to start.</p>
+              <p className="mt-6 text-[15px] text-white/55">Press <kbd className="rounded-[4px] border border-white/30 px-1.5 text-[12px] text-white">V</kbd> anywhere to start.</p>
             </div>
-            <div className="space-y-3 text-[16px]">
-              <Bubble you d={0}>Mujhe Indiranagar me café kholna hai, coffee 250 ki.</Bubble>
-              <Bubble d={1}>Theek hai, project bana raha hoon aur live market load kar raha hoon — ek minute.</Bubble>
-              <Bubble you d={2}>Rent actually 90 hazaar hai, update kar do.</Bubble>
-              <Bubble d={3}>Update kar diya aur dobara simulate kiya. Rent badhne se profit kam hua — break-even ab zyada customers pe aayega. Best location bhi check karein?</Bubble>
-            </div>
+            <Conversation />
           </div>
         </section>
 
         {/* ---------------- honesty ---------------- */}
-        <section className="mx-auto max-w-[1320px] px-5 py-28 md:px-8 md:py-36">
-          <div className="grid gap-10 md:grid-cols-[1fr_1.4fr]">
-            <div>
-              <p data-reveal className="font-mono text-[12px] text-ink-400">(08) Honesty</p>
-              <h2 data-reveal className="mt-5 font-display text-[clamp(2.2rem,4vw,3.6rem)] font-medium leading-[0.98] tracking-[-0.05em]">What it won&apos;t <span className="serif">pretend.</span></h2>
-            </div>
-            <ul className="grid gap-x-10 gap-y-7 sm:grid-cols-2">
+        <section className="mx-auto max-w-[1400px] px-5 py-28 md:px-10 md:py-36">
+          <div className="grid gap-12 lg:grid-cols-[1fr_1.5fr]">
+            <h2 className="lp-wide text-[clamp(2.2rem,4.4vw,4.2rem)] leading-[0.92] tracking-[-0.045em]">What it won&apos;t pretend.</h2>
+            <ul className="grid gap-x-12 gap-y-8 sm:grid-cols-2">
               {[
                 ["Every shop", "Maps miss informal businesses. Gaps are flagged, and a field researcher can fill them."],
                 ["Real people", "Simulated customers are a sample drawn from official data — never real individuals."],
                 ["An accuracy score", "None is advertised, because none has been measured on real outcomes yet."],
                 ["A promise", "Every forecast is a range under stated assumptions, not a guarantee of profit."],
-              ].map(([t, d], i) => (
-                <li key={t} data-reveal style={{ transitionDelay: `${i * 70}ms` }} className="border-t border-black/[0.1] pt-4">
-                  <div className="text-[15px] font-medium">{t}</div>
-                  <p className="mt-1 text-[14.5px] leading-relaxed text-ink-400">{d}</p>
+              ].map(([t, d]) => (
+                <li key={t} className="border-t border-white/30 pt-4">
+                  <div className="text-[16px] font-semibold">{t}</div>
+                  <p className="mt-1.5 text-[15px] leading-[1.55] text-white/70">{d}</p>
                 </li>
               ))}
             </ul>
@@ -528,101 +467,140 @@ export default function Landing() {
         </section>
 
         {/* ---------------- CTA ---------------- */}
-        <section className="mx-auto max-w-[1320px] px-5 md:px-8">
-          <div data-reveal className="relative overflow-hidden rounded-[36px] bg-accent px-6 py-20 text-white md:px-16 md:py-28">
-            <div aria-hidden className="pointer-events-none absolute inset-0 opacity-50 [mask-image:radial-gradient(70%_80%_at_80%_20%,black,transparent)]" style={{ backgroundImage: "linear-gradient(to right, rgba(255,255,255,.12) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,.12) 1px, transparent 1px)", backgroundSize: "56px 56px" }} />
-            <div aria-hidden className="cta-orb pointer-events-none absolute -right-24 -top-24 h-[420px] w-[420px] rounded-full bg-[radial-gradient(circle,rgba(255,255,255,.35),transparent_65%)]" />
-            <h2 className="relative max-w-3xl font-display text-[clamp(2.8rem,7vw,6.4rem)] font-medium leading-[0.92] tracking-[-0.06em]">
-              Run the market <span className="serif">first.</span>
-            </h2>
-            <p className="relative mt-5 max-w-md text-[17px] text-white/75">Three minutes, one line of text. Before the deposit, before the fit-out.</p>
-            <div className="relative mt-10 flex flex-wrap gap-3">
-              <Magnetic>
-                <Link href="/sign-up" className="inline-flex h-14 items-center gap-2 rounded-full bg-white px-7 text-[16px] font-medium text-accent">
+        <section className="px-5 md:px-10">
+          <div className="mx-auto max-w-[1400px] rounded-[6px] bg-white px-6 py-16 text-black md:px-14 md:py-24">
+            <h2 className="lp-wide max-w-4xl text-[clamp(2.8rem,7.5vw,7.4rem)] leading-[0.86] tracking-[-0.05em]">Run the market first.</h2>
+            <div className="mt-12 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+              <p className="max-w-md text-[18px] leading-[1.5] text-black/65">Three minutes and one line of text — before the deposit, before the fit-out.</p>
+              <div className="flex flex-wrap gap-3">
+                <Link href="/sign-up" className="inline-flex h-14 items-center gap-2 rounded-full bg-[#2F49FF] px-7 text-[16px] font-semibold text-white transition-transform hover:scale-[1.03]">
                   Start free <ArrowUpRight className="h-4 w-4" />
                 </Link>
-              </Magnetic>
-              <button onClick={liveDemo} className="inline-flex h-14 items-center gap-2 rounded-full border border-white/30 px-7 text-[16px] text-white transition-colors hover:bg-white/10">
-                {busy === "live" ? <Loader2 className="h-4 w-4 animate-spin" /> : null} See the live demo
-              </button>
+                <button onClick={liveDemo} className="inline-flex h-14 items-center gap-2 rounded-full border border-black/20 px-7 text-[16px] font-semibold transition-colors hover:border-black">
+                  {busy === "live" && <Loader2 className="h-4 w-4 animate-spin" />} See the live demo
+                </button>
+              </div>
             </div>
           </div>
         </section>
 
-        {/* ---------------- footer ---------------- */}
-        <footer className="mx-auto max-w-[1320px] px-5 pb-8 pt-20 md:px-8">
-          <div className="flex flex-col gap-4 text-[12.5px] text-ink-400 md:flex-row md:items-center md:justify-between">
+        <footer className="mx-auto max-w-[1400px] px-5 pb-8 pt-20 md:px-10">
+          <div className="flex flex-col gap-4 text-[13px] text-white/60 md:flex-row md:items-start md:justify-between">
             <p className="max-w-2xl">Map data © OpenStreetMap contributors (ODbL) · Places © Foursquare · Population © WorldPop (CC BY 4.0) · Tiles © OpenFreeMap / OpenMapTiles · Voice by ElevenLabs</p>
-            <div className="flex shrink-0 gap-5 whitespace-nowrap">
-              <Link href="/methodology" className="hover:text-ink-100">Methodology & limitations</Link>
-              <Link href="/sign-in" className="hover:text-ink-100">Sign in</Link>
+            <div className="flex shrink-0 gap-6 whitespace-nowrap">
+              <Link href="/methodology" className="hover:text-white">Methodology & limitations</Link>
+              <Link href="/sign-in" className="hover:text-white">Sign in</Link>
             </div>
           </div>
-          <div className="reveal-lines mt-10 select-none" aria-hidden>
-            <span className="line-mask">
-              <span className="block pb-[0.14em] font-display text-[21vw] font-medium leading-[0.86] tracking-[-0.075em] text-ink-100 xl:text-[270px]">
-                Strata<span className="serif text-accent">IQ</span>
-              </span>
-            </span>
-          </div>
+          <div aria-hidden className="lp-wide mt-14 select-none text-[19.5vw] leading-[0.8] tracking-[-0.06em] xl:text-[270px]">StrataIQ</div>
         </footer>
       </main>
     </div>
   );
 }
 
-/** One fact per chapter. */
-function ChapterStat({ i, area, comps, loading, catLabel }: { i: number; area: string; comps: number; loading: boolean; catLabel: string }) {
-  const box = "mt-7 border-t border-black/[0.08] pt-5";
-  if (i === 0) return <div className={box}><div className="font-mono text-[12px] text-ink-400">Now showing</div><div className="mt-1 font-display text-[28px] font-medium tracking-[-0.04em]">{area}</div></div>;
+/** One fact per chapter; colours match the map above. */
+function ChapterFact({ i, area, comps, loading, catLabel, on }: { i: number; area: string; comps: number; loading: boolean; catLabel: string; on: boolean }) {
+  const box = "mt-7 border-t border-white/15 pt-5";
+  if (i === 0) return <div className={box}><div className="text-[13px] text-white/50">Now showing</div><div className="lp-wide mt-1 text-[26px] tracking-[-0.03em]">{area}</div></div>;
   if (i === 1)
     return (
-      <div className={cn(box, "flex items-end gap-3")}>
-        <span className="num font-display text-[64px] font-medium leading-none tracking-[-0.05em] text-[#d97706]">{loading ? "—" : <CountUp key={comps} to={comps} />}</span>
-        <span className="pb-1.5 text-[14px] leading-tight text-ink-300">real {catLabel}<br />loaded live around {area}</span>
+      <div className={cn(box, "flex items-end gap-4")}>
+        <span className="lp-num lp-cond text-[80px] leading-[0.8]">{loading ? "··" : <CountUp to={comps} run={on} />}</span>
+        <span className="pb-1 text-[14.5px] leading-tight text-white/70">real {catLabel}, loaded<br />live around {area}</span>
       </div>
     );
   if (i === 2)
     return (
-      <div className={cn(box, "flex items-end gap-3")}>
-        <span className="num font-display text-[64px] font-medium leading-none tracking-[-0.05em] text-agent"><CountUp to={10000} /></span>
-        <span className="pb-1.5 text-[14px] leading-tight text-ink-300">simulated customers<br />per run, from WorldPop</span>
+      <div className={cn(box, "flex items-end gap-4")}>
+        <span className="lp-num lp-cond text-[80px] leading-[0.8] text-[#FF4B3E]"><CountUp to={10000} run={on} /></span>
+        <span className="pb-1 text-[14.5px] leading-tight text-white/70">simulated customers<br />per run, from WorldPop</span>
       </div>
     );
   if (i === 3)
     return (
       <div className={box}>
-        <div className="flex flex-wrap gap-x-5 gap-y-2 text-[14px]">
-          <span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-accent" /> Chose you</span>
-          <span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-agent" /> Chose a rival</span>
-          <span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-ink-500" /> Not buying today</span>
+        <div className="flex flex-wrap gap-x-6 gap-y-2 text-[14.5px]">
+          <span className="flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-white" /> Chose you</span>
+          <span className="flex items-center gap-2"><span className="h-3 w-3 rounded-full border border-white/70 bg-black" /> Chose a rival</span>
+          <span className="flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-[#AAB8FF]/60" /> Not buying today</span>
         </div>
-        <p className="mt-3 text-[12px] text-ink-400">The crowd on this page is an illustration. Your real run uses the calibrated choice model.</p>
+        <p className="mt-3 text-[13px] text-white/50">The crowd on this page is an illustration. Your real run uses the calibrated choice model.</p>
       </div>
     );
   return (
-    <ul className={cn(box, "space-y-2 text-[14.5px]")}>
-      {["Profit · bad / normal / good month", "Break-even customers and months", "Best spot within your catchment", "What would change the answer"].map((t, k) => (
-        <li key={t} className="flex items-center gap-3"><span className="font-mono text-[11px] text-ink-400">{String(k + 1).padStart(2, "0")}</span>{t}</li>
+    <ul className={cn(box, "space-y-2.5 text-[15.5px]")}>
+      {["Profit in a bad, normal and good month", "Break-even customers and months", "The best spot in your catchment", "What would change the answer"].map((t) => (
+        <li key={t} className="flex items-center gap-3"><span className="h-px w-4 bg-white/60" />{t}</li>
       ))}
     </ul>
   );
 }
 
+/** Counts up the first time its chapter is on screen (and again if the target changes). */
+function CountUp({ to, run }: { to: number; run: boolean }) {
+  const [v, setV] = useState(0);
+  const shown = useRef<number | null>(null);
+  useEffect(() => {
+    if (!run || shown.current === to) return;
+    shown.current = to;
+    if (reduced()) return setV(to);
+    let raf = 0;
+    const t0 = performance.now();
+    const tick = (now: number) => {
+      const k = Math.min(1, (now - t0) / 1300);
+      setV(to * (1 - Math.pow(1 - k, 4)));
+      if (k < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [run, to]);
+  return <>{Math.round(v).toLocaleString("en-IN")}</>;
+}
+
 function Wave() {
   return (
-    <div aria-hidden className="mt-8 flex h-10 items-center gap-[5px]">
-      {Array.from({ length: 28 }, (_, i) => (
-        <span key={i} className="wave-bar w-[3px] rounded-full bg-[#8a9bff]" style={{ animationDelay: `${(i * 73) % 900}ms`, height: `${30 + ((i * 37) % 70)}%` }} />
+    <div aria-hidden className="mt-10 flex h-12 items-center gap-[5px]">
+      {Array.from({ length: 34 }, (_, i) => (
+        <span key={i} className="wave-bar w-[3px] rounded-full bg-white" style={{ animationDelay: `${(i * 73) % 900}ms`, height: `${25 + ((i * 37) % 75)}%` }} />
       ))}
     </div>
   );
 }
 
-function Bubble({ you, d = 0, children }: { you?: boolean; d?: number; children: React.ReactNode }) {
+/** The sample conversation plays line by line once it is scrolled into view. */
+function Conversation() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (reduced()) return setN(4);
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    const io = new IntersectionObserver(([e]) => {
+      if (!e.isIntersecting) return;
+      io.disconnect();
+      [0, 1, 2, 3].forEach((k) => timers.push(setTimeout(() => setN(k + 1), 300 + k * 900)));
+    }, { threshold: 0.4 });
+    io.observe(el);
+    return () => {
+      io.disconnect();
+      timers.forEach(clearTimeout);
+    };
+  }, []);
+  const lines: [boolean, string][] = [
+    [true, "Mujhe Indiranagar me café kholna hai, coffee 250 ki."],
+    [false, "Theek hai, project bana raha hoon aur live market load kar raha hoon — ek minute."],
+    [true, "Rent actually 90 hazaar hai, update kar do."],
+    [false, "Update kar diya aur dobara simulate kiya. Rent badhne se profit kam hua — break-even ab zyada customers pe aayega. Best location bhi check karein?"],
+  ];
   return (
-    <div data-reveal style={{ transitionDelay: `${d * 260}ms` }} className={cn("w-fit max-w-[88%] rounded-3xl px-5 py-3.5 leading-snug", you ? "ml-auto rounded-br-md bg-white/10 text-white" : "rounded-bl-md bg-white text-ink-100")}>
-      {children}
+    <div ref={ref} className="min-h-[340px] space-y-3 text-[16.5px]">
+      {lines.map(([you, t], i) => (
+        <div key={i} className={cn("lp-msg w-fit max-w-[88%] rounded-[18px] px-5 py-3.5 leading-snug", you ? "ml-auto rounded-br-[4px] bg-[#2F49FF] text-white" : "rounded-bl-[4px] bg-white text-black", i < n && "is-on")}>
+          {t}
+        </div>
+      ))}
     </div>
   );
 }
@@ -630,35 +608,34 @@ function Bubble({ you, d = 0, children }: { you?: boolean; d?: number; children:
 /** Illustration of the field researcher's phone app (not live data). */
 function PhoneMock() {
   return (
-    <div data-reveal className="relative mx-auto w-full max-w-[330px]">
-      <div aria-hidden className="absolute -inset-10 -z-10 rounded-full bg-[radial-gradient(circle,rgba(63,122,20,.14),transparent_65%)]" />
-      <div className="phone-float relative rounded-[40px] border border-black/[0.08] bg-ink-800 p-2.5 shadow-[0_40px_90px_-40px_rgba(20,18,10,.45)]">
-        <div className="rounded-[32px] bg-white p-5">
-          <div className="flex items-center justify-between text-[11px] text-ink-400">
-            <span className="font-medium text-ink-200">StrataIQ Field</span>
-            <span className="flex items-center gap-1.5 text-field"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-field" /> collecting</span>
+    <div className="relative mx-auto w-full max-w-[320px]">
+      <div className="phone-float relative rounded-[42px] bg-black p-2.5 shadow-[0_50px_100px_-30px_rgba(0,0,40,.6)]">
+        <div className="rounded-[34px] bg-white p-5 text-black">
+          <div className="flex items-center justify-between text-[11.5px] text-black/50">
+            <span className="font-semibold text-black">StrataIQ Field</span>
+            <span className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#2F49FF]" /> Collecting</span>
           </div>
-          <div className="mt-4 text-[18px] font-medium leading-tight tracking-[-0.02em]">Gym · Sector 18</div>
-          <div className="mt-4 grid grid-cols-4 gap-1 rounded-xl bg-ink-800 p-1">
+          <div className="lp-wide mt-4 text-[19px] leading-tight tracking-[-0.03em]">Gym, Sector 18</div>
+          <div className="mt-4 grid grid-cols-4 gap-1 rounded-[10px] bg-black/[0.06] p-1">
             {["Interview", "Rival", "Footfall", "Rent"].map((t, i) => (
-              <div key={t} className={cn("rounded-lg py-1.5 text-center text-[10.5px]", i === 0 ? "bg-white font-medium text-ink-100 shadow-sm" : "text-ink-400")}>{t}</div>
+              <div key={t} className={cn("rounded-[7px] py-1.5 text-center text-[10.5px]", i === 0 ? "bg-white font-semibold shadow-sm" : "text-black/50")}>{t}</div>
             ))}
           </div>
-          <div className="mt-5 text-[13px] text-ink-200">Do you go to a gym now?</div>
+          <div className="mt-5 text-[13px]">Do you go to a gym now?</div>
           <div className="mt-2 grid grid-cols-2 gap-2">
-            <div className="rounded-xl bg-field py-2.5 text-center text-[13px] font-medium text-white">Yes</div>
-            <div className="rounded-xl border border-black/10 py-2.5 text-center text-[13px] text-ink-300">No</div>
+            <div className="rounded-[10px] bg-[#2F49FF] py-2.5 text-center text-[13px] font-semibold text-white">Yes</div>
+            <div className="rounded-[10px] border border-black/15 py-2.5 text-center text-[13px] text-black/60">No</div>
           </div>
-          <div className="mt-4 text-[13px] text-ink-200">Most you&apos;d pay a month?</div>
-          <div className="mt-2 rounded-xl border border-accent px-3 py-2.5 font-mono text-[13px]">₹ 1,500<span className="ml-0.5 inline-block h-3.5 w-px animate-pulse bg-accent align-middle" /></div>
-          <div className="mt-4 text-[13px] text-ink-200">How far do you travel?</div>
+          <div className="mt-4 text-[13px]">Most you&apos;d pay a month?</div>
+          <div className="mt-2 rounded-[10px] border-2 border-[#2F49FF] px-3 py-2.5 text-[14px] font-semibold">₹1,500<span className="ml-0.5 inline-block h-3.5 w-px animate-pulse bg-[#2F49FF] align-middle" /></div>
+          <div className="mt-4 text-[13px]">How far do you travel?</div>
           <div className="mt-2 flex gap-1.5">
-            {["1 km", "2 km", "3 km", "5 km"].map((t, i) => <span key={t} className={cn("rounded-full border px-2.5 py-1 text-[11px]", i === 1 ? "border-accent bg-accent text-white" : "border-black/10 text-ink-400")}>{t}</span>)}
+            {["1 km", "2 km", "3 km", "5 km"].map((t, i) => <span key={t} className={cn("rounded-full border px-2.5 py-1 text-[11px]", i === 1 ? "border-black bg-black text-white" : "border-black/15 text-black/55")}>{t}</span>)}
           </div>
-          <div className="mt-5 rounded-xl bg-ink-100 py-3 text-center text-[13px] font-medium text-white">Save interview · 18/25</div>
+          <div className="mt-5 rounded-[10px] bg-black py-3 text-center text-[13px] font-semibold text-white">Save interview (18 of 25)</div>
         </div>
       </div>
-      <p className="mt-4 text-center text-[12px] text-ink-400">Illustration of the field app</p>
+      <p className="mt-5 text-center text-[13px] text-white/55">Illustration of the field app</p>
     </div>
   );
 }

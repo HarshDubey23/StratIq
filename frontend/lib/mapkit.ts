@@ -44,10 +44,61 @@ function safe(fn: () => void) {
   }
 }
 
+/** Survey-blueprint palette for the landing city: one blue field, white line work. */
+export const BP = { field: "#2F49FF", water: "#2236D6", park: "#3A55FF", line: "#FFFFFF" };
+
+/** Landing look: the street as a blueprint. Fills vanish into the blue, roads become white lines,
+ *  buildings become glassy pale-blue blocks with white footprints, labels go. */
+function blueprint(m: MLMap, layers: { id: string; type: string }[], minzoom: number) {
+  for (const l of layers) {
+    const id = l.id.toLowerCase();
+    if (l.type === "background") safe(() => m.setPaintProperty(l.id, "background-color", BP.field));
+    else if (l.type === "fill") {
+      if (id.includes("water")) safe(() => m.setPaintProperty(l.id, "fill-color", BP.water));
+      else if (id.includes("park") || id.includes("wood") || id.includes("grass")) safe(() => m.setPaintProperty(l.id, "fill-color", BP.park));
+      else safe(() => m.setLayoutProperty(l.id, "visibility", "none"));
+    } else if (l.type === "line") {
+      if (/road|highway|street|tunnel|bridge|path|rail/.test(id)) {
+        const major = /motorway|trunk|primary|major/.test(id);
+        safe(() => m.setPaintProperty(l.id, "line-color", BP.line));
+        safe(() => m.setPaintProperty(l.id, "line-opacity", major ? 0.75 : 0.32));
+      } else if (!id.includes("water")) safe(() => m.setLayoutProperty(l.id, "visibility", "none"));
+    } else if (l.type === "symbol") safe(() => m.setLayoutProperty(l.id, "visibility", "none"));
+  }
+  if (!m.getSource("openmaptiles")) return;
+  safe(() =>
+    m.addLayer({
+      id: "siq-bp-footprints", source: "openmaptiles", "source-layer": "building", type: "line", minzoom,
+      paint: { "line-color": BP.line, "line-width": 0.6, "line-opacity": 0.45 },
+    }),
+  );
+  safe(() =>
+    m.addLayer({
+      id: "siq-3d-buildings", source: "openmaptiles", "source-layer": "building", type: "fill-extrusion", minzoom,
+      paint: {
+        "fill-extrusion-color": ["interpolate", ["linear"], ["coalesce", ["get", "render_height"], 6], 0, "#5068ff", 20, "#7b8dff", 60, "#a9b5ff", 160, "#e4e8ff"],
+        "fill-extrusion-height": ["interpolate", ["linear"], ["zoom"], minzoom, 0, minzoom + 1.5, ["coalesce", ["get", "render_height"], 6]],
+        "fill-extrusion-base": ["coalesce", ["get", "render_min_height"], 0],
+        "fill-extrusion-opacity": 0.72,
+        "fill-extrusion-vertical-gradient": true,
+      },
+    }),
+  );
+  safe(() => m.setLight({ anchor: "map", color: "#ffffff", intensity: 0.42, position: [1.3, 210, 40] }));
+  const anyMap = m as unknown as { setSky?: (s: Record<string, unknown>) => void };
+  safe(() =>
+    anyMap.setSky?.({
+      "sky-color": BP.field, "horizon-color": "#8f9fff", "fog-color": BP.field,
+      "sky-horizon-blend": 0.5, "horizon-fog-blend": 0.6, "fog-ground-blend": 0.25, "atmosphere-blend": 0.4,
+    }),
+  );
+}
+
 /** Recolour the base style, extrude real OSM building footprints and add lighting + atmosphere. */
-export function enhanceMap(m: MLMap, opts: { buildingsMinZoom?: number; buildingOpacity?: number } = {}) {
+export function enhanceMap(m: MLMap, opts: { buildingsMinZoom?: number; buildingOpacity?: number; theme?: "light" | "blueprint" } = {}) {
   const style = m.getStyle();
   const layers = style.layers || [];
+  if (opts.theme === "blueprint") return blueprint(m, layers, opts.buildingsMinZoom ?? 12.5);
   for (const l of layers) {
     const id = l.id.toLowerCase();
     if (l.type === "background") safe(() => m.setPaintProperty(l.id, "background-color", C.ground));
