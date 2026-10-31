@@ -126,7 +126,7 @@ export function Journey({ project }: { project: Project }) {
   return (
     <>
       <div className="mt-4 flex items-center gap-3">
-        <nav aria-label="Project" className="-mb-px flex min-w-0 flex-1 items-stretch overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <nav aria-label="Project" className="-mb-px flex min-w-0 flex-1 items-stretch overflow-x-auto [mask-image:linear-gradient(to_right,black_85%,transparent)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {steps.map((s, i) => {
             const active = path.startsWith(base + s.seg);
             return (
