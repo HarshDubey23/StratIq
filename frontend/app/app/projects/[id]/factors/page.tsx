@@ -10,6 +10,10 @@ import type { FactorsResponse } from "@/lib/types";
 
 const STATUS: Record<string, { label: string; cls: string; help: string }> = {
   computed: { label: "Computed", cls: "border-observed/40 bg-observed/10 text-observed", help: "Derived from live data for this location (OpenStreetMap, WorldPop, geometry)." },
+  official: { label: "Official data", cls: "border-ok/40 bg-ok/10 text-ok", help: "From an official statistic for this place (e.g. MoSPI HCES 2023-24, MoSPI NHTS 2025-26), mapped with Meta's Relative Wealth Index." },
+  derived: { label: "Derived", cls: "border-model/40 bg-model/10 text-model", help: "Computed from real data for this place (e.g. the area's income mix) with a documented formula." },
+  industry: { label: "Industry report", cls: "border-observed/40 bg-observed/10 text-observed", help: "Anchored to a published industry figure (e.g. gym membership 0.8% of India, Deloitte & HFA 2025)." },
+  literature: { label: "Published research", cls: "border-userdata/40 bg-userdata/10 text-userdata", help: "Anchored to a peer-reviewed estimate." },
   user: { label: "User", cls: "border-userdata/40 bg-userdata/10 text-userdata", help: "Entered by you." },
   assumed: { label: "Assumed", cls: "border-ink-500 bg-ink-800 text-ink-200", help: "Documented model assumption (default or your override)." },
   simulated: { label: "Simulated", cls: "border-model/40 bg-model/10 text-model", help: "Produced by the simulation run." },
@@ -72,7 +76,7 @@ export default function Factors() {
         </Select>
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-5">
         {Object.entries(STATUS).map(([k, s]) => (
           <button key={k} onClick={() => setStatus(status === k ? "all" : k)} title={s.help} className={cn("rounded-lg border p-3 text-left transition-colors", status === k ? "border-accent" : "border-white/[0.07] hover:border-ink-500", "bg-ink-900")}>
             <div className={cn("inline-flex rounded border px-1.5 py-px text-[10px] font-medium uppercase", s.cls)}>{s.label}</div>
@@ -132,7 +136,7 @@ export default function Factors() {
                   <td className="text-xs text-ink-400">{data.domains[d.domain]} · {d.group}</td>
                   <td className="num text-right">{fmt(v.value)}</td>
                   <td className="pl-3 text-xs text-ink-400">{d.unit}</td>
-                  <td><span className={cn("inline-flex rounded border px-1.5 py-px text-[10px] font-medium uppercase", STATUS[v.status].cls)}>{STATUS[v.status].label}</span></td>
+                  <td><span className={cn("inline-flex rounded border px-1.5 py-px text-[10px] font-medium uppercase", (STATUS[v.status] || STATUS.assumed).cls)}>{(STATUS[v.status] || STATUS.assumed).label}</span></td>
                   <td className="pr-3 text-xs text-ink-300">{ROLE[d.role]}</td>
                 </tr>
               ))}
