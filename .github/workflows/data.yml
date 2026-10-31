@@ -21,7 +21,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install numpy rasterio
+      - run: pip install numpy rasterio shapely
       - name: Build India wealth grid (Meta RWI x WorldPop)
         run: |
           mkdir -p backend/app/data

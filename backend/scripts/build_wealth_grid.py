@@ -25,6 +25,8 @@ import numpy as np
 
 HDX_PKG = "https://data.humdata.org/api/3/action/package_show?id=relative-wealth-index"
 WORLDPOP_IND = "https://data.worldpop.org/GIS/Population/Global_2000_2020_1km_UNadj/2020/IND/ind_ppp_2020_1km_Aggregated_UNadj.tif"
+GEOBOUNDARIES_ADM1 = "https://www.geoboundaries.org/api/current/gbOpen/IND/ADM1/"
+URBAN_SHARE_2020 = 0.35  # UN World Urbanization Prospects 2018: India 34.9% urban in 2020 (WorldPop reference year)
 UA = {"User-Agent": "StrataIQ-data-pipeline (github.com/HarshDubey23/stratiq)"}
 
 
@@ -114,14 +116,56 @@ def main(out_npz: str, out_meta: str) -> None:
     pct = np.empty_like(rwi)
     pct[order] = (cum - pop[order] / 2) / cum[-1]  # mid-rank population-weighted percentile
 
+    # --- state of every tile (geoBoundaries ADM1, CC BY 4.0) and urban/rural class
+    import shapely
+
+    gb = json.loads(fetch(GEOBOUNDARIES_ADM1))
+    states = json.loads(fetch(gb.get("simplifiedGeometryGeoJSON") or gb["gjDownloadURL"]))
+    names = [f["properties"].get("shapeName") for f in states["features"]]
+    n = 2 ** zoom
+    clon = (xs + 0.5) / n * 360.0 - 180.0
+    clat = np.degrees(np.arctan(np.sinh(np.pi * (1 - 2 * (ys + 0.5) / n))))
+    state_idx = np.full(xs.size, 255, np.uint8)
+    for k, f in enumerate(states["features"]):
+        geom = shapely.geometry.shape(f["geometry"])
+        shapely.prepare(geom)
+        state_idx[(state_idx == 255) & shapely.contains_xy(geom, clon, clat)] = k
+    # tiles whose centre falls just outside every polygon (coast, border): nearest state polygon
+    miss = np.nonzero(state_idx == 255)[0]
+    if miss.size:
+        polys = [shapely.geometry.shape(f["geometry"]) for f in states["features"]]
+        tree = shapely.STRtree(polys)
+        state_idx[miss] = tree.nearest(shapely.points(clon[miss], clat[miss])).astype(np.uint8)
+    # urban/rural: one national density threshold, chosen so the urban population share matches the UN estimate
+    side = 40075.016 / n * np.cos(np.radians(clat))
+    dens = pop / (side * side)
+    o = np.argsort(-dens)
+    cum_u = np.cumsum(pop[o]) / pop.sum()
+    d_star = float(dens[o][np.searchsorted(cum_u, URBAN_SHARE_2020)])
+    urban = dens >= d_star
+    # population-weighted percentile of RWI within each state x sector (ranks and rupee curve from the same geography)
+    pct_ss = np.zeros_like(pct)
+    for k in np.unique(state_idx):
+        for u in (False, True):
+            m = np.nonzero((state_idx == k) & (urban == u))[0]
+            if m.size == 0:
+                continue
+            oo = m[np.argsort(rwi[m], kind="stable")]
+            c = np.cumsum(pop[oo])
+            pct_ss[oo] = (c - pop[oo] / 2) / c[-1]
+
     np.savez_compressed(out_npz, zoom=np.int64(zoom), tx=xs.astype(np.uint32), ty=ys.astype(np.uint32),
-                        rwi=rwi.astype(np.float32), err=err.astype(np.float32), pop=pop.astype(np.float32), pct=pct.astype(np.float32))
+                        rwi=rwi.astype(np.float32), err=err.astype(np.float32), pop=pop.astype(np.float32), pct=pct.astype(np.float32),
+                        state=state_idx, urban=urban, pct_ss=pct_ss.astype(np.float32))
     meta = {
         "built_at": datetime.now(timezone.utc).isoformat(),
         "rwi": {"dataset": pkg.get("title"), "resource": rwi_res.get("name"), "url": rwi_res.get("url"),
                 "source_updated": rwi_res.get("last_modified") or pkg.get("metadata_modified"), "licence": pkg.get("license_title"),
                 "citation": "Chi, Fang, Chatterjee & Blumenstock (2022) Microestimates of wealth for all low- and middle-income countries. PNAS 119(3)."},
         "population": {"dataset": "WorldPop Global 1km UN-adjusted 2020, India", "url": WORLDPOP_IND, "licence": "CC BY 4.0"},
+        "states": names, "states_source": {"dataset": "geoBoundaries IND ADM1 (gbOpen)", "url": GEOBOUNDARIES_ADM1, "licence": "CC BY 4.0"},
+        "urban_rule": {"density_threshold_per_km2": round(d_star), "urban_population_share": URBAN_SHARE_2020,
+                       "note": "Tiles at or above this WorldPop density are urban; threshold set so 35% of India's population is urban (UN WUP 2018, 2020)"},
         "zoom": zoom, "tiles_in": len(rows), "tiles_kept": int(keep.sum()), "population_total": float(pop.sum()),
         "tile_km_at_equator": round(40075.016 / 2 ** zoom, 3),
     }
