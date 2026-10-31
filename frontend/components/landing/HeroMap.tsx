@@ -114,6 +114,7 @@ export default function HeroMap({ spot, comps, scene = 0, progress }: { spot: Sp
   const map = useRef<MLMap | null>(null);
   const deck = useRef<DeckHandle | null>(null);
   const [ready, setReady] = useState(false);
+  const [shown, setShown] = useState(false);
   const state = useRef({ spot, comps, scene, people: [] as Person[], bins: [] as Bin[], walkers: [] as Person[], free: false, cur: CAMERAS[0] as Cam, t0: 0 });
   state.current.spot = spot;
   state.current.comps = comps;
@@ -136,8 +137,17 @@ export default function HeroMap({ spot, comps, scene = 0, progress }: { spot: Sp
         return;
       }
       map.current = m;
-      m.on("load", async () => {
+      // recolour as soon as the style is parsed (not after every tile), so the base style's grey never shows
+      let painted = false;
+      const paint = () => {
+        if (painted || !m.isStyleLoaded()) return;
+        painted = true;
         enhanceMap(m, { buildingsMinZoom: 12, theme: "blueprint" });
+        requestAnimationFrame(() => setShown(true));
+      };
+      m.on("styledata", paint);
+      m.on("load", async () => {
+        paint();
         const d = await attachDeck(m);
         if (cancelled) return;
         deck.current = d;
@@ -248,7 +258,7 @@ export default function HeroMap({ spot, comps, scene = 0, progress }: { spot: Sp
 
   return (
     <div className="absolute inset-0" aria-hidden>
-      <div ref={el} style={{ position: "absolute", inset: 0 }} />
+      <div ref={el} style={{ position: "absolute", inset: 0, opacity: shown ? 1 : 0, transition: "opacity 1.4s cubic-bezier(.16,1,.3,1)" }} />
     </div>
   );
 }
