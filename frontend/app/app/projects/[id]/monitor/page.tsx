@@ -67,12 +67,12 @@ export default function MonitorPage() {
             ) : (
               <ResponsiveContainer width="100%" height={260}>
                 <ComposedChart data={data} margin={{ top: 10, right: 16, left: 4, bottom: 4 }}>
-                  <CartesianGrid stroke="#20222A" vertical={false} />
-                  <XAxis dataKey="period" stroke="#727786" fontSize={11} />
-                  <YAxis stroke="#727786" fontSize={11} width={48} />
-                  <Tooltip contentStyle={{ background: "#17191F", border: "1px solid #2C2F39", fontSize: 12 }} />
-                  {f?.units_p10 != null && f?.units_p90 != null && <ReferenceArea y1={f.units_p10} y2={f.units_p90} fill="#2DD4BF" fillOpacity={0.08} />}
-                  {f && <ReferenceLine y={f.units} stroke="#2DD4BF" strokeDasharray="4 3" label={{ value: "forecast", fill: "#2DD4BF", fontSize: 10, position: "right" }} />}
+                  <CartesianGrid stroke="#E7E4DC" vertical={false} />
+                  <XAxis dataKey="period" stroke="#75716A" fontSize={11} />
+                  <YAxis stroke="#75716A" fontSize={11} width={48} />
+                  <Tooltip contentStyle={{ background: "#FFFFFF", border: "1px solid #E7E4DC", fontSize: 12 }} />
+                  {f?.units_p10 != null && f?.units_p90 != null && <ReferenceArea y1={f.units_p10} y2={f.units_p90} fill="#0F766E" fillOpacity={0.08} />}
+                  {f && <ReferenceLine y={f.units} stroke="#0F766E" strokeDasharray="4 3" label={{ value: "forecast", fill: "#0F766E", fontSize: 10, position: "right" }} />}
                   <Line dataKey="actual" stroke="#C59BFF" strokeWidth={2} dot={{ r: 3 }} />
                 </ComposedChart>
               </ResponsiveContainer>
@@ -80,19 +80,19 @@ export default function MonitorPage() {
             {f && <p className="px-2 text-xs text-ink-400">Green band: P10–P90 of modeled {f.unit_label}. Purple: your reported figures.</p>}
           </div>
           {m && m.actuals.length > 0 && (
-            <div className="overflow-x-auto border-t border-white/[0.06]">
+            <div className="overflow-x-auto border-t border-black/[0.06]">
               <table className="w-full text-sm">
                 <thead><tr className="text-left text-xs text-ink-400"><th className="px-3 py-2 font-normal">Period</th><th className="text-right font-normal">Forecast</th><th className="text-right font-normal">Actual</th><th className="text-right font-normal">Error</th><th className="text-right font-normal">Revenue</th><th className="px-3 font-normal">Source</th><th /></tr></thead>
                 <tbody>
                   {m.actuals.map((a) => (
-                    <tr key={a.period} className="border-t border-white/[0.06]/60">
+                    <tr key={a.period} className="border-t border-black/[0.06]/60">
                       <td className="num px-3 py-2">{a.period}</td>
                       <td className="num text-right">{num(f?.units)}</td>
                       <td className="num text-right">{num(a.units)}</td>
                       <td className="num text-right">{a.error ? `${a.error.units_abs > 0 ? "+" : ""}${num(a.error.units_abs)} (${pct(a.error.units_pct)})` : "—"}</td>
                       <td className="num text-right">{money(a.revenue, { compact: true })}</td>
                       <td className="px-3"><Evidence kind="user" label="User-reported" /></td>
-                      <td><button aria-label={`Delete ${a.period}`} onClick={async () => { await api(`/projects/${p.id}/actual-outcomes/${a.period}`, { method: "DELETE" }); load(); }} className="px-2 text-ink-500 hover:text-red-300"><Trash2 className="h-3.5 w-3.5" /></button></td>
+                      <td><button aria-label={`Delete ${a.period}`} onClick={async () => { await api(`/projects/${p.id}/actual-outcomes/${a.period}`, { method: "DELETE" }); load(); }} className="px-2 text-ink-500 hover:text-red-700"><Trash2 className="h-3.5 w-3.5" /></button></td>
                     </tr>
                   ))}
                 </tbody>

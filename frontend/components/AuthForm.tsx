@@ -112,15 +112,15 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
           <button
             type="button"
             onClick={guest}
-            className="w-full rounded-lg border border-white/10 py-2.5 text-sm text-ink-200 transition-colors hover:border-white/25 hover:text-ink-100"
+            className="w-full rounded-lg border border-black/10 py-2.5 text-sm text-ink-200 transition-colors hover:border-black/25 hover:text-ink-100"
           >
             Continue as guest
           </button>
           <p className="text-center text-xs text-ink-400">
             {mode === "sign-up" ? (
-              <>Already have an account? <Link className="text-[#9fb0ff] hover:underline" href={`/sign-in${demo ? "?demo=1" : ""}`}>Sign in</Link></>
+              <>Already have an account? <Link className="text-accent hover:underline" href={`/sign-in${demo ? "?demo=1" : ""}`}>Sign in</Link></>
             ) : (
-              <>New here? <Link className="text-[#9fb0ff] hover:underline" href={`/sign-up${demo ? "?demo=1" : ""}`}>Create an account</Link></>
+              <>New here? <Link className="text-accent hover:underline" href={`/sign-up${demo ? "?demo=1" : ""}`}>Create an account</Link></>
             )}
           </p>
           {mode === "sign-in" && (

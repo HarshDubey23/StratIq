@@ -19,7 +19,7 @@ import type { MarketData, Run, SimResult } from "@/lib/types";
 const LiveMap = dynamic(() => import("@/components/LiveMap"), { ssr: false, loading: () => <div className="absolute inset-0 flex items-center justify-center bg-ink-950 text-sm text-ink-400">Loading live market…</div> });
 
 const MODE_LABEL: Record<string, string> = { walk: "Walk", two_wheeler: "Two-wheeler", car: "Car", auto: "Auto", bus: "Bus", metro: "Metro / rail", cycle: "Cycle" };
-const TT = { contentStyle: { background: "#17191F", border: "1px solid #2C2F39", borderRadius: 6, fontSize: 12 } };
+const TT = { contentStyle: { background: "#FFFFFF", border: "1px solid #E7E4DC", borderRadius: 6, fontSize: 12 } };
 
 export default function LiveMarket() {
   const { project: p, reload } = useProject();
@@ -285,11 +285,11 @@ export default function LiveMarket() {
               )}
               {colorMode === "segment" && abm.agents.segments.map((s, i) => {
                 const c = res?.income?.classes[i];
-                return <div key={s} className="flex items-center gap-2"><span className="h-2 w-2 rounded-full" style={{ background: ["#fb7185", "#fbbf24", "#C59BFF"][i] }} /> {c ? `${c.label} · ${pct(c.share)} here` : s}</div>;
+                return <div key={s} className="flex items-center gap-2"><span className="h-2 w-2 rounded-full" style={{ background: ["#E5484D", "#D97706", "#7C3AED"][i] }} /> {c ? `${c.label} · ${pct(c.share)} here` : s}</div>;
               })}
-              {colorMode === "mode" && abm.agents.modes.map((s, i) => <div key={s} className="flex items-center gap-2"><span className="h-2 w-2 rounded-full" style={{ background: ["#4ade80", "#38bdf8", "#f472b6", "#facc15", "#fb923c", "#c084fc", "#a3e635"][i] }} /> {MODE_LABEL[s] || s}</div>)}
-              {colorMode === "age" && [["#93c5fd", "0–14"], ["#4F6CFF", "15–29"], ["#fbbf24", "30–49"], ["#f87171", "50+"]].map(([c, l]) => <div key={l} className="flex items-center gap-2"><span className="h-2 w-2 rounded-full" style={{ background: c }} /> {l}</div>)}
-              <div className="mt-1.5 border-t border-white/[0.07] pt-1.5 text-ink-500">
+              {colorMode === "mode" && abm.agents.modes.map((s, i) => <div key={s} className="flex items-center gap-2"><span className="h-2 w-2 rounded-full" style={{ background: ["#16A34A", "#0284C7", "#DB2777", "#CA8A04", "#EA580C", "#9333EA", "#65A30D"][i] }} /> {MODE_LABEL[s] || s}</div>)}
+              {colorMode === "age" && [["#60A5FA", "0–14"], ["#2F49FF", "15–29"], ["#D97706", "30–49"], ["#E5484D", "50+"]].map(([c, l]) => <div key={l} className="flex items-center gap-2"><span className="h-2 w-2 rounded-full" style={{ background: c }} /> {l}</div>)}
+              <div className="mt-1.5 border-t border-black/[0.07] pt-1.5 text-ink-500">
                 {num(abm.n_agents)} synthetic agents · each ≈ {num(abm.scale)} residents · {abm.genome ? `${abm.genome.per_agent} parameters each` : "profile per agent"}. Placed by {market?.snapshot?.population.source === "worldpop" ? "WorldPop" : "estimated"} density. Click any dot to X-ray its decision.
               </div>
             </div>
@@ -298,7 +298,7 @@ export default function LiveMarket() {
       </section>
 
       {/* right panel */}
-      <aside className="w-full space-y-4 overflow-y-auto border-l border-white/[0.06] bg-ink-950/80 backdrop-blur-xl p-4 lg:max-h-[calc(100vh-112px)] lg:w-[380px]">
+      <aside className="w-full space-y-4 overflow-y-auto border-l border-black/[0.06] bg-ink-950/80 backdrop-blur-xl p-4 lg:max-h-[calc(100vh-112px)] lg:w-[380px]">
         <div className="flex items-center gap-2">
           <Select value={sid} onChange={(e) => { setSid(e.target.value); setAgent(null); }} aria-label="Scenario">
             {scenarios.map((s) => <option key={s.id} value={s.id}>{s.name}{s.is_baseline ? " (baseline)" : ""}</option>)}
@@ -343,50 +343,50 @@ export default function LiveMarket() {
                 ["Can afford you", pct(abm.metrics.afford_share)],
                 ["Ramp-up", abm.ramp_up_week ? `${abm.ramp_up_week} wk` : "—"],
               ].map(([l, v]) => (
-                <div key={l} className="rounded-xl border border-white/[0.07] bg-white/[0.025] p-2">
+                <div key={l} className="rounded-xl border border-black/[0.07] bg-black/[0.025] p-2">
                   <div className="text-[10px] text-ink-400">{l}</div>
                   <div className="num text-sm font-semibold">{v}</div>
                 </div>
               ))}
             </div>
-            <div className="rounded-xl border border-white/[0.07] bg-white/[0.025] p-2">
+            <div className="rounded-xl border border-black/[0.07] bg-black/[0.025] p-2">
               <div className="mb-1 flex items-center justify-between text-xs"><span className="font-medium text-ink-200">{membership ? "Members" : `Daily ${unit}`} — you{cmp ? <span className="ml-1.5 font-normal text-ink-400">(dashed = before)</span> : null}</span><Evidence kind="model" label="Simulated" /></div>
               <ResponsiveContainer width="100%" height={120}>
                 <ComposedChart data={dailyChart} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
-                  <CartesianGrid stroke="#20222A" vertical={false} />
-                  <XAxis dataKey="d" stroke="#727786" fontSize={10} />
-                  <YAxis stroke="#727786" fontSize={10} width={36} />
+                  <CartesianGrid stroke="#E7E4DC" vertical={false} />
+                  <XAxis dataKey="d" stroke="#75716A" fontSize={10} />
+                  <YAxis stroke="#75716A" fontSize={10} width={36} />
                   <Tooltip {...TT} />
-                  <ReferenceLine x={day + 1} stroke="#4F6CFF" />
-                  {capDay && <ReferenceLine y={capDay} stroke="#ff6a6a" strokeDasharray="4 3" label={{ value: "capacity", fill: "#ff6a6a", fontSize: 9, position: "insideTopRight" }} />}
-                  <Area dataKey="you" name="this strategy" stroke="#4F6CFF" fill="#4F6CFF" fillOpacity={0.15} isAnimationActive={false} />
+                  <ReferenceLine x={day + 1} stroke="#2F49FF" />
+                  {capDay && <ReferenceLine y={capDay} stroke="#E5484D" strokeDasharray="4 3" label={{ value: "capacity", fill: "#E5484D", fontSize: 9, position: "insideTopRight" }} />}
+                  <Area dataKey="you" name="this strategy" stroke="#2F49FF" fill="#2F49FF" fillOpacity={0.15} isAnimationActive={false} />
                   {cmp && <Line dataKey="before" name="before" stroke="#939eb3" strokeDasharray="4 3" dot={false} strokeWidth={1.5} isAnimationActive={false} />}
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
-            <div className="rounded-xl border border-white/[0.07] bg-white/[0.025] p-2">
+            <div className="rounded-xl border border-black/[0.07] bg-black/[0.025] p-2">
               <div className="mb-1 text-xs font-medium text-ink-200">Awareness of your business (%)</div>
               <ResponsiveContainer width="100%" height={90}>
                 <LineChart data={dailyChart} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
-                  <XAxis dataKey="d" stroke="#727786" fontSize={10} />
-                  <YAxis stroke="#727786" fontSize={10} width={28} domain={[0, 100]} />
+                  <XAxis dataKey="d" stroke="#75716A" fontSize={10} />
+                  <YAxis stroke="#75716A" fontSize={10} width={28} domain={[0, 100]} />
                   <Tooltip {...TT} />
-                  <ReferenceLine x={day + 1} stroke="#4F6CFF" />
+                  <ReferenceLine x={day + 1} stroke="#2F49FF" />
                   <Line dataKey="aware" stroke="#C59BFF" dot={false} strokeWidth={2} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
-            <div className="rounded-xl border border-white/[0.07] bg-white/[0.025] p-3 text-xs">
+            <div className="rounded-xl border border-black/[0.07] bg-black/[0.025] p-3 text-xs">
               <div className="mb-2 font-medium text-ink-200">Monthly economics (agent simulation)</div>
               {abm.monthly_finance.map((m) => (
                 <div key={m.month} className="flex justify-between py-0.5">
                   <span className="text-ink-400">Month {m.month}</span>
-                  <span className="num">{num(m.capped_units)} {unit} · <span className={m.profit < 0 ? "text-red-300" : "text-emerald-300"}>{money(m.profit, { compact: true })}</span></span>
+                  <span className="num">{num(m.capped_units)} {unit} · <span className={m.profit < 0 ? "text-red-700" : "text-emerald-700"}>{money(m.profit, { compact: true })}</span></span>
                 </div>
               ))}
               <p className="mt-1.5 text-[10px] text-ink-500">Ramp-up from launch as awareness spreads. Steady-state static model: {money(res.finance.operating_profit, { compact: true })}/month.</p>
             </div>
-            <div className="rounded-xl border border-white/[0.07] bg-white/[0.025] p-3 text-xs">
+            <div className="rounded-xl border border-black/[0.07] bg-black/[0.025] p-3 text-xs">
               <div className="mb-2 font-medium text-ink-200">Who your customers are</div>
               {Object.entries(abm.metrics.customer_segments).map(([k, v]) => (
                 <div key={k} className="mb-1">

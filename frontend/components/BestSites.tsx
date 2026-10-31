@@ -134,7 +134,7 @@ export function BestSites({ projectId, scenarioId, locationKey, onData, onFocus 
 function SiteRow({ title, s, unit, base, current, onFocus, action }: { title: string; s: Site; unit: string; base: Site; current?: boolean; onFocus: () => void; action?: React.ReactNode }) {
   const d = s.profit - base.profit;
   return (
-    <div className={cn("rounded-xl border p-3", current ? "border-accent/40 bg-accent/[0.04]" : "border-white/[0.07] bg-white/[0.025]")}>
+    <div className={cn("rounded-xl border p-3", current ? "border-accent/40 bg-accent/[0.04]" : "border-black/[0.07] bg-black/[0.025]")}>
       <div className="mb-1.5 flex items-center gap-2">
         <MapPin className={cn("h-3.5 w-3.5", current ? "text-accent" : "text-model")} />
         <span className="font-medium text-ink-100">{title}</span>

@@ -161,7 +161,7 @@ export default function SimulationLab() {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {/* scenario bar */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-white/[0.06] px-4 py-2 md:px-6">
+      <div className="flex flex-wrap items-center gap-2 border-b border-black/[0.06] px-4 py-2 md:px-6">
         <div className="flex flex-wrap gap-1" role="tablist" aria-label="Scenarios">
           {scenarios.map((s) => (
             <button
@@ -169,12 +169,12 @@ export default function SimulationLab() {
               role="tab"
               aria-selected={s.id === sel.id}
               onClick={() => setSelId(s.id)}
-              className={cn("rounded-md border px-3 py-1.5 text-xs", s.id === sel.id ? "border-accent bg-accent/10 text-ink-100" : "border-white/[0.07] text-ink-300 hover:border-ink-500")}
+              className={cn("rounded-md border px-3 py-1.5 text-xs", s.id === sel.id ? "border-accent bg-accent/10 text-ink-100" : "border-black/[0.07] text-ink-300 hover:border-ink-500")}
             >
               {s.name}
               {s.is_baseline && <span className="ml-1 text-ink-500">(baseline)</span>}
               {!s.latest_run && <span className="ml-1 text-ink-500">· not run</span>}
-              {s.latest_run?.stale && <span className="ml-1 text-amber-300">· changed</span>}
+              {s.latest_run?.stale && <span className="ml-1 text-amber-700">· changed</span>}
             </button>
           ))}
         </div>
@@ -188,7 +188,7 @@ export default function SimulationLab() {
 
       <div className="grid flex-1 gap-0 xl:grid-cols-[320px_1fr_360px]">
         {/* LEFT: controls */}
-        <aside className="space-y-4 border-b border-white/[0.06] p-4 xl:max-h-[calc(100vh-150px)] xl:overflow-y-auto xl:border-b-0 xl:border-r">
+        <aside className="space-y-4 border-b border-black/[0.06] p-4 xl:max-h-[calc(100vh-150px)] xl:overflow-y-auto xl:border-b-0 xl:border-r">
           <div className="flex items-center justify-between gap-2">
             {renaming ? (
               <form onSubmit={(e) => { e.preventDefault(); rename((e.currentTarget.elements.namedItem("n") as HTMLInputElement).value); }} className="flex flex-1 gap-1">
@@ -198,7 +198,7 @@ export default function SimulationLab() {
             ) : (
               <button onClick={() => setRenaming(true)} className="truncate text-left text-sm font-semibold hover:text-accent" title="Rename">{sel.name}</button>
             )}
-            {!sel.is_baseline && <button onClick={() => setDelOpen(true)} aria-label="Delete scenario" className="text-ink-500 hover:text-red-300"><Trash2 className="h-4 w-4" /></button>}
+            {!sel.is_baseline && <button onClick={() => setDelOpen(true)} aria-label="Delete scenario" className="text-ink-500 hover:text-red-700"><Trash2 className="h-4 w-4" /></button>}
           </div>
 
           <Field label="Location">
@@ -245,7 +245,7 @@ export default function SimulationLab() {
             ))}
           </div>
 
-          <details className="group rounded-md border border-white/[0.07]" open>
+          <details className="group rounded-md border border-black/[0.07]" open>
             <summary className="cursor-pointer px-3 py-2 text-xs font-medium text-ink-200">Monthly costs</summary>
             <div className="grid grid-cols-2 gap-2 p-3 pt-0">
               {(["rent", "payroll", "utilities", "other_fixed"] as const).map((k) => (
@@ -262,7 +262,7 @@ export default function SimulationLab() {
             </div>
           </details>
 
-          <details className="rounded-md border border-white/[0.07]">
+          <details className="rounded-md border border-black/[0.07]">
             <summary className="cursor-pointer px-3 py-2 text-xs font-medium text-ink-200">Market assumptions (advanced)</summary>
             <div className="space-y-3 p-3 pt-0">
               <Field label="Typical local price" kind={draft.reference_price ? "user" : "unknown"} hint="Leave empty to derive it from competitor prices you entered, or fall back to your baseline price.">
@@ -294,7 +294,7 @@ export default function SimulationLab() {
             </div>
           </details>
 
-          <div className="sticky bottom-0 -mx-4 flex gap-2 border-t border-white/[0.06] bg-ink-950/80 backdrop-blur-xl p-3">
+          <div className="sticky bottom-0 -mx-4 flex gap-2 border-t border-black/[0.06] bg-ink-950/80 backdrop-blur-xl p-3">
             <Button variant="secondary" size="sm" onClick={save} loading={saving} disabled={!dirty}><Save className="h-3.5 w-3.5" /> Save</Button>
             <Button variant="primary" className="flex-1" onClick={run} loading={running} disabled={!hasSnapshot}>
               <Play className="h-4 w-4" /> {res && !dirty && !stale ? "Recalculate" : "Run simulation"}
@@ -303,7 +303,7 @@ export default function SimulationLab() {
           {!hasSnapshot && market && (
             <Notice tone="warn">No market data for this location yet. <Link className="text-accent underline" href={`/app/projects/${p.id}/market`}>Load it on the Market map</Link>.</Notice>
           )}
-          {(dirty || stale) && res && <p className="text-xs text-amber-300">Inputs changed since the last run. Results shown are from the previous run.</p>}
+          {(dirty || stale) && res && <p className="text-xs text-amber-700">Inputs changed since the last run. Results shown are from the previous run.</p>}
         </aside>
 
         {/* CENTER: map + analysis */}
@@ -312,7 +312,7 @@ export default function SimulationLab() {
           {res?.evidence?.failed_layers?.includes("competitors") && res.competitors.length === 0 && (
             <Notice tone="warn">Competitor data failed to load for this location, so this run assumes no competitors and is optimistic. Refresh live data on the Market map, then re-run.</Notice>
           )}
-          <div className="relative h-[380px] overflow-hidden rounded-lg border border-white/[0.07]">
+          <div className="relative h-[380px] overflow-hidden rounded-lg border border-black/[0.07]">
             <MarketMap
               fill
               center={center}
@@ -326,7 +326,7 @@ export default function SimulationLab() {
               fitKey={`${draftLoc}-${market?.snapshot?.id || ""}`}
               onCandidateClick={(id) => setDraftLoc(id)}
             />
-            <div className="absolute bottom-8 left-2 z-10 space-y-1.5 rounded-xl border border-white/[0.07] bg-white/[0.025]/95 p-2 text-[11px]">
+            <div className="absolute bottom-8 left-2 z-10 space-y-1.5 rounded-xl border border-black/[0.07] bg-black/[0.025]/95 p-2 text-[11px]">
               <Segmented value={agentColor} onChange={setAgentColor} options={[{ value: "choice", label: "Colour by choice" }, { value: "red", label: "All agents" }]} />
               {agentColor === "choice" ? (
                 <div className="flex flex-wrap gap-x-3 gap-y-1 text-ink-300">
@@ -381,11 +381,11 @@ export default function SimulationLab() {
                       <thead><tr className="text-left text-xs text-ink-400"><th className="py-1.5 font-normal">Stress test</th><th className="text-right font-normal">{res.unit_label}</th><th className="text-right font-normal">Profit / mo</th><th className="text-right font-normal">Change</th></tr></thead>
                       <tbody>
                         {res.sensitivity.stress_tests.map((s) => (
-                          <tr key={s.label} className="border-t border-white/[0.06]">
+                          <tr key={s.label} className="border-t border-black/[0.06]">
                             <td className="py-2">{s.label}</td>
                             <td className="num text-right">{num(s.units)}</td>
-                            <td className={cn("num text-right", s.profit < 0 && "text-red-300")}>{money(s.profit)}</td>
-                            <td className={cn("num text-right", s.delta_profit < 0 ? "text-red-300" : "text-emerald-300")}>{money(s.delta_profit, { sign: true })}</td>
+                            <td className={cn("num text-right", s.profit < 0 && "text-red-700")}>{money(s.profit)}</td>
+                            <td className={cn("num text-right", s.delta_profit < 0 ? "text-red-700" : "text-emerald-700")}>{money(s.delta_profit, { sign: true })}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -399,7 +399,7 @@ export default function SimulationLab() {
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[640px] text-sm">
                     <thead>
-                      <tr className="border-b border-white/[0.06] text-left text-xs text-ink-400">
+                      <tr className="border-b border-black/[0.06] text-left text-xs text-ink-400">
                         <th className="px-3 py-2 font-normal">Metric</th>
                         {compare.map((r) => <th key={r.scenario.id} className={cn("px-3 py-2 text-right font-normal", r.scenario.id === sel.id && "text-accent")}>{r.scenario.name}</th>)}
                       </tr>
@@ -419,7 +419,7 @@ export default function SimulationLab() {
                           ["Payback", (m) => (m.payback_months ? `${num(m.payback_months, 1)} mo` : "not reached")],
                         ] as [string, (m: NonNullable<CompareRow["metrics"]>) => string][]
                       ).map(([label, f]) => (
-                        <tr key={label} className="border-b border-white/[0.06]/60">
+                        <tr key={label} className="border-b border-black/[0.06]/60">
                           <td className="px-3 py-1.5 text-ink-300">{label}</td>
                           {compare.map((r) => <td key={r.scenario.id} className="num px-3 py-1.5 text-right">{r.metrics ? f(r.metrics) : <span className="text-ink-500">not run</span>}</td>)}
                         </tr>
@@ -443,7 +443,7 @@ export default function SimulationLab() {
                     </div>
                   ))}
                 </div>
-                <ul className="space-y-1 border-t border-white/[0.06] p-3 text-xs text-ink-400">
+                <ul className="space-y-1 border-t border-black/[0.06] p-3 text-xs text-ink-400">
                   {res.limitations.map((l) => <li key={l}>• {l}</li>)}
                 </ul>
               </Card>
@@ -454,7 +454,7 @@ export default function SimulationLab() {
         </section>
 
         {/* RIGHT: results */}
-        <aside className="space-y-3 border-t border-white/[0.06] p-4 xl:max-h-[calc(100vh-150px)] xl:overflow-y-auto xl:border-l xl:border-t-0">
+        <aside className="space-y-3 border-t border-black/[0.06] p-4 xl:max-h-[calc(100vh-150px)] xl:overflow-y-auto xl:border-l xl:border-t-0">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold">Results</h2>
             {res && <Badge tone={sel.is_baseline ? "accent" : "neutral"}>{sel.is_baseline ? "baseline" : "vs baseline"}</Badge>}
@@ -468,7 +468,7 @@ export default function SimulationLab() {
                 <Metric
                   label="Operating profit / mo"
                   className="col-span-2"
-                  value={<span className={res.finance.operating_profit < 0 ? "text-red-300" : "text-emerald-300"}>{money(res.finance.operating_profit)}</span>}
+                  value={<span className={res.finance.operating_profit < 0 ? "text-red-700" : "text-emerald-700"}>{money(res.finance.operating_profit)}</span>}
                   kind="model"
                   delta={d(res.finance.operating_profit, baseRes?.finance.operating_profit) !== null ? money(d(res.finance.operating_profit, baseRes?.finance.operating_profit), { sign: true }) : null}
                   deltaGood={(d(res.finance.operating_profit, baseRes?.finance.operating_profit) ?? 0) >= 0}

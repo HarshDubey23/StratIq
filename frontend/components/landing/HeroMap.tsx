@@ -61,7 +61,7 @@ function makeTrips(spot: Spot, comps: PreviewComp[], n = 900): Trip[] {
   return out;
 }
 
-export default function HeroMap({ spot, comps, chapter, showTrips }: { spot: Spot; comps: PreviewComp[]; chapter: number; showTrips: boolean }) {
+export default function HeroMap({ spot, comps, chapter, showTrips, framed = false }: { spot: Spot; comps: PreviewComp[]; chapter: number; showTrips: boolean; framed?: boolean }) {
   const el = useRef<HTMLDivElement>(null);
   const map = useRef<MLMap | null>(null);
   const deck = useRef<DeckHandle | null>(null);
@@ -156,9 +156,9 @@ export default function HeroMap({ spot, comps, chapter, showTrips }: { spot: Spo
   return (
     <div className="absolute inset-0" aria-hidden>
       <div ref={el} style={{ position: "absolute", inset: 0 }} />
-      {/* vignette so type stays legible over the city */}
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_80%_at_70%_40%,transparent_30%,rgba(8,9,11,.55)_65%,#08090B_100%)]" />
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-ink-950 via-ink-950/70 to-transparent" />
+      {/* vignette so type stays legible over the city (not needed inside a framed window) */}
+      {!framed && <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_80%_at_70%_40%,transparent_30%,rgba(245,243,238,.35)_70%,#F5F3EE_100%)]" />}
+      {!framed && <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-ink-950 via-ink-950/70 to-transparent" />}
     </div>
   );
 }

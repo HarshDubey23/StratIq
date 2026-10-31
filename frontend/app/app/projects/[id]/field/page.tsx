@@ -140,7 +140,7 @@ export default function FieldResearch() {
           {/* ---------- request / assignment ---------- */}
           {!f.request || f.request.status === "closed" ? (
             <Card className="rise rise-1 overflow-hidden">
-              <div className="relative border-b border-white/[0.06] p-6">
+              <div className="relative border-b border-black/[0.06] p-6">
                 <div aria-hidden className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-field/10 blur-3xl" />
                 <span className="inline-flex items-center gap-2 rounded-md border border-field/40 bg-field/10 px-2 py-1 text-[11px] font-medium text-field">
                   <UserRoundCheck className="h-3.5 w-3.5" /> Matched specialty
@@ -148,7 +148,7 @@ export default function FieldResearch() {
                 <h3 className="font-display mt-3 text-2xl font-medium tracking-tight">Send a {f.specialty.toLowerCase()} to {loc?.address?.split(",")[0] || "your site"}</h3>
                 <p className="mt-2 max-w-xl text-sm text-ink-300">They get a link that opens a field app on their phone — no login. Everything they record lands here and in the simulation.</p>
               </div>
-              <ol className="grid gap-px bg-white/[0.06] sm:grid-cols-2">
+              <ol className="grid gap-px bg-black/[0.06] sm:grid-cols-2">
                 {f.checklist.map((t, i) => (
                   <li key={t.kind} className="bg-ink-900 p-5">
                     <div className="flex items-center gap-2">
@@ -195,22 +195,22 @@ export default function FieldResearch() {
               <div className="flex items-center gap-2 px-6 pb-5">
                 {STAGES.map((s, i) => (
                   <div key={s.s} className="flex flex-1 items-center gap-2">
-                    <span className={cn("flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[11px] font-medium", i <= stageIdx ? "bg-field text-ink-950" : "bg-white/[0.06] text-ink-500")}>
+                    <span className={cn("flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[11px] font-medium", i <= stageIdx ? "bg-field text-ink-950" : "bg-black/[0.06] text-ink-500")}>
                       {i < stageIdx ? <Check className="h-3.5 w-3.5" /> : i + 1}
                     </span>
                     <span className={cn("text-xs", i <= stageIdx ? "text-ink-100" : "text-ink-500")}>{s.t}</span>
-                    {i < STAGES.length - 1 && <span className={cn("h-px flex-1", i < stageIdx ? "bg-field/60" : "bg-white/10")} />}
+                    {i < STAGES.length - 1 && <span className={cn("h-px flex-1", i < stageIdx ? "bg-field/60" : "bg-black/10")} />}
                   </div>
                 ))}
               </div>
-              <div className="border-t border-white/[0.06] p-6">
+              <div className="border-t border-black/[0.06] p-6">
                 <p className="text-xs text-ink-400">Researcher&apos;s field link — send it on WhatsApp. It only lets them add data to this project.</p>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <code className="num min-w-0 flex-1 truncate rounded-lg border border-white/10 bg-ink-950 px-3 py-2.5 font-mono text-[12px] text-ink-200">{link}</code>
+                  <code className="num min-w-0 flex-1 truncate rounded-lg border border-black/10 bg-ink-950 px-3 py-2.5 font-mono text-[12px] text-ink-200">{link}</code>
                   <Button size="md" onClick={() => { void navigator.clipboard?.writeText(link); setCopied(true); setTimeout(() => setCopied(false), 1800); }}>
                     {copied ? <Check className="h-4 w-4 text-field" /> : <Copy className="h-4 w-4" />} {copied ? "Copied" : "Copy"}
                   </Button>
-                  <a href={link} target="_blank" rel="noreferrer" className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-white/10 px-3 text-sm text-ink-200 hover:border-white/25">
+                  <a href={link} target="_blank" rel="noreferrer" className="inline-flex h-10 items-center gap-1.5 rounded-lg border border-black/10 px-3 text-sm text-ink-200 hover:border-black/25">
                     <ExternalLink className="h-4 w-4" /> Open field app
                   </a>
                 </div>
@@ -231,7 +231,7 @@ export default function FieldResearch() {
                       <span className="flex items-center gap-2"><KindIcon kind={t.kind} /> {t.title}</span>
                       <span className="num font-mono text-xs text-ink-300">{n}/{t.target}</span>
                     </div>
-                    <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
+                    <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-black/[0.06]">
                       <div className={cn("h-full rounded-full transition-[width] duration-700", done ? "bg-field" : "bg-accent")} style={{ width: `${Math.min(100, (n / t.target) * 100)}%` }} />
                     </div>
                   </div>
@@ -254,7 +254,7 @@ export default function FieldResearch() {
                   : "No interviews yet. Once the researcher saves 8 or more, these agent inputs switch from assumptions to street data."}
               </div>
             ) : (
-              <ul className="divide-y divide-white/[0.06]">
+              <ul className="divide-y divide-black/[0.06]">
                 {params.map(([k, v]) => {
                   const L = PARAM_LABEL[k];
                   const def = p.archetype?.params[k];
@@ -275,7 +275,7 @@ export default function FieldResearch() {
                 })}
               </ul>
             )}
-            <div className="flex flex-wrap items-center gap-3 border-t border-white/[0.06] p-5">
+            <div className="flex flex-wrap items-center gap-3 border-t border-black/[0.06] p-5">
               <Button variant="primary" onClick={rerun} loading={busy === "run"} disabled={!baseline || total === 0}>
                 <RefreshCw className="h-4 w-4" /> Re-run agents with field data
               </Button>
@@ -286,20 +286,20 @@ export default function FieldResearch() {
               )}
               {f.summary.footfall && <span className="text-xs text-ink-400">Footfall ≈ <b className="num text-ink-200">{num(f.summary.footfall.people_per_hour)}</b> people/hour at the site</span>}
             </div>
-            {f.summary.notes.length > 0 && <p className="border-t border-white/[0.06] px-5 py-3 text-[11.5px] leading-relaxed text-ink-500">{f.summary.notes.join(" ")}</p>}
+            {f.summary.notes.length > 0 && <p className="border-t border-black/[0.06] px-5 py-3 text-[11.5px] leading-relaxed text-ink-500">{f.summary.notes.join(" ")}</p>}
           </Card>
 
           {/* ---------- records ---------- */}
           {total > 0 && (
             <Card>
               <CardHeader title="Everything collected" subtitle="Newest first. Deleting a competitor visit also removes it from the map." />
-              <ul className="max-h-[420px] divide-y divide-white/[0.05] overflow-y-auto">
+              <ul className="max-h-[420px] divide-y divide-black/[0.05] overflow-y-auto">
                 {[...f.records].reverse().map((r) => (
                   <li key={r.id} className="flex items-center gap-3 px-5 py-3 text-sm">
                     <KindIcon kind={r.kind} />
                     <span className="min-w-0 flex-1 truncate text-ink-200">{describe(r.kind, r.data)}</span>
                     <span className="hidden text-xs text-ink-500 sm:inline">{r.collected_by} · {ago(r.created_at)}</span>
-                    <button onClick={() => remove(r.id)} aria-label="Delete record" className="rounded-md p-1.5 text-ink-500 hover:bg-white/5 hover:text-red-300"><Trash2 className="h-3.5 w-3.5" /></button>
+                    <button onClick={() => remove(r.id)} aria-label="Delete record" className="rounded-md p-1.5 text-ink-500 hover:bg-black/5 hover:text-red-700"><Trash2 className="h-3.5 w-3.5" /></button>
                   </li>
                 ))}
               </ul>

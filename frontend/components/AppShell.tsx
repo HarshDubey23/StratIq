@@ -39,12 +39,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   const side = (
-    <aside className="flex h-full w-60 flex-col border-r border-white/[0.06] bg-ink-950">
+    <aside className="flex h-full w-60 flex-col border-r border-black/[0.06] bg-white">
       <div className="flex h-16 items-center px-5">
         <Logo href="/app" />
       </div>
       <div className="px-3 pb-3">
-        <Link href="/app/projects/new" className="sheen flex h-10 items-center justify-center gap-2 rounded-lg bg-accent text-sm font-medium text-white shadow-[0_8px_30px_-12px_rgba(79,108,255,.9)] transition-colors hover:bg-[#6580ff]">
+        <Link href="/app/projects/new" className="sheen flex h-10 items-center justify-center gap-2 rounded-lg bg-accent text-sm font-medium text-white shadow-[0_8px_30px_-12px_rgba(47,73,255,.9)] transition-colors hover:bg-[#2238e0]">
           <Plus className="h-4 w-4" /> New analysis
         </Link>
       </div>
@@ -58,7 +58,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               href={n.href}
               className={cn(
                 "relative flex items-center gap-3 rounded-lg px-3 py-2 text-[13.5px] transition-colors",
-                active ? "bg-white/[0.06] text-ink-100" : "text-ink-300 hover:bg-white/[0.03] hover:text-ink-100",
+                active ? "bg-black/[0.06] text-ink-100" : "text-ink-300 hover:bg-black/[0.03] hover:text-ink-100",
               )}
             >
               <n.icon className={cn("h-4 w-4", active && "text-accent")} /> {n.label}
@@ -66,7 +66,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           );
         })}
       </nav>
-      <div className="mx-3 mb-3 flex items-center gap-2 rounded-lg border border-white/[0.06] px-3 py-2.5 text-xs text-ink-300" title={caps ? `Places: OSM + Foursquare · Population: WorldPop · Travel: ${caps.routing ? "road routing" : "radius"} · Model ${caps.model_version}` : undefined}>
+      <div className="mx-3 mb-3 flex items-center gap-2 rounded-lg border border-black/[0.06] px-3 py-2.5 text-xs text-ink-300" title={caps ? `Places: OSM + Foursquare · Population: WorldPop · Travel: ${caps.routing ? "road routing" : "radius"} · Model ${caps.model_version}` : undefined}>
         <span className="relative flex h-2 w-2">
           <span className={cn("absolute inline-flex h-full w-full rounded-full opacity-70", caps ? "animate-ping bg-ok" : "bg-ink-500")} />
           <span className={cn("relative inline-flex h-2 w-2 rounded-full", caps ? "bg-ok" : "bg-ink-500")} />
@@ -74,14 +74,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {caps ? "Live data connected" : "Connecting…"}
         {caps && <span className="num ml-auto font-mono text-[10px] text-ink-500">{caps.model_version}</span>}
       </div>
-      <div className="flex items-center justify-between gap-2 border-t border-white/[0.06] px-5 py-4 text-xs">
+      <div className="flex items-center justify-between gap-2 border-t border-black/[0.06] px-5 py-4 text-xs">
         <span className="flex min-w-0 items-center gap-2">
           <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-accent text-[11px] font-semibold text-white">
             {(user?.name || user?.email || "?").slice(0, 1).toUpperCase()}
           </span>
           <span className="truncate text-ink-300" title={user?.email}>{user?.name || user?.email || " "}</span>
         </span>
-        <button onClick={logout} className="rounded-md p-1.5 text-ink-400 hover:bg-white/5 hover:text-ink-100" aria-label="Sign out" title="Sign out">
+        <button onClick={logout} className="rounded-md p-1.5 text-ink-400 hover:bg-black/5 hover:text-ink-100" aria-label="Sign out" title="Sign out">
           <LogOut className="h-4 w-4" />
         </button>
       </div>
@@ -99,7 +99,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         )}
         <div className="flex min-w-0 flex-1 flex-col">
-          <div className="flex h-14 items-center gap-3 border-b border-white/[0.06] px-4 md:hidden">
+          <div className="flex h-14 items-center gap-3 border-b border-black/[0.06] px-4 md:hidden">
             <button onClick={() => setOpen((x) => !x)} aria-label="Menu" className="text-ink-200">
               {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>

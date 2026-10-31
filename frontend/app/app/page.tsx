@@ -83,7 +83,7 @@ export default function Dashboard() {
         <QuickStart />
       </div>
 
-      <div className="rise rise-2 mt-4 grid gap-px overflow-hidden rounded-xl border border-white/[0.07] bg-white/[0.07] sm:grid-cols-2 lg:grid-cols-4">
+      <div className="rise rise-2 mt-4 grid gap-px overflow-hidden rounded-xl border border-black/[0.07] bg-black/[0.07] sm:grid-cols-2 lg:grid-cols-4">
         {actions.map((a, i) => (
           <Link key={a.t} href={a.href} className="group relative bg-ink-950 p-5 transition-colors duration-300 hover:bg-ink-900">
             <div className="flex items-center justify-between">
@@ -99,7 +99,7 @@ export default function Dashboard() {
         ))}
       </div>
 
-      <div className="mt-14 flex items-end justify-between border-b border-white/[0.06] pb-3">
+      <div className="mt-14 flex items-end justify-between border-b border-black/[0.06] pb-3">
         <h2 className="font-display text-xl font-medium tracking-tight">Your simulations {projects && projects.length > 0 && <span className="num ml-1 font-mono text-sm text-ink-500">{projects.length}</span>}</h2>
         <Button size="sm" variant="ghost" onClick={demo} loading={busy}>
           <FlaskConical className="h-3.5 w-3.5" /> Open labelled demo
@@ -124,15 +124,15 @@ export default function Dashboard() {
         {projects && projects.length > 0 && (
           <div className="grid gap-3 md:grid-cols-2">
             {projects.map((p) => (
-              <div key={p.id} className="lift group flex flex-col rounded-xl border border-white/[0.07] bg-ink-900/80 p-5 hover:border-white/15">
+              <div key={p.id} className="lift group flex flex-col rounded-xl border border-black/[0.07] bg-ink-900/80 p-5 hover:border-black/15">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <Link href={`/app/projects/${p.id}`} className="font-display block truncate text-lg font-medium tracking-tight group-hover:text-[#9fb0ff]">{p.name}</Link>
+                    <Link href={`/app/projects/${p.id}`} className="font-display block truncate text-lg font-medium tracking-tight group-hover:text-accent">{p.name}</Link>
                     <div className="mt-0.5 truncate text-xs text-ink-400">
                       {p.category.label} · {p.locations[0]?.address || `${p.locations[0]?.lat.toFixed(4)}, ${p.locations[0]?.lng.toFixed(4)}`}
                     </div>
                   </div>
-                  <button aria-label={`Delete ${p.name}`} onClick={() => setDel(p)} className="rounded-md p-1 text-ink-500 opacity-0 transition-opacity hover:text-red-300 focus:opacity-100 group-hover:opacity-100">
+                  <button aria-label={`Delete ${p.name}`} onClick={() => setDel(p)} className="rounded-md p-1 text-ink-500 opacity-0 transition-opacity hover:text-red-700 focus:opacity-100 group-hover:opacity-100">
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
@@ -143,14 +143,14 @@ export default function Dashboard() {
                 </div>
                 <div className="mt-5 flex-1 text-sm">
                   {p.summary ? (
-                    <div className="grid grid-cols-3 gap-2 border-t border-white/[0.06] pt-4">
+                    <div className="grid grid-cols-3 gap-2 border-t border-black/[0.06] pt-4">
                       <div>
                         <div className="text-[11px] text-ink-400">{p.summary.unit_label}</div>
                         <div className="num font-display mt-0.5 text-lg font-medium">{num(p.summary.units_sold)}</div>
                       </div>
                       <div>
                         <div className="text-[11px] text-ink-400">Profit / month</div>
-                        <div className={`num font-display mt-0.5 text-lg font-medium ${p.summary.operating_profit < 0 ? "text-red-300" : "text-ok"}`}>{money(p.summary.operating_profit, { compact: true })}</div>
+                        <div className={`num font-display mt-0.5 text-lg font-medium ${p.summary.operating_profit < 0 ? "text-red-700" : "text-ok"}`}>{money(p.summary.operating_profit, { compact: true })}</div>
                       </div>
                       <div>
                         <div className="text-[11px] text-ink-400">Chance of a loss</div>
@@ -158,12 +158,12 @@ export default function Dashboard() {
                       </div>
                     </div>
                   ) : (
-                    <p className="border-t border-white/[0.06] pt-4 text-xs text-ink-400">Not simulated yet — open it and load the market.</p>
+                    <p className="border-t border-black/[0.06] pt-4 text-xs text-ink-400">Not simulated yet — open it and load the market.</p>
                   )}
                 </div>
                 <div className="mt-4 flex items-center justify-between text-xs text-ink-400">
                   <span>Updated {ago(p.updated_at)}</span>
-                  <Link href={`/app/projects/${p.id}`} className="inline-flex items-center gap-1 text-[#9fb0ff] hover:underline">Open <ArrowRight className="h-3 w-3" /></Link>
+                  <Link href={`/app/projects/${p.id}`} className="inline-flex items-center gap-1 text-accent hover:underline">Open <ArrowRight className="h-3 w-3" /></Link>
                 </div>
               </div>
             ))}

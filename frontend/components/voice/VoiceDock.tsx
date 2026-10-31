@@ -30,7 +30,25 @@ interface Turn {
   ts: number;
 }
 
-const PAGES = ["overview", "market", "live", "genome", "simulation", "decisions", "report", "factors", "monitor"] as const;
+const PAGES = ["overview", "market", "field", "live", "genome", "simulation", "decisions", "report", "factors", "monitor"] as const;
+const PLAN_FIELDS = ["price", "rent", "payroll", "utilities", "other_fixed", "marketing_spend", "startup_cost", "variable_cost_per_unit", "quality"] as const;
+
+interface ProjectLite {
+  locations: { id: string; lat: number; lng: number }[];
+  scenarios: { id: string; is_baseline: boolean; inputs: Record<string, unknown>; latest_run: { id: string } | null }[];
+}
+interface RunLite {
+  status: string;
+  error?: string | null;
+  results?: { unit_label?: string; summary?: { units_sold?: number }; finance?: { revenue?: number; operating_profit?: number; break_even_units?: number; payback_months?: number }; monte_carlo?: { prob_loss?: number } };
+}
+/** The few numbers a voice answer needs from a run. */
+function slimRun(r: RunLite | null) {
+  const x = r?.results;
+  if (!x) return null;
+  return { unit: x.unit_label, units_per_month: x.summary?.units_sold, revenue_per_month: x.finance?.revenue, profit_per_month: x.finance?.operating_profit, payback_months: x.finance?.payback_months,
+    break_even_units: x.finance?.break_even_units, chance_of_loss: x.monte_carlo?.prob_loss };
+}
 
 function projectIdFrom(path: string): string | null {
   const m = path.match(/^\/app\/projects\/([0-9a-f-]{16,})/i);
@@ -51,8 +69,8 @@ async function jfetch<T>(url: string, init?: RequestInit & { json?: unknown }): 
 }
 
 const SUGGESTIONS = {
-  project: ["What do you see on this screen?", "Best location kahan hai?", "Find my best strategy", "How can I grow?", "What is break-even?", "Give me a tour"],
-  general: ["I want to open a café in Indiranagar, Bengaluru", "Open the live demo", "What does StrataIQ do?"],
+  project: ["Screen pe kya dikh raha hai?", "Best location kahan hai?", "Rent 80 hazaar kar do", "Field researcher bhejo", "Profit kaise badhega?", "Report bana do"],
+  general: ["Mujhe Indiranagar me café kholna hai", "Live demo dikhao", "Mere projects kholo", "StrataIQ kya karta hai?"],
 };
 
 function VoiceDockInner() {
@@ -187,11 +205,151 @@ function VoiceDockInner() {
         }
       },
       navigate: async ({ page }: { page: string }) => {
+        const top: Record<string, string> = { dashboard: "/app", new_project: "/app/projects/new", methodology: "/methodology", settings: "/app/settings", home: "/" };
+        if (top[page]) {
+          router.push(top[page]);
+          return `Opened ${page}.`;
+        }
         const pid = pidRef.current;
-        if (!pid) return "No project is open.";
+        if (!pid) return "No project is open. Use open_project or start_new_idea first.";
         const seg = PAGES.includes(page as (typeof PAGES)[number]) ? page : "overview";
         router.push(seg === "overview" ? `/app/projects/${pid}` : `/app/projects/${pid}/${seg}`);
         return `Opened ${seg}.`;
+      },
+      update_plan: async (args: Record<string, number>) => {
+        const pid = pidRef.current;
+        if (!pid) return JSON.stringify({ error: "Open a project first." });
+        try {
+          const p = await jfetch<ProjectLite>(`/api/v1/projects/${pid}`);
+          const base = p.scenarios.find((s) => s.is_baseline);
+          if (!base) return JSON.stringify({ error: "This project has no baseline plan." });
+          const changes: Record<string, number> = {};
+          for (const k of PLAN_FIELDS) if (args?.[k] !== undefined && args[k] !== null && !Number.isNaN(Number(args[k]))) changes[k] = Number(args[k]);
+          if (!Object.keys(changes).length) return JSON.stringify({ error: "No change given.", fields: PLAN_FIELDS });
+          const before = base.latest_run ? await jfetch<RunLite>(`/api/v1/simulation-runs/${base.latest_run.id}/results`).catch(() => null) : null;
+          await jfetch(`/api/v1/scenarios/${base.id}`, { method: "PATCH", json: { inputs: { ...base.inputs, ...changes } } });
+          const run = await jfetch<RunLite>(`/api/v1/scenarios/${base.id}/runs`, { method: "POST" });
+          window.dispatchEvent(new CustomEvent("strataiq:refresh"));
+          if (run.status !== "succeeded") return JSON.stringify({ changed: changes, error: run.error || "simulation failed" });
+          return JSON.stringify({ changed: changes, before: slimRun(before), after: slimRun(run), note: "Saved to the baseline plan and re-simulated." });
+        } catch (e) {
+          return JSON.stringify({ error: e instanceof Error ? e.message : "update failed" });
+        }
+      },
+      load_market_and_simulate: async () => {
+        const pid = pidRef.current;
+        if (!pid) return JSON.stringify({ error: "Open a project first." });
+        try {
+          const p = await jfetch<ProjectLite>(`/api/v1/projects/${pid}`);
+          const loc = p.locations[0];
+          if (!pathRef.current.endsWith("/market")) router.push(`/app/projects/${pid}/market`);
+          let s = await jfetch<{ id: string; status: string }>(`/api/v1/projects/${pid}/locations/${loc.id}/refresh`, { method: "POST" });
+          const t0 = Date.now();
+          while (s.status === "loading" && Date.now() - t0 < 100_000) {
+            await new Promise((r) => setTimeout(r, 3000));
+            s = await jfetch<{ id: string; status: string }>(`/api/v1/projects/${pid}/snapshots/${s.id}`);
+          }
+          if (s.status === "loading") return JSON.stringify({ status: "still_loading", note: "Live data is still loading; it continues in the background. Ask again in a minute." });
+          if (s.status === "failed") return JSON.stringify({ status: "failed", note: "Live data could not load right now." });
+          const base = p.scenarios.find((x) => x.is_baseline);
+          const run = base ? await jfetch<RunLite>(`/api/v1/scenarios/${base.id}/runs`, { method: "POST" }) : null;
+          window.dispatchEvent(new CustomEvent("strataiq:refresh"));
+          return JSON.stringify({ status: s.status, simulation: slimRun(run) });
+        } catch (e) {
+          return JSON.stringify({ error: e instanceof Error ? e.message : "load failed" });
+        }
+      },
+      request_field_researcher: async ({ researcher_name, brief }: { researcher_name?: string; brief?: string }) => {
+        const pid = pidRef.current;
+        if (!pid) return JSON.stringify({ error: "Open a project first." });
+        try {
+          const f = await jfetch<{ specialty: string; request: { token: string; status: string } }>(`/api/v1/projects/${pid}/field/request`, {
+            method: "POST", json: { researcher_name: researcher_name || "", brief: brief || "" },
+          });
+          router.push(`/app/projects/${pid}/field`);
+          window.dispatchEvent(new CustomEvent("strataiq:refresh"));
+          return JSON.stringify({ requested: true, specialty: f.specialty, status: f.request.status, field_link: `${window.location.origin}/field/${f.request.token}`,
+            note: "The Field data page is open; the user can copy the link and send it to the researcher on WhatsApp." });
+        } catch (e) {
+          return JSON.stringify({ error: e instanceof Error ? e.message : "request failed" });
+        }
+      },
+      record_field_data: async (a: Record<string, unknown>) => {
+        const pid = pidRef.current;
+        if (!pid) return JSON.stringify({ error: "Open a project first." });
+        const kind = String(a.kind || "");
+        const n = (k: string) => (a[k] === undefined || a[k] === null || a[k] === "" ? undefined : Number(a[k]));
+        const data: Record<string, unknown> =
+          kind === "interview" ? { uses_category: a.uses_category === true || a.uses_category === "true", visits_per_month: n("visits_per_month"), max_price: n("max_price"), travel_km: n("travel_km") }
+          : kind === "competitor" ? { name: String(a.name || "Competitor"), price: n("price"), quality: n("rating") }
+          : kind === "footfall" ? { count: n("count"), minutes: n("minutes") ?? 15, time_of_day: a.time_of_day || "evening" }
+          : kind === "rent" ? { monthly_rent: n("monthly_rent"), deposit: n("deposit") }
+          : {};
+        try {
+          let lat: number | undefined, lng: number | undefined;
+          if (kind === "competitor") {
+            const p = await jfetch<ProjectLite>(`/api/v1/projects/${pid}`);
+            ({ lat, lng } = p.locations[0]);
+          }
+          await jfetch(`/api/v1/projects/${pid}/field/records`, { method: "POST", json: { kind, data, lat, lng, collected_by: "Owner (voice)" } });
+          const f = await jfetch<{ summary: unknown }>(`/api/v1/projects/${pid}/field`);
+          window.dispatchEvent(new CustomEvent("strataiq:refresh"));
+          return JSON.stringify({ saved: kind, summary: f.summary, note: kind === "competitor" ? "Pinned at the site location. For the exact spot, record it from the field app with GPS." : undefined });
+        } catch (e) {
+          return JSON.stringify({ error: e instanceof Error ? e.message : "could not save" });
+        }
+      },
+      get_field_status: async () => {
+        const pid = pidRef.current;
+        if (!pid) return JSON.stringify({ error: "Open a project first." });
+        try {
+          const f = await jfetch<{ request: unknown; summary: unknown; checklist: unknown }>(`/api/v1/projects/${pid}/field`);
+          return JSON.stringify({ request: f.request, summary: f.summary, checklist: f.checklist });
+        } catch (e) {
+          return JSON.stringify({ error: e instanceof Error ? e.message : "unavailable" });
+        }
+      },
+      make_report: async () => {
+        const pid = pidRef.current;
+        if (!pid) return JSON.stringify({ error: "Open a project first." });
+        try {
+          await jfetch(`/api/v1/projects/${pid}/reports`, { method: "POST" });
+          router.push(`/app/projects/${pid}/report`);
+          return JSON.stringify({ created: true, note: "The feasibility report is open; it can be printed or shared from that page." });
+        } catch (e) {
+          return JSON.stringify({ error: e instanceof Error ? e.message : "report failed" });
+        }
+      },
+      list_projects: async () => {
+        try {
+          const ps = await jfetch<{ id: string; name: string; category: { label: string }; summary: { operating_profit: number } | null }[]>(`/api/v1/projects`);
+          return JSON.stringify(ps.slice(0, 12).map((p) => ({ name: p.name, business: p.category.label, profit_per_month: p.summary?.operating_profit ?? null })));
+        } catch (e) {
+          return JSON.stringify({ error: e instanceof Error ? e.message : "sign in first" });
+        }
+      },
+      open_project: async ({ name }: { name: string }) => {
+        try {
+          const ps = await jfetch<{ id: string; name: string }[]>(`/api/v1/projects`);
+          const q = String(name || "").toLowerCase();
+          const hit = ps.find((p) => p.name.toLowerCase() === q) || ps.find((p) => p.name.toLowerCase().includes(q) || q.includes(p.name.toLowerCase()));
+          if (!hit) return JSON.stringify({ found: false, projects: ps.map((p) => p.name) });
+          router.push(`/app/projects/${hit.id}`);
+          return JSON.stringify({ opened: hit.name });
+        } catch (e) {
+          return JSON.stringify({ error: e instanceof Error ? e.message : "sign in first" });
+        }
+      },
+      set_goal: async ({ goal }: { goal: string }) => {
+        const pid = pidRef.current;
+        if (!pid) return JSON.stringify({ error: "Open a project first." });
+        try {
+          await jfetch(`/api/v1/projects/${pid}`, { method: "PATCH", json: { decision_goal: goal } });
+          window.dispatchEvent(new CustomEvent("strataiq:refresh"));
+          return JSON.stringify({ goal });
+        } catch (e) {
+          return JSON.stringify({ error: e instanceof Error ? e.message : "failed" });
+        }
       },
       start_demo: async () => {
         try {
@@ -239,7 +397,7 @@ function VoiceDockInner() {
       if (typeof window === "undefined" || !("speechSynthesis" in window)) return resolve();
       const u = new SpeechSynthesisUtterance(text.replace(/₹/g, "rupees "));
       const voices = window.speechSynthesis.getVoices();
-      u.voice = voices.find((v) => v.lang === "en-IN") || voices.find((v) => v.lang.startsWith("en-GB")) || voices.find((v) => v.lang.startsWith("en")) || null;
+      u.voice = voices.find((v) => v.lang === "hi-IN") || voices.find((v) => v.lang === "en-IN") || voices.find((v) => v.lang.startsWith("en-GB")) || voices.find((v) => v.lang.startsWith("en")) || null;
       u.rate = 1.02;
       speakingRef.current = true;
       setPhase("speaking");
@@ -324,7 +482,7 @@ function VoiceDockInner() {
     const rec = new SR();
     rec.continuous = true;
     rec.interimResults = true;
-    rec.lang = "en-IN";
+    rec.lang = "en-IN"; // keeps Hinglish in Latin script, which the backend intent router understands
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     rec.onresult = (ev: any) => {
       let fin = "";
@@ -500,7 +658,7 @@ function VoiceDockInner() {
   return (
     <div className="no-print pointer-events-none fixed bottom-5 right-5 z-[90] flex flex-col items-end gap-3">
       {open && (
-        <div className="panel pointer-events-auto w-[min(380px,calc(100vw-2.5rem))] overflow-hidden rounded-xl" role="dialog" aria-label="Strata voice analyst">
+        <div className="panel rise pointer-events-auto w-[min(400px,calc(100vw-2.5rem))] overflow-hidden rounded-2xl" role="dialog" aria-label="Strata voice analyst">
           <div className="flex items-center gap-4 px-5 pt-5">
             <Orb level={level} phase={phase} size={64} />
             <div className="min-w-0 flex-1">
@@ -509,7 +667,7 @@ function VoiceDockInner() {
                 {engine === "realtime" ? "Realtime voice" : "Browser voice"} · {projectId ? "reading this project's live data" : "no project open"}
               </div>
             </div>
-            <button onClick={() => { void stop(); setOpen(false); }} className="rounded-full p-1.5 text-ink-400 hover:bg-white/5 hover:text-ink-100" aria-label="Close voice analyst">
+            <button onClick={() => { void stop(); setOpen(false); }} className="rounded-full p-1.5 text-ink-400 hover:bg-black/5 hover:text-ink-100" aria-label="Close voice analyst">
               <X className="h-4 w-4" />
             </button>
           </div>
@@ -517,17 +675,17 @@ function VoiceDockInner() {
           <div className="mt-4 max-h-64 space-y-2.5 overflow-y-auto px-5 pb-1 text-[13.5px] leading-relaxed">
             {turns.length === 0 && !interim && (
               <p className="text-ink-400">
-                Speak naturally, in English or Hinglish. Strata keeps listening and answers from the real model output, never from guesses.
+                Bas bolo — Hinglish, Hindi ya English. Strata khud project banata hai, data load karta hai, plan badalta hai, researcher bhejta hai aur report banata hai. Har number simulation se aata hai, guess se nahi.
               </p>
             )}
             {turns.map((t) => (
               <div key={t.ts + t.who} className={cn("flex", t.who === "you" ? "justify-end" : "justify-start")}>
-                <div className={cn("max-w-[85%] rounded-xl px-3.5 py-2", t.who === "you" ? "bg-white/[0.07] text-ink-100" : "bg-accent/10 text-ink-100 ring-1 ring-accent/25")}>{t.text}</div>
+                <div className={cn("max-w-[85%] rounded-xl px-3.5 py-2", t.who === "you" ? "bg-black/[0.07] text-ink-100" : "bg-accent-dim text-ink-100")}>{t.text}</div>
               </div>
             ))}
             {interim && (
               <div className="flex justify-end">
-                <div className="max-w-[85%] rounded-xl bg-white/[0.04] px-3.5 py-2 italic text-ink-300">{interim}</div>
+                <div className="max-w-[85%] rounded-xl bg-black/[0.04] px-3.5 py-2 italic text-ink-300">{interim}</div>
               </div>
             )}
           </div>
@@ -539,14 +697,14 @@ function VoiceDockInner() {
               <button
                 key={s}
                 onClick={() => (engine === "realtime" && convo?.status === "connected" && convo.sendUserMessage ? (push("you", s), convo.sendUserMessage(s)) : void askBackend(s))}
-                className="rounded-full border border-white/10 px-2.5 py-1 text-[11.5px] text-ink-200 transition-colors hover:border-accent/50 hover:text-ink-100"
+                className="rounded-full border border-black/10 px-2.5 py-1 text-[11.5px] text-ink-200 transition-colors hover:border-accent/50 hover:text-ink-100"
               >
                 {s}
               </button>
             ))}
           </div>
 
-          <div className="mt-4 flex items-center gap-2 border-t border-white/[0.06] px-3 py-3">
+          <div className="mt-4 flex items-center gap-2 border-t border-black/[0.06] px-3 py-3">
             {typing ? (
               <form className="flex flex-1 items-center gap-2" onSubmit={(e) => { e.preventDefault(); void sendTyped(); }}>
                 <input
@@ -555,7 +713,7 @@ function VoiceDockInner() {
                   onChange={(e) => setDraft(e.target.value)}
                   placeholder="Type a question…"
                   aria-label="Type a question"
-                  className="h-10 flex-1 rounded-full border border-white/10 bg-white/[0.04] px-4 text-sm outline-none focus:border-accent/60"
+                  className="h-10 flex-1 rounded-full border border-black/10 bg-black/[0.04] px-4 text-sm outline-none focus:border-accent/60"
                 />
                 <button type="submit" className="flex h-10 w-10 items-center justify-center rounded-full bg-accent text-white" aria-label="Send"><Send className="h-4 w-4" /></button>
               </form>
@@ -564,10 +722,10 @@ function VoiceDockInner() {
                 <AudioLines className="h-4 w-4 text-accent" /> Always listening while open · press V to stop
               </div>
             )}
-            <button onClick={() => setTyping((x) => !x)} className="rounded-full p-2 text-ink-300 hover:bg-white/5 hover:text-ink-100" aria-label="Toggle keyboard input"><Keyboard className="h-4 w-4" /></button>
+            <button onClick={() => setTyping((x) => !x)} className="rounded-full p-2 text-ink-300 hover:bg-black/5 hover:text-ink-100" aria-label="Toggle keyboard input"><Keyboard className="h-4 w-4" /></button>
             <button
               onClick={() => (active ? void stop() : void start())}
-              className={cn("flex h-10 items-center gap-1.5 rounded-full px-4 text-xs font-medium", active ? "bg-white/10 text-ink-100 hover:bg-white/15" : "bg-accent text-white")}
+              className={cn("flex h-10 items-center gap-1.5 rounded-full px-4 text-xs font-medium", active ? "bg-black/10 text-ink-100 hover:bg-black/15" : "bg-accent text-white")}
             >
               {active ? <><MicOff className="h-3.5 w-3.5" /> Stop</> : <><Mic className="h-3.5 w-3.5" /> Talk</>}
             </button>
@@ -576,7 +734,7 @@ function VoiceDockInner() {
             <span>Engine</span>
             <div className="flex gap-1">
               {(["realtime", "browser"] as Engine[]).map((e) => (
-                <button key={e} disabled={active} onClick={() => setEngine(e)} className={cn("rounded-full px-2 py-0.5", engine === e ? "bg-white/10 text-ink-100" : "hover:text-ink-200", active && "opacity-50")}>
+                <button key={e} disabled={active} onClick={() => setEngine(e)} className={cn("rounded-full px-2 py-0.5", engine === e ? "bg-black/10 text-ink-100" : "hover:text-ink-200", active && "opacity-50")}>
                   {e === "realtime" ? "Realtime" : "Browser"}
                 </button>
               ))}
@@ -587,13 +745,13 @@ function VoiceDockInner() {
 
       <button
         onClick={() => (open ? (active ? void stop() : void start()) : (setOpen(true), void start()))}
-        className="group pointer-events-auto flex items-center gap-3 rounded-full border border-white/10 bg-ink-900/80 py-2 pl-2 pr-5 shadow-[0_20px_60px_-20px_rgba(0,0,0,.9)] backdrop-blur-xl transition-[border-color,transform] duration-500 hover:-translate-y-0.5 hover:border-accent/40"
+        className="group pointer-events-auto flex items-center gap-3 rounded-full border border-black/[0.08] bg-white/90 py-2 pl-2 pr-5 shadow-[0_1px_2px_rgba(20,18,10,.05),0_18px_40px_-16px_rgba(20,18,10,.35)] backdrop-blur-xl transition-[border-color,transform] duration-500 hover:-translate-y-0.5 hover:border-accent/40"
         aria-label={active ? "Stop voice analyst" : "Talk to Strata, the voice analyst"}
       >
         <Orb level={level} phase={phase} size={40} />
         <span className="text-left">
-          <span className="block text-[13px] font-medium text-ink-100">{active ? statusText[phase] : "Talk to Strata"}</span>
-          <span className="block text-[11px] text-ink-400">{active ? "tap to stop" : "voice analyst · press V"}</span>
+          <span className="block text-[13px] font-medium text-ink-100">{active ? statusText[phase] : "Strata se baat karo"}</span>
+          <span className="block text-[11px] text-ink-400">{active ? "tap to stop" : "voice analyst · press V · Hinglish"}</span>
         </span>
       </button>
     </div>
@@ -611,7 +769,7 @@ function Orb({ level, phase, size }: { level: number; phase: Phase; size: number
         style={{
           transform: `scale(${s})`,
           transition: "transform 90ms linear",
-          background: "conic-gradient(from 210deg, #4F6CFF, #FF4D5E, #FFB547, #2DD4BF, #4F6CFF)",
+          background: "conic-gradient(from 210deg, #2F49FF, #E5484D, #F59E0B, #0F766E, #2F49FF)",
           filter: "blur(6px)",
           opacity: phase === "idle" ? 0.55 : 0.95,
           animation: busy ? "orb-spin 1.6s linear infinite" : "orb-spin 9s linear infinite",
@@ -621,8 +779,8 @@ function Orb({ level, phase, size }: { level: number; phase: Phase; size: number
         className="absolute rounded-full"
         style={{
           inset: size * 0.12,
-          background: "radial-gradient(circle at 35% 30%, #ffffff 0%, #c9d2ff 18%, #4F6CFF 45%, #1d2366 85%, #121318 100%)",
-          boxShadow: "inset 0 -6px 14px rgba(0,0,0,.45), 0 0 24px rgba(79,108,255,.45)",
+          background: "radial-gradient(circle at 35% 30%, #ffffff 0%, #c9d2ff 18%, #2F49FF 45%, #1d2366 85%, #0b0e2e 100%)",
+          boxShadow: "inset 0 -6px 14px rgba(0,0,0,.45), 0 0 24px rgba(47,73,255,.45)",
           animation: phase === "idle" ? "orb-breathe 4s ease-in-out infinite" : undefined,
         }}
       />

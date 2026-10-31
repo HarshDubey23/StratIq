@@ -44,7 +44,7 @@ const api = (path, method = "GET", body) => page.evaluate(async ([p, m, b]) => {
   return { status: r.status, body: j };
 }, [path, method, body]);
 
-await step("landing", async () => { await page.goto(BASE); await page.getByText("before the lease.").first().waitFor(); await page.waitForTimeout(6000); await shot("01-landing"); });
+await step("landing", async () => { await page.goto(BASE); await page.getByText("before you sign the lease.").first().waitFor(); await page.waitForTimeout(6000); await shot("01-landing"); });
 await step("methodology", async () => { await page.goto(`${BASE}/methodology`); await page.getByText("Customer-choice model").waitFor(); });
 await step("sign up", async () => {
   await page.goto(`${BASE}/sign-up`);

@@ -2,13 +2,13 @@ import Link from "next/link";
 import { Logo } from "@/components/brand";
 
 function Eq({ children }: { children: React.ReactNode }) {
-  return <pre className="num overflow-x-auto rounded-xl border border-white/[0.07] bg-white/[0.025] p-3 text-[13px] leading-relaxed text-ink-100">{children}</pre>;
+  return <pre className="num overflow-x-auto rounded-xl border border-black/[0.07] bg-black/[0.025] p-3 text-[13px] leading-relaxed text-ink-100">{children}</pre>;
 }
 
 export default function Methodology() {
   return (
     <div className="min-h-screen bg-ink-950">
-      <header className="border-b border-white/[0.06]">
+      <header className="border-b border-black/[0.06]">
         <div className="mx-auto flex h-14 max-w-4xl items-center justify-between px-4">
           <Logo />
           <Link href="/app" className="text-sm text-ink-300 hover:text-ink-100">Open app</Link>
@@ -141,7 +141,7 @@ choice = argmax( V_ij + habit_ij + noise_i · Gumbel ,  outside_i + noise_i · G
           </p>
         </section>
 
-        <section className="space-y-2 border-t border-white/[0.06] pt-6 text-sm text-ink-400">
+        <section className="space-y-2 border-t border-black/[0.06] pt-6 text-sm text-ink-400">
           <p>Map data © OpenStreetMap contributors (ODbL). Population: WorldPop, University of Southampton (CC BY 4.0). Map tiles: OpenFreeMap, © OpenMapTiles. Routing: openrouteservice by HeiGIT.</p>
         </section>
       </article>

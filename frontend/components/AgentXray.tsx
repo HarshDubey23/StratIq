@@ -66,7 +66,7 @@ export default function AgentXray({ runId, agent, onClose, price, className }: {
 
   return (
     <div className={cn("flex flex-col overflow-hidden rounded-xl border border-accent/40 bg-ink-950/95 shadow-2xl shadow-black/60 backdrop-blur", className)}>
-      <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-3">
+      <div className="flex items-center justify-between border-b border-black/[0.06] px-4 py-3">
         <div className="flex items-center gap-2">
           <Dna className="h-4 w-4 text-agent" />
           <div>
@@ -100,7 +100,7 @@ export default function AgentXray({ runId, agent, onClose, price, className }: {
             <div>
               <div className="mb-1.5 text-xs font-medium text-ink-200">Why this choice — utility by channel</div>
               {shown.length ? (
-                <div className="overflow-x-auto rounded-lg border border-white/[0.06]">
+                <div className="overflow-x-auto rounded-lg border border-black/[0.06]">
                   <table className="w-full text-[11px]">
                     <thead>
                       <tr className="bg-ink-900 text-ink-400">
@@ -115,7 +115,7 @@ export default function AgentXray({ runId, agent, onClose, price, className }: {
                     </thead>
                     <tbody>
                       {channels.map((c) => (
-                        <tr key={c} className="border-t border-white/[0.06]/70">
+                        <tr key={c} className="border-t border-black/[0.06]/70">
                           <td className="px-2 py-1 text-ink-300">{CHANNEL_LABEL[c]}</td>
                           {shown.map((o) => (
                             <td key={o.idx} className="num px-2 py-1 text-right" style={{ background: cellBg(o.parts[c] ?? 0) }}>{(o.parts[c] ?? 0).toFixed(2)}</td>
@@ -128,7 +128,7 @@ export default function AgentXray({ runId, agent, onClose, price, className }: {
                       </tr>
                     </tbody>
                   </table>
-                  <div className="border-t border-white/[0.06] bg-ink-900 px-2 py-1.5 text-[10px] text-ink-400">
+                  <div className="border-t border-black/[0.06] bg-ink-900 px-2 py-1.5 text-[10px] text-ink-400">
                     Buying nothing is worth <span className="num text-ink-200">{x.outside_utility.toFixed(2)}</span> to this agent; personal noise scale {x.noise_scale.toFixed(2)}.
                     Habit and awareness (dynamic) are added during the day-by-day run.
                   </div>
@@ -160,7 +160,7 @@ export default function AgentXray({ runId, agent, onClose, price, className }: {
             <div>
               <div className="mb-1.5 flex items-center justify-between gap-2">
                 <span className="text-xs font-medium text-ink-200">Full genome · 615 parameters</span>
-                <label className="flex items-center gap-1 rounded border border-white/[0.07] bg-ink-900 px-1.5">
+                <label className="flex items-center gap-1 rounded border border-black/[0.07] bg-ink-900 px-1.5">
                   <Search className="h-3 w-3 text-ink-500" />
                   <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="find a parameter" className="h-6 w-32 bg-transparent text-[11px] outline-none" aria-label="Find a parameter" />
                 </label>
@@ -182,7 +182,7 @@ export default function AgentXray({ runId, agent, onClose, price, className }: {
                   </div>
                 ))}
               </div>
-              <div className="mt-2 min-h-[52px] rounded-md border border-white/[0.06] bg-ink-900 p-2 text-[11px]">
+              <div className="mt-2 min-h-[52px] rounded-md border border-black/[0.06] bg-ink-900 p-2 text-[11px]">
                 {hp && hover !== null ? (
                   <>
                     <div className="flex justify-between gap-2"><span className="font-medium text-ink-100">{hp.label}</span><span className="num text-ink-100">{fmtParam(hp, x.genome[hover])}</span></div>

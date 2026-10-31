@@ -46,7 +46,7 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {project?.is_demo && <DemoBanner />}
-      <div className="relative border-b border-white/[0.06] bg-ink-950/85 px-4 backdrop-blur-xl md:px-8">
+      <div className="relative border-b border-black/[0.06] bg-ink-950/85 px-4 backdrop-blur-xl md:px-8">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-5">
           {project ? (
             <>

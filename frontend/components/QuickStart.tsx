@@ -110,18 +110,18 @@ export function QuickStart({ compact = false, autoFocus = false }: { compact?: b
   }
 
   return (
-    <div className={cn("relative overflow-hidden rounded-xl border border-accent/35 bg-[linear-gradient(135deg,rgba(79,108,255,.14),rgba(79,108,255,.02)_55%,transparent)]", compact ? "p-4" : "p-5 sm:p-7")}>
+    <div className={cn("relative overflow-hidden rounded-xl border border-accent/35 bg-[linear-gradient(135deg,rgba(47,73,255,.14),rgba(47,73,255,.02)_55%,transparent)]", compact ? "p-4" : "p-5 sm:p-7")}>
       <div className="flex items-center gap-2 text-sm font-medium text-ink-100"><Sparkles className="h-4 w-4 text-accent" /> Describe your idea in one line</div>
       <p className="mt-1 text-xs text-ink-400">English or Hinglish. Business type and place are enough — I&apos;ll fill the rest with typical numbers you can change.</p>
       <form className="mt-3 flex flex-col gap-2 sm:flex-row" onSubmit={(e) => { e.preventDefault(); void understand(); }}>
         <input autoFocus={autoFocus} value={text} onChange={(e) => setText(e.target.value)} placeholder="e.g. A café in Indiranagar, Bengaluru, coffee at ₹250" aria-label="Your business idea"
-          className="h-12 flex-1 rounded-lg border border-white/10 bg-ink-950/70 px-4 text-[15px] outline-none transition-[border-color,box-shadow] placeholder:text-ink-500 focus:border-accent focus:shadow-[0_0_0_3px_rgba(79,108,255,.2)]" />
+          className="h-12 flex-1 rounded-lg border border-black/10 bg-ink-950/70 px-4 text-[15px] outline-none transition-[border-color,box-shadow] placeholder:text-ink-500 focus:border-accent focus:shadow-[0_0_0_3px_rgba(47,73,255,.2)]" />
         <Button type="submit" variant="primary" size="lg" loading={busy === "plan"}>Understand it <ArrowRight className="h-4 w-4" /></Button>
       </form>
       {!plan && (
         <div className="mt-3 flex flex-wrap gap-1.5">
           {EXAMPLES.map((x) => (
-            <button key={x} onClick={() => { setText(x); void understand(x); }} className="rounded-md border border-white/10 px-2.5 py-1 text-[11.5px] text-ink-300 transition-colors hover:border-accent/60 hover:text-ink-100">{x}</button>
+            <button key={x} onClick={() => { setText(x); void understand(x); }} className="rounded-md border border-black/10 px-2.5 py-1 text-[11.5px] text-ink-300 transition-colors hover:border-accent/60 hover:text-ink-100">{x}</button>
           ))}
         </div>
       )}
@@ -130,13 +130,13 @@ export function QuickStart({ compact = false, autoFocus = false }: { compact?: b
         <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_1fr]">
           <div className="space-y-3 text-sm">
             <Row icon={<Check className="h-3.5 w-3.5 text-model" />} k="Business" v={<>{plan.category.label} <span className="text-ink-500">· {plan.archetype.label} model, sells {plan.archetype.unit}</span></>} />
-            <Row icon={<MapPin className="h-3.5 w-3.5 text-accent" />} k="Place" v={place ? <span>{place.address.split(",").slice(0, 3).join(",")} <button onClick={() => setEditPlace((x) => !x)} className="ml-1 text-xs text-[#9fb0ff]"><Pencil className="inline h-3 w-3" /> change</button></span> : <span className="text-warn">pick on the map →</span>} />
+            <Row icon={<MapPin className="h-3.5 w-3.5 text-accent" />} k="Place" v={place ? <span>{place.address.split(",").slice(0, 3).join(",")} <button onClick={() => setEditPlace((x) => !x)} className="ml-1 text-xs text-accent"><Pencil className="inline h-3 w-3" /> change</button></span> : <span className="text-warn">pick on the map →</span>} />
             <div className="grid grid-cols-3 gap-2">
               <Edit label={plan.archetype.price_label} v={price} set={setPrice} />
               <Edit label="Budget to start" v={budget} set={setBudget} />
               <Edit label="Rent / month" v={rent} set={setRent} />
             </div>
-            <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-3 text-xs">
+            <div className="rounded-xl border border-black/[0.07] bg-black/[0.02] p-3 text-xs">
               <div className="mb-1 flex items-center gap-1.5 font-medium text-ink-200"><Lightbulb className="h-3.5 w-3.5 text-warn" /> Starter assumptions (change any later)</div>
               <ul className="list-disc space-y-0.5 pl-4 text-ink-400">{plan.assumptions.map((a) => <li key={a}>{a}</li>)}</ul>
             </div>

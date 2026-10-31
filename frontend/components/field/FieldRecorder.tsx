@@ -36,7 +36,7 @@ function Chips<T extends string | number>({ value, options, onChange, label }: {
           onClick={() => onChange(value === o.v ? null : o.v)}
           className={cn(
             "h-9 rounded-lg border px-3 text-[13px] transition-colors",
-            value === o.v ? "border-accent bg-accent text-white" : "border-white/10 bg-white/[0.03] text-ink-200 hover:border-white/25",
+            value === o.v ? "border-accent bg-accent text-white" : "border-black/10 bg-black/[0.03] text-ink-200 hover:border-black/25",
           )}
         >
           {o.l}
@@ -107,7 +107,7 @@ export function FieldRecorder({
               onClick={() => setKind(k)}
               className={cn(
                 "flex flex-col items-center gap-1 rounded-lg border px-1 py-2.5 text-[12px] transition-colors",
-                kind === k ? "border-white/25 bg-white/[0.07] text-ink-100" : "border-white/[0.06] text-ink-400 hover:text-ink-100",
+                kind === k ? "border-black/25 bg-black/[0.07] text-ink-100" : "border-black/[0.06] text-ink-400 hover:text-ink-100",
               )}
             >
               <M.icon className={cn("h-4.5 w-4.5", kind === k && M.tint)} />
@@ -125,7 +125,7 @@ export function FieldRecorder({
       </div>
       <div aria-live="polite" className="mt-3 min-h-5 text-sm">
         {flash && <span className="rise inline-flex items-center gap-1.5 text-field"><Check className="h-4 w-4" /> {flash}</span>}
-        {err && <span className="text-red-300">{err}</span>}
+        {err && <span className="text-red-700">{err}</span>}
       </div>
     </div>
   );
@@ -136,7 +136,7 @@ function SaveBtn({ busy, disabled, children }: { busy: boolean; disabled?: boole
     <button
       type="submit"
       disabled={busy || disabled}
-      className="sheen flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-accent text-[15px] font-medium text-white transition-colors hover:bg-[#6580ff] disabled:opacity-40"
+      className="sheen flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-accent text-[15px] font-medium text-white transition-colors hover:bg-[#2238e0] disabled:opacity-40"
     >
       {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />} {children}
     </button>
@@ -166,7 +166,7 @@ function InterviewForm({ category, priceLabel, busy, onSave }: { category: strin
               type="button"
               key={v}
               onClick={() => setUses(v)}
-              className={cn("h-12 rounded-lg border text-[15px] font-medium capitalize transition-colors", uses === v ? (v === "yes" ? "border-field bg-field text-ink-950" : "border-ink-200 bg-ink-100 text-ink-950") : "border-white/10 text-ink-200")}
+              className={cn("h-12 rounded-lg border text-[15px] font-medium capitalize transition-colors", uses === v ? (v === "yes" ? "border-field bg-field text-ink-950" : "border-ink-200 bg-ink-100 text-ink-950") : "border-black/10 text-ink-200")}
             >
               {v}
             </button>
@@ -237,7 +237,7 @@ function CompetitorForm({ site, priceLabel, busy, onSave }: { site: { lat: numbe
       </Q>
       <Q n="02" label="Where is it?">
         <div className="flex items-center gap-2">
-          <button type="button" onClick={locate} className="inline-flex h-10 items-center gap-2 rounded-lg border border-white/15 px-3 text-[13px] text-ink-100 hover:border-white/30">
+          <button type="button" onClick={locate} className="inline-flex h-10 items-center gap-2 rounded-lg border border-black/15 px-3 text-[13px] text-ink-100 hover:border-black/30">
             {gps === "busy" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Crosshair className="h-4 w-4 text-field" />} Use my GPS here
           </button>
           <span className="num font-mono text-[11px] text-ink-400">
@@ -252,7 +252,7 @@ function CompetitorForm({ site, priceLabel, busy, onSave }: { site: { lat: numbe
       <Q n="04" label="Your rating of the place">
         <div className="flex gap-1.5" role="radiogroup" aria-label="Rating">
           {[1, 2, 3, 4, 5].map((v) => (
-            <button type="button" key={v} role="radio" aria-checked={q === v} onClick={() => setQ(q === v ? null : v)} className={cn("h-11 flex-1 rounded-lg border text-[15px] transition-colors", q !== null && v <= q ? "border-observed bg-observed text-ink-950" : "border-white/10 text-ink-300")}>
+            <button type="button" key={v} role="radio" aria-checked={q === v} onClick={() => setQ(q === v ? null : v)} className={cn("h-11 flex-1 rounded-lg border text-[15px] transition-colors", q !== null && v <= q ? "border-observed bg-observed text-ink-950" : "border-black/10 text-ink-300")}>
               {v}
             </button>
           ))}
@@ -301,20 +301,20 @@ function FootfallForm({ busy, onSave }: { busy: boolean; onSave: (d: RecordDraft
         onSave({ kind: "footfall", data: { count, minutes: mins, time_of_day: tod, weekend } });
       }}
     >
-      <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4">
+      <div className="rounded-xl border border-black/[0.08] bg-black/[0.02] p-4">
         <div className="flex items-center justify-between">
           <span className="num font-mono text-2xl text-ink-100">{mm}:{ss}</span>
           <div className="flex gap-1.5">
-            <button type="button" onClick={() => setRunning((r) => !r)} aria-label={running ? "Pause timer" : "Start timer"} className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/[0.07] text-ink-100">
+            <button type="button" onClick={() => setRunning((r) => !r)} aria-label={running ? "Pause timer" : "Start timer"} className="flex h-10 w-10 items-center justify-center rounded-lg bg-black/[0.07] text-ink-100">
               {running ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
             </button>
-            <button type="button" onClick={() => { setRunning(false); setSecs(0); setCount(0); }} aria-label="Reset" className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/[0.04] text-ink-400">
+            <button type="button" onClick={() => { setRunning(false); setSecs(0); setCount(0); }} aria-label="Reset" className="flex h-10 w-10 items-center justify-center rounded-lg bg-black/[0.04] text-ink-400">
               <RotateCcw className="h-4 w-4" />
             </button>
           </div>
         </div>
         <div className="mt-4 flex items-center gap-3">
-          <button type="button" onClick={() => setCount((c) => Math.max(0, c - 1))} aria-label="Minus one" className="flex h-16 w-16 items-center justify-center rounded-xl border border-white/10 text-ink-300"><Minus className="h-5 w-5" /></button>
+          <button type="button" onClick={() => setCount((c) => Math.max(0, c - 1))} aria-label="Minus one" className="flex h-16 w-16 items-center justify-center rounded-xl border border-black/10 text-ink-300"><Minus className="h-5 w-5" /></button>
           <button
             type="button"
             onClick={() => { setCount((c) => c + 1); if (!running) setRunning(true); }}

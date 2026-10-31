@@ -83,7 +83,7 @@ export default function Decisions() {
 
       <Card className={cn("p-5", V.tone === "ok" ? "border-emerald-500/30" : V.tone === "danger" ? "border-red-500/30" : "border-amber-500/30")}>
         <div className="flex items-start gap-3">
-          <V.icon className={cn("mt-0.5 h-6 w-6 shrink-0", V.tone === "ok" ? "text-emerald-300" : V.tone === "danger" ? "text-red-300" : "text-amber-300")} />
+          <V.icon className={cn("mt-0.5 h-6 w-6 shrink-0", V.tone === "ok" ? "text-emerald-700" : V.tone === "danger" ? "text-red-700" : "text-amber-700")} />
           <div className="space-y-2">
             <Badge tone={V.tone === "neutral" ? "neutral" : V.tone}>{V.label}</Badge>
             <p className="text-lg leading-snug text-ink-100">{d.headline}</p>
@@ -95,7 +95,7 @@ export default function Decisions() {
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Metric label="Revenue / mo" value={money(fs.revenue, { compact: true })} kind="model" sub={fs.scenario} />
         <Metric label="Operating cost / mo" value={money(fs.operating_cost, { compact: true })} kind="model" />
-        <Metric label="Operating profit / mo" value={<span className={fs.operating_profit < 0 ? "text-red-300" : "text-emerald-300"}>{money(fs.operating_profit, { compact: true })}</span>} kind="model" sub={`P10 ${money(fs.profit_p10, { compact: true })} · P90 ${money(fs.profit_p90, { compact: true })}`} />
+        <Metric label="Operating profit / mo" value={<span className={fs.operating_profit < 0 ? "text-red-700" : "text-emerald-700"}>{money(fs.operating_profit, { compact: true })}</span>} kind="model" sub={`P10 ${money(fs.profit_p10, { compact: true })} · P90 ${money(fs.profit_p90, { compact: true })}`} />
         <Metric label="Modeled P(loss)" value={pct(fs.prob_loss)} kind="model" sub="conditional on assumptions" />
         <Metric label="Break-even" value={fs.break_even_units === null ? "n/a" : num(fs.break_even_units)} sub={`${fs.unit_label} / month`} kind="model" />
         <Metric label="Capacity use" value={pct(fs.utilization)} kind="model" />
@@ -110,7 +110,7 @@ export default function Decisions() {
             {d.recommendations.length === 0 ? (
               <p className="p-4 text-sm text-ink-400">No change from the current plan stands out under the model. Focus on verifying the evidence below.</p>
             ) : (
-              <ul className="divide-y divide-white/[0.06]">
+              <ul className="divide-y divide-black/[0.06]">
                 {d.recommendations.map((r, i) => (
                   <li key={i} className="space-y-2 p-4 text-sm">
                     <div className="font-medium text-ink-100">{r.action}</div>
@@ -131,14 +131,14 @@ export default function Decisions() {
             <CardHeader title="Scenario ranking" subtitle={`By ${d.objective_label}`} />
             <div className="overflow-x-auto">
               <table className="w-full min-w-[560px] text-sm">
-                <thead><tr className="border-b border-white/[0.06] text-left text-xs text-ink-400"><th className="px-3 py-2 font-normal">#</th><th className="font-normal">Scenario</th><th className="text-right font-normal">Units</th><th className="text-right font-normal">Profit / mo</th><th className="text-right font-normal">P10</th><th className="text-right font-normal">P(loss)</th><th className="px-3 text-right font-normal">Payback</th></tr></thead>
+                <thead><tr className="border-b border-black/[0.06] text-left text-xs text-ink-400"><th className="px-3 py-2 font-normal">#</th><th className="font-normal">Scenario</th><th className="text-right font-normal">Units</th><th className="text-right font-normal">Profit / mo</th><th className="text-right font-normal">P10</th><th className="text-right font-normal">P(loss)</th><th className="px-3 text-right font-normal">Payback</th></tr></thead>
                 <tbody>
                   {d.ranking.map((r) => (
-                    <tr key={r.scenario_id} className={cn("border-b border-white/[0.06]/60", r.rank === 1 && "bg-accent/5")}>
+                    <tr key={r.scenario_id} className={cn("border-b border-black/[0.06]/60", r.rank === 1 && "bg-accent/5")}>
                       <td className="num px-3 py-2">{r.rank}</td>
                       <td>{r.name} {r.is_baseline && <span className="text-xs text-ink-500">(baseline)</span>}</td>
                       <td className="num text-right">{num(r.units)}</td>
-                      <td className={cn("num text-right", r.profit < 0 && "text-red-300")}>{money(r.profit, { compact: true })}</td>
+                      <td className={cn("num text-right", r.profit < 0 && "text-red-700")}>{money(r.profit, { compact: true })}</td>
                       <td className="num text-right">{money(r.profit_p10, { compact: true })}</td>
                       <td className="num text-right">{pct(r.prob_loss)}</td>
                       <td className="num px-3 text-right">{r.payback_months ? `${num(r.payback_months, 1)} mo` : "—"}</td>
@@ -171,7 +171,7 @@ export default function Decisions() {
         <div className="space-y-5">
           <Card>
             <CardHeader title={<span className="flex items-center gap-1.5"><ListChecks className="h-4 w-4 text-accent" /> Recommended next actions</span>} />
-            <ul className="divide-y divide-white/[0.06]">
+            <ul className="divide-y divide-black/[0.06]">
               {d.next_actions.map((a, i) => (
                 <li key={i} className="space-y-1 p-3 text-sm">
                   <div className="flex items-start justify-between gap-2">
@@ -185,7 +185,7 @@ export default function Decisions() {
           </Card>
           <Card>
             <CardHeader title="What could make this result wrong?" />
-            <ul className="divide-y divide-white/[0.06]">
+            <ul className="divide-y divide-black/[0.06]">
               {d.risks.map((r, i) => (
                 <li key={i} className="p-3 text-sm">
                   <div className="flex items-center gap-2 text-xs text-ink-400">{r.factor} {r.status === "assumption" && <Evidence kind="assumption" />} {r.status === "user" && <Evidence kind="user" />}</div>

@@ -219,7 +219,7 @@ export default function MarketPage() {
               {k === "agents" && !baseResult && <span className="text-ink-500">(run first)</span>}
             </label>
           ))}
-          <div className="mt-1.5 border-t border-white/[0.07] pt-1.5 text-[10px] leading-snug text-ink-500">
+          <div className="mt-1.5 border-t border-black/[0.07] pt-1.5 text-[10px] leading-snug text-ink-500">
             Purple = user-entered competitors; white ring = hypothetical. Building heights are shown only where mapped in OSM.
           </div>
         </div>
@@ -245,8 +245,8 @@ export default function MarketPage() {
         )}
       </section>
 
-      <aside className="flex w-full flex-col border-l border-white/[0.06] bg-ink-950/80 backdrop-blur-xl lg:w-[400px]">
-        <div className="flex gap-1 border-b border-white/[0.06] p-2">
+      <aside className="flex w-full flex-col border-l border-black/[0.06] bg-ink-950/80 backdrop-blur-xl lg:w-[400px]">
+        <div className="flex gap-1 border-b border-black/[0.06] p-2">
           {(["evidence", "competitors", "sites", "locations"] as Tab[]).map((t) => (
             <button key={t} onClick={() => setTab(t)} data-tour={t === "sites" ? "best-sites" : undefined}
               className={cn("flex-1 rounded px-2 py-1.5 text-xs capitalize", tab === t ? "bg-ink-800 text-ink-100" : t === "sites" ? "text-model hover:text-ink-100" : "text-ink-400 hover:text-ink-100")}>
@@ -305,7 +305,7 @@ export default function MarketPage() {
                       {e.fallback && <> — fell back to <b>{e.fallback}</b>.</>}
                     </Notice>
                   ))}
-                  <div className="rounded-md border border-white/[0.07] p-3">
+                  <div className="rounded-md border border-black/[0.07] p-3">
                     <div className="mb-2 flex items-center justify-between text-xs">
                       <span className="font-medium text-ink-200">Catchment population</span>
                       <Evidence kind={snap.population.source === "user" ? "user" : snap.population.source === "worldpop" ? "official" : snap.population.source === "demo" ? "demo" : snap.population.source === "estimate_buildings" ? "assumption" : "unknown"} label={snap.population.source === "estimate_buildings" ? "Rough estimate" : undefined} />
@@ -324,7 +324,7 @@ export default function MarketPage() {
                     )}
                   </div>
                   {data?.income && <IncomeMix income={data.income} />}
-                  <div className="rounded-md border border-white/[0.07] p-3">
+                  <div className="rounded-md border border-black/[0.07] p-3">
                     <div className="mb-1 flex items-center justify-between text-xs">
                       <span className="font-medium text-ink-200">Data coverage</span>
                       <Badge tone={snap.coverage.level === "good" ? "ok" : snap.coverage.level === "partial" ? "warn" : "danger"}>{snap.coverage.level}</Badge>
@@ -349,7 +349,7 @@ export default function MarketPage() {
                     <div className="mb-2 text-xs font-medium text-ink-200">Sources</div>
                     <ul className="space-y-2">
                       {snap.sources.map((s, i) => (
-                        <li key={i} className="rounded-md border border-white/[0.07] p-2.5 text-xs">
+                        <li key={i} className="rounded-md border border-black/[0.07] p-2.5 text-xs">
                           <div className="flex items-center justify-between gap-2">
                             <span className="font-medium text-ink-100">{s.name}</span>
                             {s.layer && <Badge>{s.layer}</Badge>}
@@ -392,7 +392,7 @@ export default function MarketPage() {
                     entrant, using <b>Add competitor</b> on the map.
                   </Notice>
                   {comps.length === 0 && snap && <EmptyState title="No competitors found in the data" body="This can mean an unserved market, or simply missing map data. Verify locally and add what you find." />}
-                  <ul className="divide-y divide-white/[0.06] rounded-md border border-white/[0.07]">
+                  <ul className="divide-y divide-black/[0.06] rounded-md border border-black/[0.07]">
                     {comps.map((c) => (
                       <li key={c.id}>
                         <button onClick={() => setSel(c.id)} className={cn("flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm hover:bg-ink-850", !c.active && "opacity-50")}>
@@ -440,7 +440,7 @@ function PopulationFallback({ projectId, locationId, onSaved }: { projectId: str
   const [busy, setBusy] = useState(false);
   return (
     <div className="space-y-2">
-      <p className="text-xs text-amber-200">Official population data could not be loaded. Retry later, or enter your best figure for the catchment (labelled as user-entered).</p>
+      <p className="text-xs text-amber-800">Official population data could not be loaded. Retry later, or enter your best figure for the catchment (labelled as user-entered).</p>
       <div className="flex gap-2">
         <NumberInput value={pop} onChange={setPop} allowEmpty suffix="people" />
         <Button
@@ -505,7 +505,7 @@ function CompetitorPanel({
         {!c.active && <Badge tone="warn" className="mt-1">Excluded from simulation</Badge>}
       </div>
 
-      <section className="space-y-1.5 rounded-md border border-white/[0.07] p-3 text-xs">
+      <section className="space-y-1.5 rounded-md border border-black/[0.07] p-3 text-xs">
         <div className="mb-1 font-medium text-ink-200">Observed information</div>
         <Row k="Location" v={`${c.lat.toFixed(5)}, ${c.lng.toFixed(5)}`} />
         <Row k="Distance from site" v={`${num(c.distance_km, 2)} km (straight line)`} />
@@ -521,7 +521,7 @@ function CompetitorPanel({
         )}
       </section>
 
-      <section className="space-y-3 rounded-md border border-white/[0.07] p-3 text-xs">
+      <section className="space-y-3 rounded-md border border-black/[0.07] p-3 text-xs">
         <div className="font-medium text-ink-200">Unknown unless you add it</div>
         <Field label="Price" kind={c.price ? "user" : "unknown"} hint={c.price ? undefined : "Not available in map data. The model assumes the local reference price."}>
           <div className="flex gap-2">
@@ -657,7 +657,7 @@ function LocationsPanel({ currentId, onSelect, onChanged }: { currentId?: string
       <ul className="space-y-2">
         {p.locations.map((l) => (
           <li key={l.id}>
-            <button onClick={() => onSelect(l.id)} className={cn("w-full rounded-md border p-3 text-left text-sm", l.id === currentId ? "border-accent bg-accent/5" : "border-white/[0.07] hover:border-ink-500")}>
+            <button onClick={() => onSelect(l.id)} className={cn("w-full rounded-md border p-3 text-left text-sm", l.id === currentId ? "border-accent bg-accent/5" : "border-black/[0.07] hover:border-ink-500")}>
               <div className="font-medium">{l.label}</div>
               <div className="truncate text-xs text-ink-400">{l.address}</div>
               <div className="mt-1 text-[11px] text-ink-500">{l.catchment.mode === "isochrone" ? `${l.catchment.minutes} min ${l.catchment.profile}` : `${l.catchment.radius_km} km radius`}{l.manual_population ? ` · population ${num(l.manual_population)} (user)` : ""}</div>
@@ -666,7 +666,7 @@ function LocationsPanel({ currentId, onSelect, onChanged }: { currentId?: string
         ))}
       </ul>
       {cur && cur.catchment.mode === "radius" && (
-        <div className="space-y-2 rounded-md border border-white/[0.07] p-3">
+        <div className="space-y-2 rounded-md border border-black/[0.07] p-3">
           <Field label={`Catchment radius for ${cur.label}: ${editRadius.toFixed(1)} km`}>
             <input type="range" min={0.5} max={6} step={0.1} value={editRadius} onChange={(e) => setEditRadius(Number(e.target.value))} className="w-full" aria-label="Catchment radius" />
           </Field>
@@ -688,7 +688,7 @@ function LocationsPanel({ currentId, onSelect, onChanged }: { currentId?: string
       {!adding ? (
         p.locations.length < 5 && <Button size="sm" onClick={() => setAdding(true)}><Plus className="h-3.5 w-3.5" /> Add candidate location</Button>
       ) : (
-        <div className="space-y-3 rounded-md border border-white/[0.07] p-3">
+        <div className="space-y-3 rounded-md border border-black/[0.07] p-3">
           <div className="text-sm font-medium">New candidate location</div>
           <LocationPicker value={place} onChange={setPlace} radiusKm={radius} height="h-56" />
           <Field label={`Radius ${radius.toFixed(1)} km`}>

@@ -38,7 +38,7 @@ export default function MarketGlance({ project: p }: { project: Project }) {
     ["Chance of a loss", res?.monte_carlo ? pct(res.monte_carlo.prob_loss) : "—", "model"],
   ];
   return (
-    <section className="relative overflow-hidden rounded-xl border border-white/[0.07]">
+    <section className="relative overflow-hidden rounded-xl border border-black/[0.07]">
       <div className="relative h-[420px]">
         {data ? (
           <MarketMap
@@ -62,7 +62,7 @@ export default function MarketGlance({ project: p }: { project: Project }) {
       </div>
       <div className="relative grid grid-cols-2 gap-3 p-4 sm:grid-cols-5">
         {stats.map(([l, v, k]) => (
-          <div key={l} className="rounded-xl border border-white/[0.07] bg-white/[0.025] p-4">
+          <div key={l} className="rounded-xl border border-black/[0.07] bg-black/[0.025] p-4">
             <div className="flex items-center justify-between gap-2 text-[11.5px] text-ink-400">{l}<Evidence kind={k} className="scale-90" /></div>
             <div className="num font-display mt-2 text-[26px] font-medium leading-none tracking-tight">{v}</div>
           </div>

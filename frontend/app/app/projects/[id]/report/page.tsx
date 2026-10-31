@@ -68,7 +68,7 @@ export default function ReportPage() {
         )}
       </div>
       {shareUrl && (
-        <div className="no-print flex flex-wrap items-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.025] p-2 text-xs">
+        <div className="no-print flex flex-wrap items-center gap-2 rounded-xl border border-black/[0.07] bg-black/[0.025] p-2 text-xs">
           <Badge tone="accent">Anyone with this link can view this report snapshot</Badge>
           <code className="num truncate text-ink-200">{shareUrl}</code>
           <Button size="sm" onClick={() => { navigator.clipboard.writeText(shareUrl); setCopied(true); setTimeout(() => setCopied(false), 1500); }}><Copy className="h-3 w-3" /> {copied ? "Copied" : "Copy"}</Button>

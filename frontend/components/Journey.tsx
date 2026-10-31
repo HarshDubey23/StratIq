@@ -138,7 +138,7 @@ export function Journey({ project }: { project: Project }) {
                 <span
                   className={cn(
                     "num flex h-5 w-5 items-center justify-center rounded-md font-mono text-[10px] transition-colors",
-                    active ? "bg-accent text-white" : s.done ? "bg-field/15 text-field" : "bg-white/[0.06] text-ink-400 group-hover:bg-white/10",
+                    active ? "bg-accent text-white" : s.done ? "bg-field/15 text-field" : "bg-black/[0.06] text-ink-400 group-hover:bg-black/10",
                   )}
                 >
                   {s.done && !active ? <Check className="h-3 w-3" /> : i + 1}
@@ -156,7 +156,7 @@ export function Journey({ project }: { project: Project }) {
             {more && (
               <div className="panel rise absolute left-0 top-full z-50 w-44 rounded-lg p-1">
                 {MORE.map((m) => (
-                  <Link key={m.label} href={base + m.seg} className="block rounded-md px-3 py-2 text-[13px] text-ink-200 hover:bg-white/[0.06] hover:text-ink-100">{m.label}</Link>
+                  <Link key={m.label} href={base + m.seg} className="block rounded-md px-3 py-2 text-[13px] text-ink-200 hover:bg-black/[0.06] hover:text-ink-100">{m.label}</Link>
                 ))}
               </div>
             )}
@@ -164,10 +164,10 @@ export function Journey({ project }: { project: Project }) {
         </nav>
         <div className="mb-2 hidden shrink-0 items-center gap-1 lg:flex">
           <span className="num mr-1 font-mono text-[11px] text-ink-500">{doneN}/6</span>
-          <button onClick={() => setTour(true)} className="rounded-md px-2.5 py-1.5 text-xs text-ink-400 hover:bg-white/5 hover:text-ink-100">How it works</button>
-          <button onClick={() => setWords(true)} className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs text-ink-400 hover:bg-white/5 hover:text-ink-100"><BookA className="h-3.5 w-3.5" /> Glossary</button>
+          <button onClick={() => setTour(true)} className="rounded-md px-2.5 py-1.5 text-xs text-ink-400 hover:bg-black/5 hover:text-ink-100">How it works</button>
+          <button onClick={() => setWords(true)} className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs text-ink-400 hover:bg-black/5 hover:text-ink-100"><BookA className="h-3.5 w-3.5" /> Glossary</button>
           {next && (
-            <Link href={base + next.seg} className="sheen group ml-1 inline-flex h-8 items-center gap-1.5 rounded-lg bg-accent px-3 text-xs font-medium text-white hover:bg-[#6580ff]" title={next.hint}>
+            <Link href={base + next.seg} className="sheen group ml-1 inline-flex h-8 items-center gap-1.5 rounded-lg bg-accent px-3 text-xs font-medium text-white hover:bg-[#2238e0]" title={next.hint}>
               Next: {next.label} <ChevronRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
             </Link>
           )}
@@ -200,7 +200,7 @@ function Tour({ onClose, base }: { onClose: () => void; base: string }) {
         <h2 className="font-display mt-4 text-2xl font-medium tracking-tight">{s.t}</h2>
         <p className="mt-2 text-[15px] leading-relaxed text-ink-300">{s.d}</p>
         <div className="mt-6 flex items-center gap-2">
-          {SLIDES.map((_, k) => <button key={k} onClick={() => setI(k)} aria-label={`Slide ${k + 1}`} className={cn("h-1.5 rounded-full transition-all", k === i ? "w-6 bg-accent" : "w-1.5 bg-white/20")} />)}
+          {SLIDES.map((_, k) => <button key={k} onClick={() => setI(k)} aria-label={`Slide ${k + 1}`} className={cn("h-1.5 rounded-full transition-all", k === i ? "w-6 bg-accent" : "w-1.5 bg-black/20")} />)}
           <div className="ml-auto flex gap-2">
             {i > 0 && <button onClick={() => setI(i - 1)} className="rounded-lg px-4 py-2 text-sm text-ink-300 hover:text-ink-100">Back</button>}
             {i < SLIDES.length - 1 ? (
@@ -225,7 +225,7 @@ function Glossary({ onClose }: { onClose: () => void }) {
           <h2 className="font-display text-xl font-medium">Words explained</h2>
           <button onClick={onClose} aria-label="Close" className="rounded-full p-1 text-ink-400 hover:text-ink-100"><X className="h-4 w-4" /></button>
         </div>
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search a word…" aria-label="Search a word" className="mt-4 h-10 w-full rounded-lg border border-white/10 bg-white/[0.04] px-4 text-sm outline-none focus:border-accent/60" />
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search a word…" aria-label="Search a word" className="mt-4 h-10 w-full rounded-lg border border-black/10 bg-black/[0.04] px-4 text-sm outline-none focus:border-accent/60" />
         <dl className="mt-4 space-y-4">
           {items.map(([k, v]) => (
             <div key={k}>

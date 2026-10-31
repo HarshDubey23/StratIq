@@ -141,7 +141,7 @@ export function BestStrategy({ projectId, scenarioId, busy, onVerify, autoKey }:
         </div>
       )}
       {sel && pick && (
-        <div className="mt-2 rounded-xl border border-white/[0.07] bg-ink-900/60 p-2">
+        <div className="mt-2 rounded-xl border border-black/[0.07] bg-ink-900/60 p-2">
           <div className="text-ink-300">{money(pick.price)} · {money(pick.marketing_spend)}/mo ads{best.capacity_scale !== 1 ? ` · capacity ×${best.capacity_scale}` : ""}</div>
           <div className="num mt-0.5 text-ink-100">{num(sel.units)} {data.unit}/mo · profit <b className={sel.profit >= 0 ? "text-model" : "text-danger"}>{money(sel.profit, { compact: true })}</b></div>
           <Button size="sm" variant="primary" className="mt-2 w-full" loading={busy} onClick={() => onVerify(changesFor({ ...pick, capacity_scale: best.capacity_scale }, cur))}

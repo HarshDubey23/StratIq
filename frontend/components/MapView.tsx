@@ -137,16 +137,16 @@ export default function MapView(props: Props) {
         m.addSource("siq-activity", { type: "geojson", data: EMPTY });
         m.addSource("siq-agents", { type: "geojson", data: EMPTY });
         m.addSource("siq-comps", { type: "geojson", data: EMPTY });
-        m.addLayer({ id: "siq-catchment-fill", type: "fill", source: "siq-catchment", paint: { "fill-color": "#4F6CFF", "fill-opacity": 0.035 } });
-        m.addLayer({ id: "siq-catchment-line", type: "line", source: "siq-catchment", paint: { "line-color": "#4F6CFF", "line-width": 1.5, "line-dasharray": [2, 2], "line-opacity": 0.8 } });
+        m.addLayer({ id: "siq-catchment-fill", type: "fill", source: "siq-catchment", paint: { "fill-color": "#2F49FF", "fill-opacity": 0.035 } });
+        m.addLayer({ id: "siq-catchment-line", type: "line", source: "siq-catchment", paint: { "line-color": "#2F49FF", "line-width": 1.5, "line-dasharray": [2, 2], "line-opacity": 0.8 } });
         m.addLayer({
           id: "siq-zones",
           type: "circle",
           source: "siq-zones",
           paint: {
             "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 4, 14, 14, 16, 34],
-            "circle-color": ["interpolate", ["linear"], ["get", "v"], 0, "#0b1a24", 0.25, "#0e4f5e", 0.5, "#22307A", 0.75, "#6E5BFF", 1, "#96A8FF"],
-            "circle-opacity": 0.45,
+            "circle-color": ["interpolate", ["linear"], ["get", "v"], 0, "#dfe4ff", 0.25, "#b9c3ff", 0.5, "#8a9bff", 0.75, "#5a72ff", 1, "#2f49ff"],
+            "circle-opacity": 0.5,
             "circle-blur": 0.6,
           },
         });
@@ -154,7 +154,7 @@ export default function MapView(props: Props) {
           id: "siq-activity",
           type: "circle",
           source: "siq-activity",
-          paint: { "circle-radius": 3, "circle-color": "#94a3b8", "circle-opacity": 0.8, "circle-stroke-color": "#0D0E12", "circle-stroke-width": 1 },
+          paint: { "circle-radius": 3, "circle-color": "#a9a59b", "circle-opacity": 0.8, "circle-stroke-color": "#FFFFFF", "circle-stroke-width": 1 },
         });
         m.addLayer({
           id: "siq-agents",
@@ -183,7 +183,7 @@ export default function MapView(props: Props) {
           paint: {
             "circle-radius": 5.5,
             "circle-color": ["get", "c"],
-            "circle-stroke-color": ["case", ["boolean", ["get", "hyp"], false], "#ffffff", "#0D0E12"],
+            "circle-stroke-color": ["case", ["boolean", ["get", "hyp"], false], "#ffffff", "#FFFFFF"],
             "circle-stroke-width": ["case", ["boolean", ["get", "hyp"], false], 2, 1.5],
             "circle-opacity": ["case", ["boolean", ["get", "off"], false], 0.35, 1],
           },
@@ -258,14 +258,14 @@ export default function MapView(props: Props) {
     const m = map.current;
     if (!ready || !m) return;
     const mode = props.agentColor || "red";
-    const color = (choice: number) => (mode === "red" ? "#FF4D5E" : choice === 0 ? "#4F6CFF" : choice < 0 ? "#475569" : "#FF4D5E");
+    const color = (choice: number) => (mode === "red" ? "#E5484D" : choice === 0 ? "#2F49FF" : choice < 0 ? "#A9A59B" : "#E5484D");
     (m.getSource("siq-agents") as GeoJSONSource).setData(fc((props.agents || []).map(([lat, lng, seg, ch]) => pt(lng, lat, { c: color(ch), s: seg, ch }))));
   }, [ready, props.agents, props.agentColor]);
 
   useEffect(() => {
     const m = map.current;
     if (!ready || !m) return;
-    const col = { osm: "#FFB547", fsq: "#FFB547", user: "#C59BFF", hypothetical: "#C59BFF", demo: "#fbbf24", field: "#D4FF3A" };
+    const col = { osm: "#F59E0B", fsq: "#F59E0B", user: "#7C3AED", hypothetical: "#7C3AED", demo: "#D97706", field: "#65A30D" };
     (m.getSource("siq-comps") as GeoJSONSource).setData(
       fc(
         (props.competitors || []).map((c) =>
@@ -283,10 +283,10 @@ export default function MapView(props: Props) {
       const d = document.createElement("button");
       d.type = "button";
       d.setAttribute("aria-label", `Candidate ${c.label}`);
-      d.style.cssText = `display:flex;align-items:center;gap:6px;padding:3px 8px 3px 4px;border-radius:999px;font:600 11px Geist,sans-serif;cursor:pointer;
-        background:${c.active ? "#4F6CFF" : "#121318"};color:${c.active ? "#08090B" : "#F4F3EF"};border:1px solid ${c.active ? "#96A8FF" : "#454957"};box-shadow:0 2px 10px rgba(0,0,0,.5)`;
+      d.style.cssText = `display:flex;align-items:center;gap:6px;padding:3px 8px 3px 4px;border-radius:999px;font:600 11px var(--font-inter-tight),sans-serif;cursor:pointer;
+        background:${c.active ? "#2F49FF" : "#FFFFFF"};color:${c.active ? "#F5F3EE" : "#131312"};border:1px solid ${c.active ? "#8A9BFF" : "#D8D4CA"};box-shadow:0 6px 16px -6px rgba(20,18,10,.35)`;
       const dot = document.createElement("span");
-      dot.style.cssText = `width:10px;height:10px;border-radius:999px;background:${c.active ? "#08090B" : "#4F6CFF"}`;
+      dot.style.cssText = `width:10px;height:10px;border-radius:999px;background:${c.active ? "#F5F3EE" : "#2F49FF"}`;
       const t = document.createElement("span");
       t.textContent = c.label;
       d.append(dot, t);
@@ -422,7 +422,7 @@ export default function MapView(props: Props) {
       {/* inline style: maplibre's .maplibregl-map sets position:relative, which would override a utility class */}
       <div ref={el} style={{ position: "absolute", inset: 0 }} />
       {!ready && !styleNote && <div className="absolute inset-0 flex items-center justify-center bg-ink-900 text-sm text-ink-400">Loading map…</div>}
-      {styleNote && <div className="absolute left-2 top-2 rounded bg-ink-900/90 px-2 py-1 text-xs text-amber-200">{styleNote}</div>}
+      {styleNote && <div className="absolute left-2 top-2 rounded bg-ink-900/90 px-2 py-1 text-xs text-amber-800">{styleNote}</div>}
     </div>
   );
 }

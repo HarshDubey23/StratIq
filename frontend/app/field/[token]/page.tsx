@@ -59,7 +59,7 @@ export default function FieldApp() {
   const done = b.checklist.filter((t) => (b.counts[t.kind] ?? 0) >= t.target).length;
   return (
     <div className="mx-auto min-h-screen max-w-md pb-16">
-      <header className="sticky top-0 z-20 border-b border-white/[0.06] bg-ink-950/90 px-5 pb-3 pt-4 backdrop-blur-xl">
+      <header className="sticky top-0 z-20 border-b border-black/[0.06] bg-ink-950/90 px-5 pb-3 pt-4 backdrop-blur-xl">
         <div className="flex items-center gap-2.5">
           <LogoMark size={22} />
           <span className="text-[13px] font-medium">StrataIQ Field</span>
@@ -73,7 +73,7 @@ export default function FieldApp() {
             <MapPin className="h-3.5 w-3.5 text-accent" /> {b.location.address || `${b.location.lat.toFixed(4)}, ${b.location.lng.toFixed(4)}`}{b.location.radius_km ? ` · within ${b.location.radius_km} km` : ""}
           </a>
         )}
-        <div className="mt-3 grid grid-cols-2 gap-1 rounded-lg bg-white/[0.04] p-1" role="tablist">
+        <div className="mt-3 grid grid-cols-2 gap-1 rounded-lg bg-black/[0.04] p-1" role="tablist">
           {(["record", "brief"] as const).map((t) => (
             <button key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(t)} className={cn("h-8 rounded-md text-[13px] transition-colors", tab === t ? "bg-ink-100 text-ink-950" : "text-ink-300")}>
               {t === "record" ? "Record" : `Brief · ${done}/${b.checklist.length}`}
@@ -103,7 +103,7 @@ export default function FieldApp() {
               const n = b.counts[t.kind] ?? 0;
               const M = KIND_META[t.kind];
               return (
-                <div key={t.kind} className="rounded-xl border border-white/[0.07] p-4">
+                <div key={t.kind} className="rounded-xl border border-black/[0.07] p-4">
                   <div className="flex items-center gap-2">
                     <span className="idx">0{i + 1}</span>
                     <M.icon className={cn("h-4 w-4", M.tint)} />
@@ -125,7 +125,7 @@ export default function FieldApp() {
           </div>
         )}
 
-        <div className="mt-10 border-t border-white/[0.06] pt-6">
+        <div className="mt-10 border-t border-black/[0.06] pt-6">
           {sent || b.request.status === "submitted" ? (
             <p className="flex items-center gap-2 text-sm text-field"><Check className="h-4 w-4" /> Sent to the analyst. You can keep adding data from this link.</p>
           ) : (

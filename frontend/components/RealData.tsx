@@ -22,7 +22,7 @@ export function IncomeMix({ income, price, className }: { income: IncomeEvidence
   const maxShare = Math.max(...income.histogram.map((h) => h.share), ...income.national_histogram.map((h) => h.share), 0.01);
   const ratio = income.median_mpce / income.india_median_mpce;
   return (
-    <section className={cn("rounded-xl border border-white/[0.07] bg-white/[0.025] p-3 text-xs", className)} aria-label="Who lives here">
+    <section className={cn("rounded-xl border border-black/[0.07] bg-black/[0.025] p-3 text-xs", className)} aria-label="Who lives here">
       <div className="mb-2 flex items-start justify-between gap-2">
         <div className="flex items-center gap-2">
           <Wallet className="h-4 w-4 text-accent" />
@@ -94,7 +94,7 @@ export function IncomeMix({ income, price, className }: { income: IncomeEvidence
         </div>
       </div>
 
-      <div className="mt-3 rounded-xl border border-white/[0.06] bg-ink-900/50 p-2 text-[10.5px] leading-relaxed text-ink-300">
+      <div className="mt-3 rounded-xl border border-black/[0.06] bg-ink-900/50 p-2 text-[10.5px] leading-relaxed text-ink-300">
         <span className="text-ink-100">How agents pay:</span> each synthetic person&apos;s willingness to pay = local price × (their spend ÷ {rupees(income.x_ref)})
         <sup>{income.elasticity.value}</sup>. Richer residents value you more, poorer ones less — in exactly this area&apos;s mix.
         WTP multipliers by class: {income.classes.map((c, i) => <span key={c.key} className="num" style={{ color: CLASS_COLOR[i] }}>{i ? " · " : " "}{c.wtp_multiplier.toFixed(2)}×</span>)}.
@@ -134,7 +134,7 @@ export function DataLineage({ res, className }: { res: SimResult; className?: st
   const sources = res.parameter_sources || {};
   const g = res.abm?.genome;
   return (
-    <section className={cn("rounded-xl border border-white/[0.07] bg-white/[0.025] p-3 text-xs", className)} aria-label="Data lineage">
+    <section className={cn("rounded-xl border border-black/[0.07] bg-black/[0.025] p-3 text-xs", className)} aria-label="Data lineage">
       <div className="mb-2 flex items-center gap-2">
         <Landmark className="h-4 w-4 text-model" />
         <div className="font-medium text-ink-100">Data lineage — what is real, what is assumed</div>
@@ -151,7 +151,7 @@ export function DataLineage({ res, className }: { res: SimResult; className?: st
         ))}
       </div>
       {Object.keys(sources).length > 0 && (
-        <div className="space-y-1.5 border-t border-white/[0.06] pt-2">
+        <div className="space-y-1.5 border-t border-black/[0.06] pt-2">
           {Object.entries(sources).map(([k, src]) => (
             <div key={k}>
               <div className="flex items-center justify-between gap-2">
@@ -167,7 +167,7 @@ export function DataLineage({ res, className }: { res: SimResult; className?: st
         </div>
       )}
       {res.routing && (
-        <div className="mt-2 flex items-start gap-1.5 border-t border-white/[0.06] pt-2 text-[10.5px] text-ink-300">
+        <div className="mt-2 flex items-start gap-1.5 border-t border-black/[0.06] pt-2 text-[10.5px] text-ink-300">
           <Route className="mt-0.5 h-3.5 w-3.5 shrink-0 text-observed" />
           <span>
             {res.routing.share_routed > 0 ? <><span className="num text-ink-100">{pct(res.routing.share_routed)}</span> of home→business distances are real road routes (OSRM on OpenStreetMap roads, walking and driving). </> : null}
@@ -176,7 +176,7 @@ export function DataLineage({ res, className }: { res: SimResult; className?: st
         </div>
       )}
       {g && (
-        <div className="mt-2 border-t border-white/[0.06] pt-2 text-[10.5px] text-ink-400">
+        <div className="mt-2 border-t border-black/[0.06] pt-2 text-[10.5px] text-ink-400">
           Each agent carries {g.per_agent} parameters. Placement, age–sex, travel distance and spending power come from data; behavioural traits are generated from documented, correlated assumptions and are labelled as such in every agent&apos;s X-ray.
         </div>
       )}

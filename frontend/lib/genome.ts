@@ -41,10 +41,10 @@ export const MECH_LABEL: Record<string, string> = {
 };
 
 export const GROUP_COLOR: Record<string, string> = {
-  you: "#4F6CFF",
-  competitor: "#FFB547",
+  you: "#2F49FF",
+  competitor: "#F59E0B",
   none: "#64748b",
-  not_in_market: "#3b1219",
+  not_in_market: "#D8D4CA",
 };
 export const GROUP_LABEL: Record<string, string> = {
   you: "Chose you",
@@ -57,7 +57,7 @@ export const GROUP_LABEL: Record<string, string> = {
 export function pctRGB(p: number): [number, number, number] {
   const t = Math.max(0, Math.min(100, p)) / 100;
   const lo: [number, number, number] = [37, 99, 235];
-  const mid: [number, number, number] = [16, 20, 28];
+  const mid: [number, number, number] = [246, 244, 239];
   const hi: [number, number, number] = [251, 146, 60];
   const top: [number, number, number] = [244, 63, 94];
   if (t < 0.5) {

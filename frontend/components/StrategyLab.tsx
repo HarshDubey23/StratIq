@@ -170,7 +170,7 @@ export function CompareCard({ out, unit }: { out: StrategyOut; unit: string }) {
             const up = (d ?? 0) > 0;
             const tone = d === null || Math.abs(d) < 1e-9 ? "text-ink-400" : up === upGood ? "text-model" : "text-danger";
             return (
-              <tr key={l} className="border-t border-white/[0.05]">
+              <tr key={l} className="border-t border-black/[0.05]">
                 <td className="py-1 text-ink-300">{l}</td>
                 <td className="num py-1 text-right text-ink-400">{f(x)}</td>
                 <td className="num py-1 text-right text-ink-100">{f(y)}</td>
@@ -202,7 +202,7 @@ export function StrataRead({ projectId, scenarioId, runId, busy, onTest }: { pro
   }, [projectId, scenarioId, runId]);
   if (!runId) return null;
   return (
-    <div className="rounded-xl border border-white/[0.07] bg-white/[0.025] p-3 text-xs">
+    <div className="rounded-xl border border-black/[0.07] bg-black/[0.025] p-3 text-xs">
       <div className="mb-2 flex items-center gap-2"><Lightbulb className="h-3.5 w-3.5 text-warn" /><span className="font-medium text-ink-100">Strata&apos;s read of this run</span></div>
       {err && <p className="text-ink-400">{err}</p>}
       {!items && !err && <p className="text-ink-500">Reading the simulation…</p>}
@@ -238,7 +238,7 @@ export function HowAgentsDecide({ abm, price }: { abm: Abm; price: number | unde
     [abm, m, price],
   );
   return (
-    <div className="rounded-xl border border-white/[0.07] bg-white/[0.025] p-3 text-xs">
+    <div className="rounded-xl border border-black/[0.07] bg-black/[0.025] p-3 text-xs">
       <button onClick={() => setOpen((x) => !x)} className="flex w-full items-center gap-2 text-left">
         <Brain className="h-3.5 w-3.5 text-agent" />
         <span className="font-medium text-ink-100">How an agent decides</span>

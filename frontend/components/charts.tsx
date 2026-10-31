@@ -4,9 +4,9 @@ import { Bar, BarChart, CartesianGrid, Cell, ComposedChart, Line, ReferenceLine,
 import { money, num } from "@/lib/format";
 import type { SimResult } from "@/lib/types";
 
-const AX = { stroke: "#727786", fontSize: 11 };
-const GRID = "#20222A";
-const TT = { contentStyle: { background: "#17191F", border: "1px solid #2C2F39", borderRadius: 6, fontSize: 12 }, labelStyle: { color: "#C2CAD8" } };
+const AX = { stroke: "#75716A", fontSize: 11 };
+const GRID = "#E7E4DC";
+const TT = { contentStyle: { background: "#FFFFFF", border: "1px solid #E7E4DC", borderRadius: 6, fontSize: 12 }, labelStyle: { color: "#34322E" } };
 
 function compactMoney(v: number) {
   return money(v, { compact: true }).replace("₹", "");
@@ -21,10 +21,10 @@ export function PriceCurve({ data, current, unit }: { data: NonNullable<SimResul
         <YAxis yAxisId="p" tickFormatter={compactMoney} {...AX} width={56} />
         <YAxis yAxisId="u" orientation="right" tickFormatter={(v) => num(v)} {...AX} width={44} />
         <Tooltip {...TT} formatter={(v, n) => (String(n) === "units" ? [num(Number(v)), unit] : [money(Number(v)), "Operating profit"])} labelFormatter={(l) => `Price ₹${num(Number(l))}`} />
-        <ReferenceLine yAxisId="p" y={0} stroke="#727786" strokeDasharray="3 3" />
-        <ReferenceLine yAxisId="p" x={current} stroke="#4F6CFF" strokeDasharray="4 3" label={{ value: "current", fill: "#4F6CFF", fontSize: 10, position: "top" }} />
-        <Line yAxisId="p" type="monotone" dataKey="profit" stroke="#2DD4BF" strokeWidth={2} dot={false} />
-        <Line yAxisId="u" type="monotone" dataKey="units" stroke="#939EB3" strokeWidth={1.5} strokeDasharray="4 3" dot={false} />
+        <ReferenceLine yAxisId="p" y={0} stroke="#75716A" strokeDasharray="3 3" />
+        <ReferenceLine yAxisId="p" x={current} stroke="#2F49FF" strokeDasharray="4 3" label={{ value: "current", fill: "#2F49FF", fontSize: 10, position: "top" }} />
+        <Line yAxisId="p" type="monotone" dataKey="profit" stroke="#0F766E" strokeWidth={2} dot={false} />
+        <Line yAxisId="u" type="monotone" dataKey="units" stroke="#A9A59B" strokeWidth={1.5} strokeDasharray="4 3" dot={false} />
       </ComposedChart>
     </ResponsiveContainer>
   );
@@ -38,9 +38,9 @@ export function MarketingCurve({ data, current }: { data: NonNullable<SimResult[
         <XAxis dataKey="spend" tickFormatter={(v) => compactMoney(v)} {...AX} />
         <YAxis tickFormatter={compactMoney} {...AX} width={56} />
         <Tooltip {...TT} formatter={(v) => [money(Number(v)), "Operating profit"]} labelFormatter={(l) => `Marketing ${money(Number(l))}/mo`} />
-        <ReferenceLine y={0} stroke="#727786" strokeDasharray="3 3" />
-        <ReferenceLine x={current} stroke="#4F6CFF" strokeDasharray="4 3" />
-        <Line type="monotone" dataKey="profit" stroke="#2DD4BF" strokeWidth={2} dot={{ r: 2 }} />
+        <ReferenceLine y={0} stroke="#75716A" strokeDasharray="3 3" />
+        <ReferenceLine x={current} stroke="#2F49FF" strokeDasharray="4 3" />
+        <Line type="monotone" dataKey="profit" stroke="#0F766E" strokeWidth={2} dot={{ r: 2 }} />
       </ComposedChart>
     </ResponsiveContainer>
   );
@@ -57,7 +57,7 @@ export function Tornado({ data, base }: { data: NonNullable<SimResult["sensitivi
       <BarChart data={rows} layout="vertical" margin={{ top: 4, right: 16, bottom: 4, left: 4 }}>
         <CartesianGrid stroke={GRID} horizontal={false} />
         <XAxis type="number" tickFormatter={(v) => (v > 0 ? "+" : "") + compactMoney(v)} {...AX} />
-        <YAxis type="category" dataKey="label" width={190} {...AX} tick={{ fill: "#C2CAD8", fontSize: 11 }} />
+        <YAxis type="category" dataKey="label" width={190} {...AX} tick={{ fill: "#34322E", fontSize: 11 }} />
         <Tooltip
           {...TT}
           formatter={(_v, _n, p) => {
@@ -65,9 +65,9 @@ export function Tornado({ data, base }: { data: NonNullable<SimResult["sensitivi
             return [`${money(r.profit_at_low)} at ${r.low_value} · ${money(r.profit_at_high)} at ${r.high_value}`, "Profit range"];
           }}
         />
-        <ReferenceLine x={0} stroke="#939EB3" />
-        <Bar dataKey="range" fill="#4F6CFF" radius={2}>
-          {rows.map((r, i) => <Cell key={i} fill={r.raw.status === "user" ? "#C59BFF" : "#22307A"} />)}
+        <ReferenceLine x={0} stroke="#A9A59B" />
+        <Bar dataKey="range" fill="#2F49FF" radius={2}>
+          {rows.map((r, i) => <Cell key={i} fill={r.raw.status === "user" ? "#7C3AED" : "#9AA8FF"} />)}
         </Bar>
       </BarChart>
     </ResponsiveContainer>
@@ -83,7 +83,7 @@ export function ProfitHistogram({ mc }: { mc: NonNullable<SimResult["monte_carlo
         <XAxis dataKey="x" tickFormatter={compactMoney} {...AX} interval="preserveStartEnd" minTickGap={30} />
         <Tooltip {...TT} formatter={(v) => [`${v} draws`, "Count"]} labelFormatter={(l) => `Profit ≈ ${money(Number(l))}`} />
         <Bar dataKey="c">
-          {data.map((d, i) => <Cell key={i} fill={d.x < 0 ? "#f87171" : "#2DD4BF"} fillOpacity={0.8} />)}
+          {data.map((d, i) => <Cell key={i} fill={d.x < 0 ? "#E5484D" : "#0F766E"} fillOpacity={0.8} />)}
         </Bar>
       </BarChart>
     </ResponsiveContainer>
