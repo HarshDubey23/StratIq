@@ -205,7 +205,7 @@ export default function MarketPage() {
           {(
             [
               ["catchment", "Catchment", "border-accent"],
-              ["zones", "Population zones", "bg-orange-700"],
+              ["zones", "Population zones", "bg-[#6E5BFF]"],
               ["competitors", "Competitors", "bg-observed"],
               ["agents", "Synthetic customers", "bg-agent"],
               ["activity", "Activity points", "bg-assumption"],

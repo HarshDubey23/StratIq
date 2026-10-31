@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-/** Mark: three survey strata (स्तर = layer) with the site point lit in saffron. */
+/** Mark: three survey strata (स्तर = layer) with the site point lit in cobalt. */
 export function LogoMark({ size = 24 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" fill="none" aria-hidden>
