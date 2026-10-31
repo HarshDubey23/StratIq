@@ -61,7 +61,7 @@ AFFINITY = {
 FEMALE_AFFINITY = {"membership": 0.8, "dine_in": 1.0, "takeaway": 0.95, "retail": 1.05, "appointment": 1.2, "lodging": 0.95}
 MODE_NAMES = [m[0] for m in gm.MODES]
 # (name, base share, base share, base share, distance-tolerance multiplier, speed km/h): baseline of the genome's mode choice
-MODE_BASE = [0.30, 0.30, 0.08, 0.10, 0.12, 0.05, 0.05]
+MODE_BASE = [float(x) for x in gm.MODE_BASE_SHARES]  # walk & two-wheeler: MoSPI NHTS 2025-26; others assumed
 MODES = [(m[0], b, b, b, m[2], m[1]) for m, b in zip(gm.MODES, MODE_BASE)]
 
 # Day-of-week demand pattern (Mon..Sun), mean 1. Assumption from typical Indian urban retail/food footfall:

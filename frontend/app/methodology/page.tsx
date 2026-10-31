@@ -62,6 +62,28 @@ Q_0   = min(D_0, K)                                         capacity-constrained
         </section>
 
         <section className="space-y-3">
+          <h2 className="text-xl font-semibold text-ink-100">3a. Real-data spending power, willingness to pay and distance (India)</h2>
+          <p>
+            Segments are not fixed constants. Each synthetic person gets a monthly per-capita consumption (MPCE, ₹) from official data, and the
+            three segments are India&apos;s bottom 40 %, middle 40 % and top 20 % by MPCE, so their shares are this area&apos;s real mix.
+          </p>
+          <Eq>{`F(x) = 1 − (1 + (x/b)^a)^(−q)                   Singh-Maddala curve fitted to HCES 2023-24 (MoSPI) deciles, per state × rural/urban
+p_t  = population-weighted RWI rank of tile t within its state × sector      (Meta Relative Wealth Index, 2.4 km, × WorldPop)
+z_i  = a · Φ⁻¹(p_t) + √(1 − a²) · ε_i,  ε_i ~ N(0,1)                         rank matching (Hruschka et al. 2015; Chi et al. 2022)
+x_i  = F⁻¹(Φ(z_i))                                                           person i's MPCE; reproduces the official curve exactly
+WTP_i = p_ref · (x_i / x_ref)^η_c · taste_i                                  x_ref = urban India median MPCE; η_c = income elasticity
+π_local = π_India · E_local[(x/x_ref)^η] / E_India[(x/x_ref)^η]             participation anchored to a published penetration rate
+d_zj = OSRM road-network distance (car), t_zj = OSRM walking time             zone → every business; straight line × circuity only if routing fails`}</Eq>
+          <ul className="list-disc space-y-1 pl-5">
+            <li><b>Official:</b> HCES 2023-24 Tables 3.1 and 3.4R/U (all-India fractiles; P10–P90 for 18 states, rural and urban). Fit error is reported with every run.</li>
+            <li><b>Derived:</b> tile state from geoBoundaries ADM1; urban = WorldPop density above the threshold that makes 35 % of India urban (UN WUP 2018).</li>
+            <li><b>Published evidence:</b> gym membership 0.8 % of India (Deloitte & HFA 2025, industry), dental visits 24 %/year (Talukdar et al. 2022), private coaching 25.5 % rural / 30.7 % urban of students (NSO CMS: Education 2025), dining out 3.7×/month (NRAI 2024, industry), health-spend income elasticity ≈ 0.25 (Dubey 2020), work-trip mode shares walk 28.3 % / two-wheeler 42.6 % (MoSPI NHTS 2025-26).</li>
+            <li><b>Still assumptions</b> (labelled and varied in Monte Carlo): the between-tile loading a = 0.6, income elasticities for services, the taste spread of WTP, price and quality coefficients, distance decay. No Indian study calibrates these for local services yet.</li>
+            <li>Limits: RWI tiles are 2.4 km, so a slum and the rich block next to it share a tile; RWI is CC BY-NC 4.0 (non-commercial); outside India the archetype assumptions are used.</li>
+          </ul>
+        </section>
+
+        <section className="space-y-3">
           <h2 className="text-xl font-semibold text-ink-100">4. Economics</h2>
           <Eq>{`Revenue          = price × Q
 Variable cost    = variable cost per unit × Q

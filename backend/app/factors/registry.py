@@ -159,7 +159,7 @@ for k, lbl, unit, src, role in [
     ("income_tier_high", "High-income agent share", "share", "simulated", "output"),
     ("price_elasticity_est", "Arc price elasticity from sweep", "elasticity", "simulated", "output"),
     ("profit_max_price", "Price that maximises modeled profit", "₹", "simulated", "output"),
-    ("household_income", "Median household income", "₹/month", "reserved", "reserved"),
+    ("household_income", "Median monthly spend per person here (HCES 2023-24 x Meta RWI)", "₹/month", "official", "context"),
     ("consumer_spend_category", "Household spend on this category", "₹/month", "reserved", "reserved"),
     ("land_value", "Commercial land / rent benchmark", "₹/sq ft", "reserved", "reserved"),
     ("credit_access", "Access to formal credit", "index", "reserved", "reserved"),

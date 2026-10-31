@@ -18,11 +18,11 @@ def test_registry_has_615_unique_factors_in_10_domains():
     assert len(c["by_domain"]) == 10
     assert all(f.role in {"agent", "choice", "finance", "output", "context", "reserved"} for f in FACTORS)
     assert set(c["by_evidence_status"].keys()) == {"OBSERVED", "DERIVED", "ESTIMATED", "PROXY", "UNSUPPORTED"}
-    assert c["by_evidence_status"]["OBSERVED"] == 115
-    assert c["by_evidence_status"]["DERIVED"] == 169
-    assert c["by_evidence_status"]["ESTIMATED"] == 38
+    assert c["by_evidence_status"]["OBSERVED"] == 117
+    assert c["by_evidence_status"]["DERIVED"] == 170
+    assert c["by_evidence_status"]["ESTIMATED"] == 45
     assert c["by_evidence_status"]["PROXY"] == 2
-    assert c["by_evidence_status"]["UNSUPPORTED"] == 291
+    assert c["by_evidence_status"]["UNSUPPORTED"] == 281
     assert all(hasattr(f, "evidence_status") for f in FACTORS)
 
 

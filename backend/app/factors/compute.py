@@ -235,16 +235,27 @@ def compute(project, arch: Archetype, loc, snap, competitors: list, scenario_inp
             "outside_utility": "beh_outside_utility", "wtp_sigma": "eco_wtp_sigma", "competitor_price_ratio": "eco_competitor_price_ratio",
             "variable_cost_ratio": "eco_variable_cost_ratio", "distance_decay": "mob_distance_decay", "max_km": "mob_max_km", "circuity": "mob_circuity",
             "awareness_base": "mkt_awareness_base", "marketing_half_saturation": "mkt_half_saturation", "competitor_quality": "cmp_quality_assumed"}
+    # values the latest run actually used: real-data evidence where it existed (HCES x RWI, published rates), else the assumption
+    run_params = (result or {}).get("parameters") or {}
+    run_status = (result or {}).get("parameter_status") or {}
     for pk_, fk in pmap.items():
         if pk_ in arch.params:
-            put(fk, overrides.get(pk_, arch.params[pk_].value), "user" if pk_ in overrides else "assumed")
+            if pk_ in overrides:
+                put(fk, overrides[pk_], "user")
+            elif run_status.get(pk_) and run_status[pk_] != "assumption" and pk_ in run_params:
+                put(fk, run_params[pk_]["value"], run_status[pk_])
+            else:
+                put(fk, arch.params[pk_].value, "assumed")
+    data_segs = {sg["key"]: sg for sg in ((result or {}).get("segments") or [])} if (result or {}).get("income") else {}
     for sgm in arch.segments:
-        put(f"eco_{sgm.key}_share", sgm.share, "assumed")
-        put(f"eco_{sgm.key}_wtp_mult", sgm.wtp_multiplier, "assumed")
+        ds = data_segs.get(sgm.key)
+        inc = next((c for c in result["income"]["classes"] if c["key"] == sgm.key), None) if ds else None
+        put(f"eco_{sgm.key}_share", ds["share"] if ds else sgm.share, "derived" if ds else "assumed")
+        put(f"eco_{sgm.key}_wtp_mult", inc["wtp_multiplier"] if inc else sgm.wtp_multiplier, "derived" if inc else "assumed")
         put(f"eco_{sgm.key}_price_sens", sgm.price_sensitivity, "assumed")
         put(f"eco_{sgm.key}_distance_tol", sgm.distance_tolerance, "assumed")
     for idx, (mname, sb, sm, sp, tolm, spd) in enumerate(MODES):
-        put(f"mob_{mname}_share", round(0.45 * sb + 0.40 * sm + 0.15 * sp, 4), "assumed")
+        put(f"mob_{mname}_share", round(0.45 * sb + 0.40 * sm + 0.15 * sp, 4), "official" if mname in ("walk", "two_wheeler") else "assumed")
         put(f"mob_{mname}_speed", spd, "assumed")
         put(f"mob_{mname}_tolerance", tolm, "assumed")
     for k_, fk in (("noise_scale", "beh_noise_scale"), ("habit_build", "ret_loyalty_build"), ("habit_cap", "ret_loyalty_cap"),
@@ -287,6 +298,8 @@ def compute(project, arch: Archetype, loc, snap, competitors: list, scenario_inp
         put("cmp_captured_by_all", s_["captured_by_all_modeled"]); put("cmp_leakage", 1 - (s_["captured_by_all_modeled"] or 0))
         for seg in result["segments"]:
             put(f"eco_{seg['key']}_affordability", seg["affordability_at_price"])
+        if result.get("income"):
+            put("eco_household_income", result["income"]["median_mpce"], "official")
         comps_out = result.get("competitors") or []
         shares = [c["modeled_share_of_in_market"] or 0 for c in comps_out] + [s_["capture_of_in_market"] or 0]
         tot_s = sum(shares)

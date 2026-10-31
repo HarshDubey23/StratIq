@@ -279,6 +279,8 @@ export default function Landing() {
                 {[
                   ["Competitors", "OpenStreetMap (racing Overpass mirrors + Photon) merged with Foursquare Places; a shop found in both is counted once."],
                   ["Population", "WorldPop, constrained to mapped buildings inside your catchment."],
+                  ["Spending power", "MoSPI's HCES 2023-24 consumption curves for your state, rural or urban, placed tile by tile with Meta's Relative Wealth Index."],
+                  ["Distance", "Real road routes from every neighbourhood to every shop, walking and driving (OSRM on OpenStreetMap roads)."],
                   ["Every value", "Tagged observed, user-entered, assumed or modeled — on screen, in reports, in the voice answers."],
                   ["Gaps", "Unmapped shops are flagged, and you can add the ones you see on the street."],
                 ].map(([t, d]) => (
@@ -299,8 +301,9 @@ export default function Landing() {
             <div className="max-w-xl">
               <Lines as="h2" lines={["Ten thousand", "people decide."]} className="font-display text-[clamp(2.6rem,6vw,5.6rem)] font-semibold leading-[0.95] tracking-[-0.045em]" />
               <p data-reveal className="mt-7 text-[17px] leading-[1.65] text-ink-200">
-                Synthetic customers are placed at real population density, each with a 615-parameter profile: budget, distance tolerance,
-                habits, hours, trust. For 84 simulated days they choose between you, every competitor, or not buying at all.
+                Synthetic customers are placed at real population density, each with a 615-parameter profile. Their spending power follows the
+                area&apos;s real rich/poor mix from official survey data, so willingness to pay does too. For 84 simulated days they choose between
+                you, every competitor, or not buying at all.
               </p>
               <div data-reveal className="panel mt-10 rounded-3xl p-6">
                 <div className="grid grid-cols-3 gap-4">
