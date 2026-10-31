@@ -53,6 +53,14 @@ SOURCES: dict[str, dict] = {
         "url": "https://openrouteservice.org/terms-of-service/",
         "coverage_note": "Travel-time areas from the road network; real traffic is not included.",
     },
+    "osrm": {
+        "name": "OSRM road-network routing (FOSSGIS public servers)",
+        "kind": "derived",
+        "license": "OSM data ODbL; server usage policy of routing.openstreetmap.de",
+        "attribution": "Routing © OSRM / FOSSGIS e.V. | Map data © OpenStreetMap contributors",
+        "url": "https://routing.openstreetmap.de/about.html",
+        "coverage_note": "Shortest-path distance and free-flow time on the mapped road network, on foot and by car. Real traffic is not included.",
+    },
     "user": {
         "name": "User-entered",
         "kind": "user",

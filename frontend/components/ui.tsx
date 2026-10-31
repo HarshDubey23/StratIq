@@ -124,6 +124,7 @@ export function statusToKind(status: string | null | undefined): EvidenceKind {
   if (!status) return "unknown";
   if (["user", "known"].includes(status)) return "user";
   if (status === "observed") return "observed";
+  if (["official", "industry", "literature"].includes(status)) return "official";
   if (status.startsWith("derived")) return "model";
   if (status.startsWith("assum") || status === "assumed") return "assumption";
   if (status === "unknown") return "unknown";

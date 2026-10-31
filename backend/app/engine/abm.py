@@ -35,9 +35,12 @@ from collections import OrderedDict
 from dataclasses import dataclass
 
 import numpy as np
+from scipy.special import ndtri
 
 from ..categories.archetypes import Archetype
 from . import genome as gm
+from .economics.behaviour import TASTE_SIGMA
+from .economics.income import CLASS_EDGES as INCOME_CLASS_EDGES
 from .model import BusinessInputs, Competitor, ResolvedParams, Zone
 
 AGE_BANDS = ["0-4", "5-9", "10-14", "15-19", "20-24", "25-29", "30-34", "35-39", "40-44", "45-49", "50-54", "55-59", "60-64", "65-69", "70-74", "75-79", "80+"]
@@ -130,11 +133,17 @@ class Population:
     age_src: str
     names: list[str]
     comps: list
+    mpce: np.ndarray | None = None  # Rs per person per month (real-data income layer), None if unavailable
+    route_share: float = 0.0  # share of agent-business distances from the road network
 
 
 def build_population(arch: Archetype, zones: list[Zone], comps: list[Competitor], biz: BusinessInputs, params: ResolvedParams,
                      ref_price: float, *, n_agents: int, seed: int, age_sex: dict | None, spacing_km: float, profile: dict | None,
-                     offer: dict | None, overrides: dict | None, month0: int, days: int) -> Population:
+                     offer: dict | None, overrides: dict | None, month0: int, days: int,
+                     income=None, behaviour=None, route_fn=None) -> Population:
+    """``income`` (IncomeContext) gives each agent a real-data MPCE; ``behaviour`` (BehaviourEvidence) turns it into WTP;
+    ``route_fn(points) -> (km [Z,J], walk_min [Z,J] | None)`` gives road-network distances. All optional: without them
+    the population falls back to the archetype assumptions, and the run records which path was used."""
     P = params.values
     D = {**DEFAULTS, **{k: v for k, v in (overrides or {}).items() if k in DEFAULTS}}
     comps = agent_competitors(biz, comps)
@@ -156,15 +165,41 @@ def build_population(arch: Archetype, zones: list[Zone], comps: list[Competitor]
     band = rng.choice(len(AGE_BANDS), size=N, p=band_p)
     age = np.clip(AGE_MID[band] + rng.uniform(-2, 2, N), 0, 95)
     female = rng.random(N) < fem_p[band]
-    seg_share = np.array([s.share for s in arch.segments])
-    seg = rng.choice(len(arch.segments), size=N, p=seg_share / seg_share.sum())
+    mpce = income_z = None
+    if income is not None:
+        # real-data income: national consumption rank from Meta RWI tile x HCES 2023-24 curve (see economics/income.py)
+        mpce, u = income.draw(np.random.default_rng(seed + 211), zi)
+        seg = np.digitize(u, INCOME_CLASS_EDGES[1:-1])
+        income_z = ndtri(np.clip(u, 1e-6, 1 - 1e-6))
+    else:
+        seg_share = np.array([s.share for s in arch.segments])
+        seg = rng.choice(len(arch.segments), size=N, p=seg_share / seg_share.sum())
 
     blat = np.array([biz.lat] + [c.lat for c in comps])
     blng = np.array([biz.lng] + [c.lng for c in comps])
     seg_dt = np.array([s.distance_tolerance for s in arch.segments])[seg]
+    dist_agent = walk_agent = None
+    route_share = 0.0
+    if route_fn is not None:
+        km_z, walk_z, route_share = route_fn([(biz.lat, biz.lng)] + [(c.lat, c.lng) for c in comps])
+        if km_z is not None:
+            # zone-to-business road distance + the agent's own offset inside its zone (straight line, x circuity)
+            from .geo import haversine_km
+            zl = np.array([[z.lat, z.lng] for z in zones])
+            off = (haversine_km(lat[:, None], lng[:, None], blat[None, :], blng[None, :])
+                   - haversine_km(zl[zi, :1], zl[zi, 1:], blat[None, :], blng[None, :])) * P["circuity"]
+            dist_agent = np.maximum(km_z[zi] + off, 0.05)
+            if walk_z is not None:
+                walk_agent = np.maximum(walk_z[zi] + off / 4.5 * 60, 0.5)
     gen = gm.generate(np.random.default_rng(seed + 7), age=age, female=female, seg_keys=[s.key for s in arch.segments], seg=seg,
                       zone_pop=pop, zone_act=act, lat=lat, lng=lng, zi=zi, blat=blat, blng=blng, circuity=P["circuity"],
-                      max_km=P["max_km"], seg_dt=seg_dt)
+                      max_km=P["max_km"], seg_dt=seg_dt, income_z=income_z, dist_km=dist_agent, walk_min=walk_agent)
+    if behaviour is not None and mpce is not None:
+        # WTP = reference price x (MPCE / x_ref)^elasticity x taste. The taste factor keeps each agent's generated
+        # deviation from its genome (standardised, log-sd = the assumed taste spread); the income part is real data.
+        w = np.log(np.maximum(gen.G[:, gm.KI["ec_wtp_multiple"]].astype(float), 1e-6))
+        taste = (w - w.mean()) / (w.std() + 1e-9) * TASTE_SIGMA[0]
+        gen.G[:, gm.KI["ec_wtp_multiple"]] = ((mpce / behaviour.x_ref) ** behaviour.elasticity[0] * np.exp(taste)).astype(np.float32)
     hs = max(P["marketing_half_saturation"], 1.0)
     a_target = P["awareness_base"] + (1 - P["awareness_base"]) * (1 - 2 ** (-max(biz.marketing_spend, 0) / hs))
     F, meta = gm.business_features(arch.key, biz, comps, ref_price, P["competitor_quality"], profile, a_target, offer)
@@ -198,7 +233,9 @@ def build_population(arch: Archetype, zones: list[Zone], comps: list[Competitor]
             f0 *= (gen.G[:, gm.KI["ev_household_size"]] / 4.2) ** 0.3
         freq = np.clip(f0 * (P["frequency"] / max(f0.mean(), 1e-9)), 0.1, 30)
     names = ["Your business"] + [c.name for c in comps]
-    return Population(N, scale, zi, lat, lng, age, female, seg, gen, F, meta, up, p_in, freq, age_src, names, comps)
+    out = Population(N, scale, zi, lat, lng, age, female, seg, gen, F, meta, up, p_in, freq, age_src, names, comps)
+    out.mpce, out.route_share = mpce, route_share
+    return out
 
 
 def _calibrate(pop: Population, arch: Archetype, D: dict, radius_km: float | None) -> dict:
@@ -386,12 +423,14 @@ def run_cohort_transition_baseline(
 def run_abm(arch: Archetype, zones: list[Zone], comps: list[Competitor], biz: BusinessInputs, params: ResolvedParams,
             ref_price: float, *, n_agents: int = 10000, days: int = 84, seed: int = 42, age_sex: dict | None = None,
             spacing_km: float = 0.35, frame_every: int = 2, overrides: dict | None = None, profile: dict | None = None,
-            offer: dict | None = None, radius_km: float | None = None, month0: int | None = None, cache_key: str | None = None) -> dict:
+            offer: dict | None = None, radius_km: float | None = None, month0: int | None = None, cache_key: str | None = None,
+            income=None, behaviour=None, route_fn=None) -> dict:
     t0 = time.perf_counter()
     D = {**DEFAULTS, **{k: v for k, v in (overrides or {}).items() if k in DEFAULTS}}
     month0 = gm.month_now() if month0 is None else month0
     pop = build_population(arch, zones, comps, biz, params, ref_price, n_agents=n_agents, seed=seed, age_sex=age_sex, spacing_km=spacing_km,
-                           profile=profile, offer=offer, overrides=overrides, month0=month0, days=days)
+                           profile=profile, offer=offer, overrides=overrides, month0=month0, days=days,
+                           income=income, behaviour=behaviour, route_fn=route_fn)
     t_gen = time.perf_counter()
     if cache_key:
         cache_put(cache_key, pop)
@@ -668,7 +707,7 @@ def run_abm(arch: Archetype, zones: list[Zone], comps: list[Competitor], biz: Bu
 
     agents = {
         "columns": ["lat", "lng", "age", "female", "segment", "mode", "in_market", "aware", "last_choice", "purchases_you", "wtp", "price_sens",
-                    "dist_km", "digital", "social", "zone", "time_pref", "income_z", "time_fit_you", "u_you"],
+                    "dist_km", "digital", "social", "zone", "time_pref", "income_z", "time_fit_you", "u_you", "mpce"],
         "rows": [], "modes": MODE_NAMES, "segments": [s.key for s in arch.segments], "time_prefs": ["morning", "evening", "late"],
     }
     wtp_v = gm_wtp(G, ref_price)
@@ -682,7 +721,8 @@ def run_abm(arch: Archetype, zones: list[Zone], comps: list[Competitor], biz: Bu
         rows.append([round(float(pop.lat[i]), 5), round(float(pop.lng[i]), 5), int(age[i]), int(female[i]), int(seg[i]), int(mode[i]), int(in_market[i]),
                      int(aware[i]), int(final[i]), int(purchases_you[i]), round(float(wtp_v[i])), round(float(psens_v[i]), 2),
                      round(float(gen.dist[i, 0]), 2), round(float(1 / (1 + math.exp(-dig[i]))), 2), round(float(1 / (1 + math.exp(-soc[i]))), 2),
-                     int(zi[i]), int(time_pref[i]), round(float(income_z[i]), 2), round(float(tfy[i]), 3), round(float(uy[i]), 2)])
+                     int(zi[i]), int(time_pref[i]), round(float(income_z[i]), 2), round(float(tfy[i]), 3), round(float(uy[i]), 2),
+                     None if pop.mpce is None else int(round(float(pop.mpce[i])))])
 
     by_block = {}
     for p in gm.REG:

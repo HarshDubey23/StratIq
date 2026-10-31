@@ -8,7 +8,7 @@ Tests:
 5. Formal validation metrics (WAPE, ESS, standardized differences).
 """
 import numpy as np
-import pytest
+
 
 from app.engine.population import (
     AGE_BANDS,

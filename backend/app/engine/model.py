@@ -79,10 +79,14 @@ class ResolvedParams:
     status: dict[str, str]
 
     @classmethod
-    def from_archetype(cls, arch: Archetype, overrides: dict | None = None) -> "ResolvedParams":
+    def from_archetype(cls, arch: Archetype, overrides: dict | None = None, evidence: dict | None = None) -> "ResolvedParams":
+        """Archetype assumptions, replaced by published/derived evidence where it exists, then by user overrides."""
         values, ranges, status = {}, {}, {}
         for k, p in arch.params.items():
             values[k], ranges[k], status[k] = p.value, (p.low, p.high), "assumption"
+        for k, ev in (evidence or {}).items():
+            if k in values:
+                values[k], ranges[k], status[k] = float(ev[0]), (float(ev[1]), float(ev[2])), str(ev[3])
         values.setdefault("activity_equivalent", 120.0)
         ranges.setdefault("activity_equivalent", (60.0, 200.0))
         status.setdefault("activity_equivalent", "assumption")
@@ -140,11 +144,12 @@ class MarketArrays:
     travel_time_min: np.ndarray | None = None  # [Z, J] travel-time in minutes
     dist_source: str = "haversine_circuity"
     travel_time_source: str = "speed_fallback"
+    seg_share_z: np.ndarray | None = None  # [Z, S] segment shares per zone (real income mix); None -> archetype shares
 
 
 def build_arrays(arch: Archetype, zones: list[Zone], comps: list[Competitor], biz: BusinessInputs,
                  params: ResolvedParams, travel_km: np.ndarray | None = None,
-                 travel_time_min: np.ndarray | None = None) -> MarketArrays:
+                 travel_time_min: np.ndarray | None = None, seg_share_z: np.ndarray | None = None) -> MarketArrays:
     if not zones:
         raise ValueError("No demand zones: population data is required to simulate demand.")
     if biz.price <= 0:
@@ -182,6 +187,7 @@ def build_arrays(arch: Archetype, zones: list[Zone], comps: list[Competitor], bi
         dist_km=d, weight=weight, prices=prices, price_known=~np.isnan(prices),
         quality=quality, quality_known=~np.isnan(quality), ref_price=ref, ref_price_status=ref_status,
         travel_time_min=tt, dist_source=meta["dist_source"], travel_time_source=meta["travel_time_source"],
+        seg_share_z=seg_share_z,
     )
 
 
@@ -254,7 +260,8 @@ def _run_choice(arch: Archetype, m: MarketArrays, biz: BusinessInputs, p: dict[s
     denom = np.exp(p["outside_utility"])[:, None, None] + A.sum(axis=3)  # [D,Z,S]
     P = A / denom[..., None]  # [D,Z,S,J]
 
-    N = m.weight[None, :, None] * p["participation"][:, None, None] * seg_share[None, None, :]  # [D,Z,S]
+    share_zs = m.seg_share_z if m.seg_share_z is not None else np.broadcast_to(seg_share, (Z, seg_share.size))
+    N = m.weight[None, :, None] * p["participation"][:, None, None] * share_zs[None, :, :]  # [D,Z,S]
     units_by_alt = (N[..., None] * P).sum(axis=(1, 2)) * p["frequency"][:, None]  # [D,J]
     in_market = N.sum(axis=(1, 2)) * p["frequency"]  # [D]
 

@@ -1,0 +1,586 @@
+{
+ "dataset": "Household Consumption Expenditure Survey 2023-24 (HCES), NSS Report 592, MoSPI, Government of India",
+ "url": "https://mospi.gov.in/sites/default/files/publication_reports/Final_Report_HCES_2023-24L.pdf",
+ "reference_period": "Aug 2023 - Jul 2024",
+ "unit": "MPCE, Rs per person per month, without imputation, current prices",
+ "national_fractiles": {
+  "source": "Table 3.1",
+  "edges": [
+   0,
+   0.05,
+   0.1,
+   0.2,
+   0.3,
+   0.4,
+   0.5,
+   0.6,
+   0.7,
+   0.8,
+   0.9,
+   0.95,
+   1
+  ],
+  "rural": {
+   "upper": [
+    1968,
+    2260,
+    2665,
+    2997,
+    3326,
+    3674,
+    4067,
+    4565,
+    5242,
+    6414,
+    7607,
+    null
+   ],
+   "mean": [
+    1677,
+    2126,
+    2473,
+    2833,
+    3162,
+    3498,
+    3866,
+    4304,
+    4885,
+    5763,
+    6929,
+    10137
+   ],
+   "all": 4122
+  },
+  "urban": {
+   "upper": [
+    2834,
+    3313,
+    4032,
+    4673,
+    5294,
+    5956,
+    6738,
+    7714,
+    9080,
+    11546,
+    14521,
+    null
+   ],
+   "mean": [
+    2376,
+    3093,
+    3687,
+    4353,
+    4979,
+    5622,
+    6334,
+    7199,
+    8353,
+    10139,
+    12817,
+    20310
+   ],
+   "all": 6996
+  }
+ },
+ "state_deciles": {
+  "source": "Tables 3.4R / 3.4U (P10..P90)",
+  "rural": {
+   "Andhra Pradesh": [
+    3195,
+    3782,
+    4232,
+    4619,
+    5029,
+    5456,
+    5939,
+    6600,
+    7625
+   ],
+   "Assam": [
+    2374,
+    2738,
+    3027,
+    3314,
+    3566,
+    3862,
+    4208,
+    4649,
+    5441
+   ],
+   "Bihar": [
+    2248,
+    2627,
+    2920,
+    3202,
+    3460,
+    3738,
+    4063,
+    4499,
+    5294
+   ],
+   "Chhattisgarh": [
+    1577,
+    1881,
+    2110,
+    2314,
+    2538,
+    2775,
+    3041,
+    3359,
+    4094
+   ],
+   "Gujarat": [
+    2478,
+    2819,
+    3113,
+    3403,
+    3716,
+    4054,
+    4504,
+    5098,
+    6155
+   ],
+   "Haryana": [
+    3259,
+    3829,
+    4305,
+    4710,
+    5123,
+    5526,
+    6036,
+    6658,
+    7751
+   ],
+   "Jharkhand": [
+    1644,
+    1964,
+    2214,
+    2477,
+    2712,
+    2966,
+    3274,
+    3682,
+    4329
+   ],
+   "Karnataka": [
+    2793,
+    3247,
+    3620,
+    3999,
+    4401,
+    4902,
+    5424,
+    6117,
+    7347
+   ],
+   "Kerala": [
+    3546,
+    4176,
+    4679,
+    5159,
+    5708,
+    6267,
+    7136,
+    8233,
+    9948
+   ],
+   "Madhya Pradesh": [
+    2046,
+    2367,
+    2632,
+    2881,
+    3153,
+    3435,
+    3787,
+    4240,
+    5096
+   ],
+   "Maharashtra": [
+    2342,
+    2753,
+    3079,
+    3365,
+    3701,
+    4067,
+    4514,
+    5165,
+    6308
+   ],
+   "Odisha": [
+    1981,
+    2278,
+    2531,
+    2765,
+    3019,
+    3317,
+    3669,
+    4122,
+    5001
+   ],
+   "Punjab": [
+    3653,
+    4138,
+    4552,
+    4981,
+    5427,
+    5866,
+    6395,
+    7084,
+    8291
+   ],
+   "Rajasthan": [
+    2435,
+    2884,
+    3263,
+    3666,
+    4021,
+    4449,
+    4969,
+    5696,
+    6918
+   ],
+   "Tamil Nadu": [
+    3426,
+    3930,
+    4357,
+    4759,
+    5163,
+    5635,
+    6235,
+    7017,
+    8544
+   ],
+   "Telangana": [
+    3633,
+    4104,
+    4464,
+    4811,
+    5147,
+    5555,
+    5964,
+    6587,
+    7449
+   ],
+   "Uttar Pradesh": [
+    2171,
+    2482,
+    2736,
+    2973,
+    3221,
+    3496,
+    3826,
+    4264,
+    5004
+   ],
+   "West Bengal": [
+    2230,
+    2561,
+    2833,
+    3087,
+    3350,
+    3640,
+    4011,
+    4457,
+    5291
+   ],
+   "All-India": [
+    2260,
+    2665,
+    2997,
+    3326,
+    3674,
+    4067,
+    4565,
+    5242,
+    6414
+   ]
+  },
+  "urban": {
+   "Andhra Pradesh": [
+    3940,
+    4599,
+    5212,
+    5815,
+    6361,
+    7011,
+    7834,
+    9084,
+    11225
+   ],
+   "Assam": [
+    3730,
+    4469,
+    4981,
+    5516,
+    6064,
+    6586,
+    7321,
+    8299,
+    10279
+   ],
+   "Bihar": [
+    2897,
+    3357,
+    3717,
+    4094,
+    4483,
+    4968,
+    5558,
+    6402,
+    7869
+   ],
+   "Chhattisgarh": [
+    2452,
+    2967,
+    3384,
+    3816,
+    4200,
+    4674,
+    5358,
+    6399,
+    8153
+   ],
+   "Gujarat": [
+    3995,
+    4672,
+    5197,
+    5760,
+    6420,
+    7129,
+    7998,
+    9160,
+    11187
+   ],
+   "Haryana": [
+    3905,
+    4553,
+    5264,
+    6033,
+    7115,
+    8232,
+    9565,
+    11124,
+    14244
+   ],
+   "Jharkhand": [
+    2380,
+    3021,
+    3427,
+    3894,
+    4450,
+    5028,
+    5898,
+    7105,
+    9616
+   ],
+   "Karnataka": [
+    3648,
+    4529,
+    5289,
+    5994,
+    6914,
+    7899,
+    9110,
+    10867,
+    14033
+   ],
+   "Kerala": [
+    3985,
+    4640,
+    5230,
+    5840,
+    6544,
+    7289,
+    8281,
+    9798,
+    13071
+   ],
+   "Madhya Pradesh": [
+    2924,
+    3421,
+    3886,
+    4347,
+    4823,
+    5383,
+    6066,
+    6987,
+    8674
+   ],
+   "Maharashtra": [
+    3496,
+    4247,
+    4908,
+    5567,
+    6264,
+    7010,
+    8007,
+    9380,
+    11937
+   ],
+   "Odisha": [
+    2713,
+    3223,
+    3774,
+    4357,
+    4993,
+    5661,
+    6611,
+    7913,
+    10128
+   ],
+   "Punjab": [
+    4147,
+    4905,
+    5527,
+    6070,
+    6590,
+    7398,
+    8209,
+    9371,
+    11196
+   ],
+   "Rajasthan": [
+    3161,
+    3787,
+    4341,
+    4938,
+    5602,
+    6257,
+    7209,
+    8537,
+    10628
+   ],
+   "Tamil Nadu": [
+    4390,
+    5161,
+    5770,
+    6410,
+    7105,
+    7906,
+    8980,
+    10397,
+    13007
+   ],
+   "Telangana": [
+    4844,
+    5735,
+    6378,
+    7109,
+    7745,
+    8496,
+    9336,
+    10709,
+    13923
+   ],
+   "Uttar Pradesh": [
+    2814,
+    3296,
+    3717,
+    4133,
+    4575,
+    5091,
+    5725,
+    6625,
+    8464
+   ],
+   "West Bengal": [
+    2810,
+    3321,
+    3798,
+    4283,
+    4828,
+    5500,
+    6335,
+    7462,
+    9493
+   ],
+   "All-India": [
+    3313,
+    4032,
+    4673,
+    5294,
+    5956,
+    6738,
+    7714,
+    9080,
+    11546
+   ]
+  }
+ },
+ "rural_population_share": {
+  "value": 0.64,
+  "low": 0.62,
+  "high": 0.69,
+  "status": "assumption",
+  "note": "Weight to combine the rural and urban curves into one national curve. Census 2011 measured 68.8% rural; current share is lower (UN World Urbanization Prospects projects about 63-64% for 2024). Not published in HCES itself."
+ },
+ "budget_shares": {
+  "source": "Table 3.5 (item groups) and Tables 3.11R/3.11U (sub-items), share of MPCE, %",
+  "groups": {
+   "processed_food_beverages": {
+    "rural": 9.84,
+    "urban": 11.09,
+    "label": "Beverages, refreshments & processed food (incl. meals bought outside)"
+   },
+   "education": {
+    "rural": 3.24,
+    "urban": 5.97,
+    "label": "Education"
+   },
+   "medical": {
+    "rural": 6.83,
+    "urban": 5.85,
+    "label": "Medical (institutional + non-institutional)"
+   },
+   "medical_non_institutional": {
+    "rural": 4.58,
+    "urban": 3.89,
+    "label": "Medical, non-institutional",
+    "verify": true
+   },
+   "conveyance": {
+    "rural": 7.59,
+    "urban": 8.46,
+    "label": "Conveyance"
+   },
+   "consumer_services": {
+    "rural": 5.25,
+    "urban": 5.72,
+    "label": "Consumer services excl. conveyance (incl. salon, domestic, repair)"
+   },
+   "durables": {
+    "rural": 6.48,
+    "urban": 6.87,
+    "label": "Durable goods"
+   },
+   "misc_entertainment": {
+    "rural": 6.22,
+    "urban": 6.92,
+    "label": "Miscellaneous goods & entertainment"
+   },
+   "entertainment": {
+    "rural": 1.02,
+    "urban": 1.77,
+    "label": "Entertainment",
+    "verify": true
+   },
+   "toilet_articles": {
+    "rural": 5.2,
+    "urban": 5.15,
+    "label": "Toilet articles",
+    "verify": true
+   },
+   "food_total": {
+    "rural": 47.04,
+    "urban": 39.68,
+    "label": "Food total"
+   },
+   "rent": {
+    "rural": 0.56,
+    "urban": 6.58,
+    "label": "Rent"
+   }
+  }
+ }
+}

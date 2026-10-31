@@ -269,6 +269,10 @@ export interface SimResult {
   limitations: string[];
   duration_ms: number;
   abm?: Abm;
+  income?: IncomeEvidence | null;
+  routing?: { share_routed: number; source: string; note: string };
+  parameter_status?: Record<string, string>;
+  parameter_sources?: Record<string, string>;
   evidence?: {
     snapshot_id: string;
     retrieved_at: string;
@@ -565,4 +569,37 @@ export interface FactorsResponse {
   counts: { total: number; by_domain: Record<string, number>; by_role: Record<string, number>; by_source: Record<string, number> };
   domains: Record<string, string>;
   scenario: { id: string; name: string; run_id: string | null };
+}
+
+export interface SourceRecord {
+  source: string;
+  name: string;
+  kind: string;
+  url?: string;
+  license?: string;
+  source_updated_at?: string | null;
+  detail?: string;
+}
+
+/** Real-data income layer for the catchment (HCES 2023-24 x Meta RWI rank matching). */
+export interface IncomeEvidence {
+  method: "rwi_rank" | "state_curve" | "national_sector_curve";
+  state: string | null;
+  sector: string;
+  curve: string;
+  curve_fit_error: number;
+  between_tile_loading: number;
+  provenance: SourceRecord[];
+  median_mpce: number;
+  mean_mpce: number;
+  p10_mpce: number;
+  p90_mpce: number;
+  india_median_mpce: number;
+  x_ref: number;
+  x_ref_note: string;
+  classes: { key: string; label: string; share: number; india_share: number; mpce_range: [number, number]; wtp_multiplier: number }[];
+  elasticity: { value: number; low: number; high: number; status: string; source: string };
+  participation_lift: number;
+  histogram: { lo: number; hi: number | null; share: number }[];
+  national_histogram: { lo: number; hi: number | null; share: number }[];
 }

@@ -18,7 +18,7 @@ import numpy as np
 import pytest
 
 from app.categories.archetypes import ARCHETYPES
-from app.engine.geo import compute_spatial_matrices, distance_matrix_km
+
 from app.engine.model import BusinessInputs, Competitor, ResolvedParams, Zone, build_arrays, run_choice
 
 

@@ -94,7 +94,9 @@ def health():
         db_ok = False
         import re
         err = re.sub(r"://[^@\s]+@", "://***@", f"{type(e).__name__}: {e}")[:300]
-    body = {"status": "ok" if db_ok else "degraded", "db": db_ok, "model_version": MODEL_VERSION}
+    from .engine.economics.income import GRID_FILE, hces
+    body = {"status": "ok" if db_ok else "degraded", "db": db_ok, "model_version": MODEL_VERSION,
+            "real_data": {"hces_2023_24": bool(hces().get("state_deciles")), "wealth_grid": GRID_FILE.exists()}}
     if err:
         body["db_error"] = err
     return JSONResponse(status_code=200 if db_ok else 503, content=body)

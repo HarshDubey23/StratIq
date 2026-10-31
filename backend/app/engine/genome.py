@@ -144,6 +144,10 @@ _CAT_ROLE = {
     "lodging": ("hotel homestay", "coworking", "restaurant cinema"),
 }
 
+# Baseline mode shares (walk, two-wheeler, car, auto, bus, metro, cycle). Walk 28.3% and two-wheeler 42.6% are the
+# national shares of work trips in MoSPI's National Household Travel Survey 2025-26; the remaining 29.1% is split
+# across the other modes in the previous assumed proportions (8:10:12:5:5) - those five are assumptions.
+MODE_BASE_SHARES = np.array([0.283, 0.426] + [0.291 * w / 40 for w in (8, 10, 12, 5, 5)])
 MODES = [("walk", 4.5, 0.55), ("two_wheeler", 18.0, 1.25), ("car", 16.0, 1.4), ("auto", 14.0, 1.1), ("bus", 11.0, 0.95), ("metro", 25.0, 1.2), ("cycle", 10.0, 0.8)]
 
 # ---------------------------------------------------------------- parameter registry
@@ -720,13 +724,15 @@ class Genome:
 
 def generate(rng: np.random.Generator, *, age: np.ndarray, female: np.ndarray, seg_keys: list[str], seg: np.ndarray, zone_pop: np.ndarray,
              zone_act: np.ndarray, lat: np.ndarray, lng: np.ndarray, zi: np.ndarray, blat: np.ndarray, blng: np.ndarray, circuity: float,
-             max_km: float, seg_dt: np.ndarray, hh_size: float = 4.2) -> Genome:
+             max_km: float, seg_dt: np.ndarray, hh_size: float = 4.2, income_z: np.ndarray | None = None,
+             dist_km: np.ndarray | None = None, walk_min: np.ndarray | None = None) -> Genome:
     from .geo import haversine_km
 
     N = age.size
     # ---- conditional latent draw: observed = (age_obs, income_obs)
     age_z = (age - 34.0) / 15.0
-    inc_obs = np.array([_SEG_INCOME.get(k, 0.0) for k in seg_keys])[seg] / 1.0
+    # observed income signal: the agent's real national consumption rank (z) when the income layer ran, else segment mean
+    inc_obs = income_z if income_z is not None else np.array([_SEG_INCOME.get(k, 0.0) for k in seg_keys])[seg] / 1.0
     o_idx = [NL, NL + 1]
     u_idx = list(range(NL))
     S_oo = CORR[np.ix_(o_idx, o_idx)]
@@ -753,17 +759,22 @@ def generate(rng: np.random.Generator, *, age: np.ndarray, female: np.ndarray, s
     # ---- travel mode from access x preference (multinomial logit)
     acc = np.stack([G[:, KI[f"mb_access_{m[0]}"]] for m in MODES], 1)
     prf = np.stack([G[:, KI[f"mb_pref_{m[0]}"]] for m in MODES], 1)
-    base = np.log(np.array([0.30, 0.30, 0.08, 0.10, 0.12, 0.05, 0.05]))  # baseline mode shares (assumption)
+    base = np.log(MODE_BASE_SHARES)
     util = base + 3.0 * (acc - 0.5) + 2.0 * (prf - 0.5) + rng.gumbel(0, 1, (N, len(MODES)))
     mode = np.argmax(util, 1)
     speed = np.array([m[1] for m in MODES])[mode]
     mtol = np.array([m[2] for m in MODES])[mode]
 
     # ---- real geometry: distances to every business
-    dist = np.maximum(haversine_km(lat[:, None], lng[:, None], blat[None, :], blng[None, :]) * circuity, 0.1)
+    if dist_km is not None:  # road-network distance (OSRM) supplied by the caller
+        dist = np.maximum(dist_km, 0.05)
+    else:
+        dist = np.maximum(haversine_km(lat[:, None], lng[:, None], blat[None, :], blng[None, :]) * circuity, 0.1)
     tol = seg_dt * mtol * G[:, KI["mb_dist_tol"]]
     reach = dist <= (max_km * tol)[:, None]
     tmin = dist / speed[:, None] * 60 + np.where(mode == 0, 0, 4)[:, None]  # + access / parking minutes for vehicles
+    if walk_min is not None:  # walkers: routed walking time
+        tmin = np.where((mode == 0)[:, None], walk_min, tmin)
 
     ev = {
         "ev_lat": lat, "ev_lng": lng, "ev_zone": zi, "ev_zone_population": zone_pop[zi], "ev_zone_activity": zone_act[zi], "ev_zone_density_z": dens_z,

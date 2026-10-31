@@ -12,7 +12,7 @@ from ..categories.archetypes import get_archetype
 from ..config import get_settings
 from ..categories.taxonomy import ACTIVITY_KINDS, CONTEXT_FILTERS, classify_poi
 from ..engine.geo import circle_polygon, haversine_km, hex_grid, km_to_deg_lat, km_to_deg_lng, points_in_polygon
-from ..providers import osm, population
+from ..providers import osm, population, routing
 from ..providers.http import Cache, ProviderError
 from ..providers.registry import provenance
 
@@ -111,6 +111,25 @@ def assess_coverage(competitors: list[dict], total_pop: float | None, n_building
     return {"level": level, "note": notes[level], "signals": signals, "method": "Heuristic from building mapping density, record completeness and edit recency. Not a measured recall rate."}
 
 
+ROUTED_COMPETITORS = 40
+
+
+async def _route(zones: list[dict], comps: list[dict], lat: float, lng: float, cache, sources: list, errors: list) -> dict | None:
+    """Road-network distance/time from every zone to the site and the nearest competitors (stored with the snapshot)."""
+    if not zones:
+        return None
+    near = sorted(comps, key=lambda c: haversine_km(lat, lng, c["lat"], c["lng"]))[:ROUTED_COMPETITORS]
+    dests = [(routing.point_key(lat, lng), lat, lng)] + [(routing.point_key(c["lat"], c["lng"]), c["lat"], c["lng"]) for c in near]
+    try:
+        tab, prov = await asyncio.wait_for(routing.route_matrix([(z["lat"], z["lng"]) for z in zones], [(a, b) for _, a, b in dests], cache), 60)
+    except Exception as e:  # routing is an enrichment: never lose the snapshot over it
+        msg = e.message if isinstance(e, ProviderError) else ("no response within 60 s" if isinstance(e, asyncio.TimeoutError) else f"{type(e).__name__}: {e}")
+        errors.append({"source": "routing", "message": msg[:300], "fallback": "straight-line distance x circuity"})
+        return None
+    sources.append({**prov, "layer": "routing"})
+    return {"dest_keys": [d[0] for d in dests], "dest_ll": [[round(a, 6), round(b, 6)] for _, a, b in dests], **tab}
+
+
 async def build_snapshot(*, lat: float, lng: float, catchment: dict, category: dict,
                          manual_population: float | None, cache: Cache | None) -> dict:
     arch = get_archetype(category["archetype"])
@@ -154,6 +173,9 @@ async def build_snapshot(*, lat: float, lng: float, catchment: dict, category: d
             return float(manual_population), provenance("user", detail="Catchment population entered by the user")
         return await population.worldpop_total(polygon, cache)
 
+    async def admin_task():
+        return await osm.reverse_admin(lat, lng, cache)
+
     async def bounded(coro, seconds: float, what: str):
         try:
             return await asyncio.wait_for(coro, seconds)
@@ -165,8 +187,9 @@ async def build_snapshot(*, lat: float, lng: float, catchment: dict, category: d
     kp = 0.85 if get_settings().serverless else 1.0  # WorldPop is slow but it is the official population figure: give it longer
     results = await asyncio.gather(bounded(comp_task(), 95 * k, "overpass"), bounded(bld_task(), 110 * k, "overpass"),
                                    bounded(ctx_task(), 110 * k, "overpass"), bounded(pop_task(), 100 * kp, "worldpop"),
-                                   bounded(agesex_task(), 100 * kp, "worldpop"), return_exceptions=True)
-    names = ["competitors", "buildings", "context", "population", "age_sex"]
+                                   bounded(agesex_task(), 100 * kp, "worldpop"), bounded(admin_task(), 30, "nominatim"),
+                                   return_exceptions=True)
+    names = ["competitors", "buildings", "context", "population", "age_sex", "admin"]
     vals = {}
     for nm, res in zip(names, results):
         if isinstance(res, Exception):
@@ -204,6 +227,17 @@ async def build_snapshot(*, lat: float, lng: float, catchment: dict, category: d
     pop_meta["n_buildings"] = len(vals["buildings"] or [])
     if vals.get("age_sex"):
         pop_meta["age_sex"] = vals["age_sex"]
+    if vals.get("admin"):
+        adm = dict(vals["admin"])
+        if adm.get("settlement") is None and total_pop:
+            # no city/town/village key: fall back to density (Census urban criterion is >= 400 persons/km2; we use a
+            # stricter 1,000 because dense Indian villages pass 400)
+            adm["settlement"] = "urban" if total_pop / max(math.pi * radius_km ** 2, 0.01) >= 1000 else "rural"
+            adm["settlement_basis"] = "population density"
+        else:
+            adm["settlement_basis"] = "OpenStreetMap place type"
+        pop_meta["admin"] = adm
+    pop_meta["routing"] = await _route(zones, comps, lat, lng, cache, sources, errors)
     bld = vals["buildings"] or []
     if bld:
         b = np.array(bld)

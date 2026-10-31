@@ -77,6 +77,35 @@ async def reverse(lat: float, lng: float, cache: Cache | None = None) -> str:
     return name
 
 
+async def reverse_admin(lat: float, lng: float, cache: Cache | None = None) -> tuple[dict, dict]:
+    """State and settlement type at a point (Nominatim reverse, address details). Used to pick the official
+    state x rural/urban consumption curve; settlement type follows OSM place keys (city/town -> urban, village -> rural)."""
+    s = get_settings()
+    params = {"lat": round(lat, 4), "lon": round(lng, 4), "format": "jsonv2", "zoom": 14, "addressdetails": 1}
+    key = cache_key("nominatim_admin", params)
+    if cache and (hit := cache.get(key)):
+        return hit[0], provenance("osm_nominatim", retrieved_at=hit[1], cached=True, detail="State and settlement type")
+    await nominatim_throttle()
+    try:
+        r = await client().get(f"{s.nominatim_url}/reverse", params=params)
+        r.raise_for_status()
+        addr = r.json().get("address") or {}
+    except (httpx.HTTPError, ValueError) as e:
+        raise ProviderError("nominatim", f"reverse failed: {e}") from e
+    if addr.get("city") or addr.get("town") or addr.get("municipality"):
+        place = "urban"
+    elif addr.get("village") or addr.get("hamlet"):
+        place = "rural"
+    else:
+        place = None
+    out = {"state": addr.get("state") or addr.get("territory"), "district": addr.get("state_district") or addr.get("county"),
+           "country_code": (addr.get("country_code") or "").upper(), "settlement": place,
+           "place_name": addr.get("city") or addr.get("town") or addr.get("village") or addr.get("suburb")}
+    if cache:
+        cache.put(key, "nominatim_admin", out, timedelta(days=60))
+    return out, provenance("osm_nominatim", detail="State and settlement type")
+
+
 # ---------------- Overpass ----------------
 def build_poi_query(lat: float, lng: float, radius_m: int, filters: list[str], timeout: int = 40, limit: int = 400) -> str:
     parts = "".join(f"nwr{f}(around:{radius_m},{lat:.6f},{lng:.6f});" for f in filters)

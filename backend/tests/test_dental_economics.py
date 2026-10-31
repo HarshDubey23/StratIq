@@ -7,7 +7,7 @@ Tests:
    Revenue - Variable Costs - Fixed Costs = Operating Profit.
 4. Break-even and Capex payback calculation correctness.
 """
-import pytest
+
 
 from app.engine.economics.dental import DENTAL_PROCEDURES, DentalClinicEconomics
 

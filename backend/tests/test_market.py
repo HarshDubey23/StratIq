@@ -3,6 +3,8 @@ import asyncio
 import json
 from pathlib import Path
 
+import pytest
+
 from app.categories.resolver import resolve_offline
 from app.engine.geo import circle_polygon
 from app.providers import osm
@@ -16,6 +18,20 @@ async def fake_agesex(polygon, cache=None):
         ["0-4", "5-9", "10-14", "15-19", "20-24", "25-29", "30-34", "35-39", "40-44", "45-49", "50-54", "55-59", "60-64", "65-69", "70-74", "75-79", "80+"])]
     return {"bands": bands}, {"source": "worldpop", "name": "WorldPop age-sex"}
 LAT, LNG = 28.6315, 77.2167
+
+
+@pytest.fixture(autouse=True)
+def offline_admin_and_routing(monkeypatch):
+    """Snapshot assembly also reverse-geocodes the state and routes zones over the road network: stub both offline."""
+    async def fake_admin(lat, lng, cache=None):
+        return {"state": "Delhi", "country_code": "IN", "settlement": "urban"}, {"source": "osm_nominatim", "name": "Nominatim"}
+
+    async def fake_routes(zones, dests, cache=None):
+        km = [[1.0 + 0.1 * j for j in range(len(dests))] for _ in zones]
+        return {"car": {"km": km, "min": km}, "foot": {"km": km, "min": [[12.0] * len(dests) for _ in zones]}}, {"source": "osrm", "name": "OSRM"}
+
+    monkeypatch.setattr(mk.osm, "reverse_admin", fake_admin)
+    monkeypatch.setattr(mk.routing, "route_matrix", fake_routes)
 
 
 def load(name):
@@ -94,6 +110,9 @@ def test_build_snapshot_with_stubbed_providers(monkeypatch):
     assert any(e["source"] == "openrouteservice" for e in snap["errors"])
     assert len(snap["competitors"]) == 3
     assert snap["population"]["source"] == "worldpop"
+    assert snap["population"]["admin"]["state"] == "Delhi"
+    rt = snap["population"]["routing"]
+    assert len(rt["car"]["km"]) == len(snap["zones"]) and len(rt["dest_keys"]) == 1 + len(snap["competitors"])
     assert abs(sum(z["population"] for z in snap["zones"]) - 42000) < 1
     assert snap["status"] == "partial"
 

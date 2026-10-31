@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Area, CartesianGrid, ComposedChart, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import AgentXray from "@/components/AgentXray";
+import { DataLineage, IncomeMix } from "@/components/RealData";
 import { CompareCard, HowAgentsDecide, runStrategy, StrataRead, StrategyLab, type Changes, type StrategyOut } from "@/components/StrategyLab";
 import { publishScreen, takePendingStrategy } from "@/lib/screen";
 import { BestStrategy } from "@/components/BestStrategy";
@@ -264,7 +265,7 @@ export default function LiveMarket() {
               <Segmented value={String(speed)} onChange={(v) => setSpeed(Number(v))} options={[{ value: "0.5", label: "½×" }, { value: "1", label: "1×" }, { value: "2", label: "2×" }, { value: "4", label: "4×" }]} />
               <Select value={colorMode} onChange={(e) => setColorMode(e.target.value as typeof colorMode)} className="h-8 w-auto text-xs" aria-label="Colour agents by">
                 <option value="choice">Colour: customer status</option>
-                <option value="segment">Colour: income segment</option>
+                <option value="segment">Colour: spending power (real data)</option>
                 <option value="mode">Colour: travel mode</option>
                 <option value="age">Colour: age group</option>
               </Select>
@@ -282,7 +283,10 @@ export default function LiveMarket() {
                   <div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-amber-300" /> Travelling to a competitor</div>
                 </div>
               )}
-              {colorMode === "segment" && abm.agents.segments.map((s, i) => <div key={s} className="flex items-center gap-2"><span className="h-2 w-2 rounded-full" style={{ background: ["#fb7185", "#fbbf24", "#C59BFF"][i] }} /> {s}</div>)}
+              {colorMode === "segment" && abm.agents.segments.map((s, i) => {
+                const c = res?.income?.classes[i];
+                return <div key={s} className="flex items-center gap-2"><span className="h-2 w-2 rounded-full" style={{ background: ["#fb7185", "#fbbf24", "#C59BFF"][i] }} /> {c ? `${c.label} · ${pct(c.share)} here` : s}</div>;
+              })}
               {colorMode === "mode" && abm.agents.modes.map((s, i) => <div key={s} className="flex items-center gap-2"><span className="h-2 w-2 rounded-full" style={{ background: ["#4ade80", "#38bdf8", "#f472b6", "#facc15", "#fb923c", "#c084fc", "#a3e635"][i] }} /> {MODE_LABEL[s] || s}</div>)}
               {colorMode === "age" && [["#93c5fd", "0–14"], ["#FF9F2E", "15–29"], ["#fbbf24", "30–49"], ["#f87171", "50+"]].map(([c, l]) => <div key={l} className="flex items-center gap-2"><span className="h-2 w-2 rounded-full" style={{ background: c }} /> {l}</div>)}
               <div className="mt-1.5 border-t border-white/[0.07] pt-1.5 text-ink-500">
@@ -327,6 +331,7 @@ export default function LiveMarket() {
                 </div>
               );
             })()}
+            {res.income && <IncomeMix income={res.income} />}
             <div className="grid grid-cols-2 gap-2 text-xs">
               {[
                 ["Month 3 " + unit, num(abm.monthly_units[abm.monthly_units.length - 1])],
@@ -396,6 +401,7 @@ export default function LiveMarket() {
               </div>
             </div>
             <HowAgentsDecide abm={abm} price={res.summary.price} />
+            <DataLineage res={res} />
             <div className="text-[11px] text-ink-500">
               <Badge className="mb-1">{abm.age_source === "worldpop" ? "Age–sex: WorldPop" : "Age–sex: default assumption"}</Badge>
               <p>{abm.note} Seed {abm.seed}; {num(abm.metrics.decision_events as number)} purchase decisions simulated in {num(abm.duration_ms)} ms{abm.timing_ms ? ` (genomes built in ${num(abm.timing_ms.genome)} ms)` : ""}.</p>

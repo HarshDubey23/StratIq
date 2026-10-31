@@ -38,6 +38,8 @@ class Settings:
     fsq_api_key: str = field(default_factory=lambda: os.getenv("FSQ_API_KEY", ""))
     ors_api_key: str = field(default_factory=lambda: os.getenv("ORS_API_KEY", ""))
     ors_url: str = field(default_factory=lambda: os.getenv("ORS_URL", "https://api.openrouteservice.org"))
+    routing_url: str = field(default_factory=lambda: os.getenv("ROUTING_URL", "https://routing.openstreetmap.de"))
+    routing_max_coords: int = field(default_factory=lambda: int(os.getenv("ROUTING_MAX_COORDS", "100")))
     anthropic_api_key: str = field(default_factory=lambda: os.getenv("ANTHROPIC_API_KEY", ""))
     anthropic_model: str = field(default_factory=lambda: os.getenv("ANTHROPIC_MODEL", "claude-haiku-5-5"))
     http_timeout_s: float = field(default_factory=lambda: float(os.getenv("HTTP_TIMEOUT_S", "40")))

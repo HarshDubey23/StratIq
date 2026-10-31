@@ -87,6 +87,7 @@ export default function AgentXray({ runId, agent, onClose, price, className }: {
               <Badge>{x.segment}</Badge>
               <Badge>{MODE_LABEL[x.mode] || x.mode}</Badge>
               <Badge>{s.dist_km} km from you</Badge>
+              {typeof s.mpce === "number" && <Badge>spends ₹{Math.round(s.mpce).toLocaleString("en-IN")}/month per person</Badge>}
               <Badge>WTP {money(s.wtp)}</Badge>
               {price !== undefined && <Badge tone={s.wtp >= price ? "ok" : "danger"}>{s.wtp >= price ? "can afford you" : "you're above their WTP"}</Badge>}
               <Badge tone={choice === 0 ? "accent" : choice > 0 ? "warn" : "neutral"}>

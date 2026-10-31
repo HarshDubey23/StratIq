@@ -18,10 +18,10 @@ from app.categories.archetypes import get_archetype
 from app.categories.competitors import classify_competitor
 from app.categories.resolver import resolve_offline
 from app.engine.abm import run_cohort_transition_baseline
-from app.engine.choice.conditional_logit import ChoiceDataset, ConditionalLogitEstimator
-from app.engine.choice.validation import evaluate_holdout
-from app.engine.economics.dental import DENTAL_PROCEDURES, DentalClinicEconomics
-from app.engine.geo import compute_spatial_matrices
+
+
+from app.engine.economics.dental import DentalClinicEconomics
+
 from app.engine.model import BusinessInputs, Competitor, ResolvedParams, Zone, build_arrays, run_choice
 from app.engine.population import AGE_BANDS, build_synthetic_population, validate_population
 from app.factors.evidence_map import EvidenceStatus

@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { MarketingCurve, PriceCurve, ProfitHistogram, Tornado } from "@/components/charts";
 import { Map as MarketMap } from "@/components/Map";
 import { useProject } from "@/components/ProjectContext";
+import { DataLineage, IncomeMix } from "@/components/RealData";
 import { Badge, Button, Card, CardHeader, cn, Dialog, EmptyState, ErrorState, Evidence, Field, Input, Metric, Notice, NumberInput, Segmented, Select, Spinner, statusToKind, Tip } from "@/components/ui";
 import { api, ApiError } from "@/lib/api";
 import { money, num, pct, signed } from "@/lib/format";
@@ -507,8 +508,12 @@ export default function SimulationLab() {
                     <div className="mt-0.5 text-[10px] text-ink-500">{num(s.units_to_user)} of your {res.unit_label}</div>
                   </div>
                 ))}
-                <p className="text-[10px] text-ink-500">Share of each synthetic segment whose assumed willingness to pay exceeds your price.</p>
+                <p className="text-[10px] text-ink-500">{res.income
+                  ? "Share of each spending class (India's bottom 40% / middle 40% / top 20%, sized from official data for this area) whose willingness to pay exceeds your price."
+                  : "Share of each synthetic segment whose assumed willingness to pay exceeds your price."}</p>
               </Card>
+              {res.income && <IncomeMix income={res.income} />}
+              <DataLineage res={res} />
               {res.drivers.length > 0 && (
                 <Card className="space-y-1.5 p-3 text-xs">
                   <div className="font-medium text-ink-200">What moves profit most</div>

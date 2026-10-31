@@ -7,6 +7,7 @@ import json
 import logging
 from datetime import datetime, timedelta, timezone
 
+import numpy as np
 from geoalchemy2.functions import ST_DWithin, ST_GeogFromText
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -17,8 +18,11 @@ from ..db import session_factory
 from ..engine import model as em
 from ..engine import genome as gm
 from ..engine.abm import build_population, cache_get, cache_put, run_abm
+from ..engine.economics import behaviour as eb
+from ..engine.economics import income as ei
 from ..engine.simulate import SimulationError, simulate
 from ..models import CandidateLocation, Competitor, MarketSnapshot, Project, Scenario, SimulationRun, utcnow
+from ..providers import routing as rt
 from ..providers.http import Cache, ProviderError
 from .market import build_snapshot
 
@@ -190,6 +194,52 @@ def baseline_price(project: Project) -> float | None:
     return float(base.inputs["price"]) if base else None
 
 
+EVIDENCE_VERSION = "real-data-1"  # bump when the evidence layer changes (part of the run's input hash)
+
+
+class MarketInputs:
+    """Everything the run needs from the snapshot's real-data layers, built identically for a run and its re-inspection."""
+
+    def __init__(self, arch, category_key: str | None, snap: MarketSnapshot, seed: int, circuity: float, speed_kmh: float):
+        keep = [i for i, z in enumerate(snap.zones) if z["population"] > 0]
+        self.zones = [em.Zone(snap.zones[i]["lat"], snap.zones[i]["lng"], snap.zones[i]["population"], snap.zones[i].get("activity", 0)) for i in keep]
+        self.zone_ll = np.array([[z.lat, z.lng] for z in self.zones]) if self.zones else np.zeros((0, 2))
+        pop_meta = snap.population or {}
+        adm = pop_meta.get("admin") or {}
+        self.routing = pop_meta.get("routing")
+        if self.routing:  # snapshot zones with zero population were dropped: keep the matching route rows
+            self.routing = {k: v for k, v in self.routing.items()}
+            for prof in ("car", "foot"):
+                if self.routing.get(prof) and len(self.routing[prof]["km"]) == len(snap.zones):
+                    self.routing[prof] = {m: [self.routing[prof][m][i] for i in keep] for m in ("km", "min")}
+        self.circuity, self.speed = circuity, speed_kmh
+        self.income = self.behaviour = None
+        self.arch = arch
+        india = adm.get("country_code") in ("IN", "", None)
+        if self.zones and india:
+            ctx = ei.build_context(self.zone_ll[:, 0], self.zone_ll[:, 1], state=adm.get("state"), sector=adm.get("settlement"))
+            if ctx.method == "rwi_rank" or adm.get("country_code") == "IN":
+                self.income = ctx
+                self.behaviour = eb.build(arch, category_key, ctx, len(self.zones), age_sex=pop_meta.get("age_sex"), seed=seed)
+                self.arch = eb.apply(arch, self.behaviour)
+
+    def route_fn(self, points: list[tuple[float, float]]):
+        if not self.routing or not len(self.zone_ll):
+            return None, None, 0.0
+        pts = [(rt.point_key(a, b), a, b) for a, b in points]
+        km, _, share = rt.matrix_for(self.routing, self.routing["dest_keys"], pts, self.zone_ll, self.circuity, self.speed, "car")
+        _, walk, _ = rt.matrix_for(self.routing, self.routing["dest_keys"], pts, self.zone_ll, self.circuity, 4.5, "foot")
+        return (km if share > 0 else None), walk, share
+
+    @property
+    def evidence_params(self) -> dict:
+        return self.behaviour.params if self.behaviour else {}
+
+    @property
+    def seg_share_z(self):
+        return self.behaviour.zone_shares if self.behaviour else None
+
+
 def execute_run(db: Session, project: Project, scenario: Scenario) -> SimulationRun:
     loc = db.get(CandidateLocation, scenario.location_id)
     snap = latest_snapshot(db, loc.id) if loc else None
@@ -217,14 +267,17 @@ def execute_run(db: Session, project: Project, scenario: Scenario) -> Simulation
         rent=float(inputs.get("rent", 0)), payroll=float(inputs.get("payroll", 0)), utilities=float(inputs.get("utilities", 0)),
         other_fixed=float(inputs.get("other_fixed", 0)), startup_cost=float(inputs.get("startup_cost", 0)),
     )
-    zones = [em.Zone(z["lat"], z["lng"], z["population"], z.get("activity", 0)) for z in snap.zones if z["population"] > 0]
+    base_params = em.ResolvedParams.from_archetype(arch, inputs.get("param_overrides") or {})
+    mi = MarketInputs(arch, (project.category or {}).get("key"), snap, seed, base_params.values.get("circuity", 1.3),
+                      base_params.values.get("urban_speed_kmh", 20.0))
+    zones = mi.zones
     ecomps = [em.Competitor(c.id, c.name, c.lat, c.lng, price=c.price, quality=c.quality, source="user" if c.source == "user" else "osm") for c in comps]
     snapshot_inputs = {
         "scenario": inputs, "category": project.category, "location": {"lat": loc.lat, "lng": loc.lng, "catchment": loc.catchment},
         "snapshot_id": snap.id, "competitors": [{"id": c.id, "name": c.name, "price": c.price, "quality": c.quality, "lat": c.lat, "lng": c.lng} for c in comps],
         "reference_price_filled": ref_fill, "model_version": em.MODEL_VERSION,
         "profile": {k: (project.profile or {}).get(k) for k in ("positioning", "operating_hours")}, "month0": gm.month_now(), "radius_km": radius,
-        "n_agents": get_settings().abm_agents,
+        "n_agents": get_settings().abm_agents, "evidence_version": EVIDENCE_VERSION,
     }
     run.inputs_snapshot = snapshot_inputs
     run.input_hash = _hash(snapshot_inputs)
@@ -234,15 +287,25 @@ def execute_run(db: Session, project: Project, scenario: Scenario) -> Simulation
     try:
         if not zones:
             raise SimulationError("Population data is unavailable for this catchment. Enter an approximate catchment population on the market page and reload.")
-        res = simulate(arch, zones, ecomps, biz, inputs.get("param_overrides") or {}, mc_draws=get_settings().mc_draws, seed=seed)
+        arch = mi.arch  # segments from the real income mix when the income layer ran
+        travel_km, _, route_share = mi.route_fn([(biz.lat, biz.lng)] + [(c.lat, c.lng) for c in ecomps])
+        res = simulate(arch, zones, ecomps, biz, inputs.get("param_overrides") or {}, mc_draws=get_settings().mc_draws, seed=seed,
+                       travel_km=travel_km, evidence=mi.evidence_params, seg_share_z=mi.seg_share_z)
         if ref_fill is not None:
             res["summary"]["reference_price_status"] = "assumption_baseline_price"
         # Agent-based "live market": synthetic people at real density, simulated day by day.
-        params = em.ResolvedParams.from_archetype(arch, inputs.get("param_overrides") or {})
+        params = em.ResolvedParams.from_archetype(arch, inputs.get("param_overrides") or {}, mi.evidence_params)
         abm = run_abm(arch, zones, ecomps, biz, params, float(res["summary"]["reference_price"]), n_agents=snapshot_inputs["n_agents"],
                       days=84, seed=seed, age_sex=snap.population.get("age_sex"), spacing_km=float(snap.population.get("spacing_km") or 0.35),
                       overrides=inputs.get("param_overrides") or {}, profile=snapshot_inputs["profile"], offer=inputs.get("offer"),
-                      radius_km=radius, month0=snapshot_inputs["month0"], cache_key=run.id)
+                      radius_km=radius, month0=snapshot_inputs["month0"], cache_key=run.id,
+                      income=mi.income, behaviour=mi.behaviour, route_fn=mi.route_fn)
+        res["income"] = mi.behaviour.summary if mi.behaviour else None
+        res["routing"] = {"share_routed": round(route_share, 3), "source": "osrm" if route_share > 0 else "haversine_circuity",
+                          "note": "Road-network distance (OSRM, OpenStreetMap roads) from every zone to the site and nearest competitors"
+                          if route_share > 0 else "Routing unavailable for this snapshot: straight-line distance x circuity factor"}
+        res["parameter_status"] = {k: params.status.get(k) for k in params.values}
+        res["parameter_sources"] = {k: v[4] for k, v in mi.evidence_params.items()}
         vcu, fixed = float(res["summary"]["variable_cost_per_unit"] or 0), float(res["finance"]["fixed_cost"] or 0)
         cap = float(res["summary"]["capacity_units"] or 0)
         abm["monthly_finance"] = [{"month": i + 1, "units": u, "capped_units": min(u, cap) if cap else u,
@@ -296,12 +359,20 @@ def population_for_run(db: Session, run: SimulationRun):
                                 marketing_spend=float(sc.get("marketing_spend", 0)), capacity=sc.get("capacity") or {})
         comps = [em.Competitor(c["id"], c.get("name") or "Competitor", c["lat"], c["lng"], price=c.get("price"), quality=c.get("quality"))
                  for c in ins.get("competitors", [])]
-        zones = [em.Zone(z["lat"], z["lng"], z["population"], z.get("activity", 0)) for z in snap.zones if z["population"] > 0]
-        params = em.ResolvedParams.from_archetype(arch, sc.get("param_overrides") or {})
+        base_params = em.ResolvedParams.from_archetype(arch, sc.get("param_overrides") or {})
+        mi = None
+        if ins.get("evidence_version"):
+            mi = MarketInputs(arch, (ins.get("category") or project.category or {}).get("key"), snap, int(run.seed),
+                              base_params.values.get("circuity", 1.3), base_params.values.get("urban_speed_kmh", 20.0))
+            zones, arch = mi.zones, mi.arch
+        else:  # runs made before the real-data layer: rebuild exactly as they were made
+            zones = [em.Zone(z["lat"], z["lng"], z["population"], z.get("activity", 0)) for z in snap.zones if z["population"] > 0]
+        params = em.ResolvedParams.from_archetype(arch, sc.get("param_overrides") or {}, mi.evidence_params if mi else None)
         pop = build_population(arch, zones, comps, biz, params, float(run.results["summary"]["reference_price"]), n_agents=int(abm["n_agents"]),
                                seed=int(run.seed), age_sex=snap.population.get("age_sex"), spacing_km=float(snap.population.get("spacing_km") or 0.35),
                                profile=ins.get("profile") or project.profile, offer=sc.get("offer"), overrides=sc.get("param_overrides") or {},
-                               month0=int(ins.get("month0", gm.month_now())), days=int(abm.get("days", 84)))
+                               month0=int(ins.get("month0", gm.month_now())), days=int(abm.get("days", 84)),
+                               income=mi.income if mi else None, behaviour=mi.behaviour if mi else None, route_fn=mi.route_fn if mi else None)
         cols = abm["agents"]["columns"]
         im = cols.index("in_market")
         pop.gen.G[:, gm.KI["ev_in_market"]] = [r[im] for r in abm["agents"]["rows"]]
