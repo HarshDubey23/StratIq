@@ -123,9 +123,13 @@ function describePage(): string {
   if (n.orders_today !== undefined) facts.push(`aaj ${num(n.orders_today)} orders`);
   if (n.competitors !== undefined) facts.push(`${num(n.competitors)} competitors map pe`);
   if (n.profit_per_month !== undefined) facts.push(`profit ${inr(n.profit_per_month)} mahina`);
+  // a few short lines that carry money or percentages: the figures a person would read first
+  const keyLines = pg.visible_text.split("\n").map((l) => l.trim())
+    .filter((l) => l.length > 3 && l.length < 70 && /₹|%|\blakh\b|\bcrore\b/i.test(l)).slice(0, 3);
   let s = `Aap ${name} pe ho.`;
   if (heads.length) s += ` Yahan dikh raha hai: ${heads.join("; ")}.`;
   if (facts.length) s += ` Numbers: ${facts.join(", ")}.`;
+  else if (keyLines.length) s += ` Main numbers: ${keyLines.join("; ")}.`;
   return s;
 }
 
@@ -141,6 +145,9 @@ function runSentence(o: Record<string, unknown>): string {
   if (a.chance_of_loss !== undefined && a.chance_of_loss !== null) s += `, aur loss wale mahine ka chance ${pct(a.chance_of_loss)}`;
   return s + ".";
 }
+
+// the last strategy we suggested, so "ye test karo" knows what "ye" is
+let lastSuggestion: Record<string, number> | null = null;
 
 /** Try to handle the request locally. `say` speaks an interim line for slow tools. */
 export async function route(qRaw: string, t: Tools, ctx: { projectOpen: boolean; say: (s: string) => void }): Promise<string | null> {
@@ -184,6 +191,15 @@ export async function route(qRaw: string, t: Tools, ctx: { projectOpen: boolean;
     return `${what} kar diya aur dobara simulate kiya.${runSentence(o)}`;
   }
 
+  // 2b. run the strategy we just suggested
+  if (lastSuggestion && /\b(ye|yeh|isko|isse|wo|woh|this|it|that|suggestion)\b.*\b(test|try|chalao|apply|lagao|run)\b|\b(test|try|apply|run|chalao)\s+(it|this|that|ye|yeh|karo)\b|^(haan|ha|yes|ok|okay)\b.*\b(test|karo|chalao)\b/i.test(q)) {
+    if (!ctx.projectOpen) return needProject;
+    ctx.say("Theek hai, ye strategy das hazaar agents pe chala raha hoon.");
+    const o = await call("test_strategy", lastSuggestion);
+    if (o.error) return `Simulation nahi chal payi: ${o.error}`;
+    return `Live map pe chala diya. ${o.spoken || ""}`.trim();
+  }
+
   // 3. report
   if (/\b(report|pdf)\b/i.test(q) && /\b(bana|banao|bana do|make|create|generate|naya|nayi|chahiye)\b/i.test(q)) {
     if (!ctx.projectOpen) return needProject;
@@ -215,6 +231,10 @@ export async function route(qRaw: string, t: Tools, ctx: { projectOpen: boolean;
     if (o.error) return `Optimizer nahi chal paya: ${o.error}`;
     const b = o.best || {};
     const c = o.current || {};
+    lastSuggestion = Object.fromEntries(
+      (["price", "marketing_spend", "capacity_scale"] as const).filter((k) => b[k] !== undefined && b[k] !== c[k]).map((k) => [k, Number(b[k])]),
+    );
+    if (!Object.keys(lastSuggestion).length) lastSuggestion = null;
     return `${num(o.combinations_tested)} combinations me sabse zyada profit: price ${inr(b.price)}, marketing ${inr(b.marketing_spend)} mahina` +
       (b.capacity_scale && b.capacity_scale !== 1 ? `, capacity ${Math.round((b.capacity_scale - 1) * 100)}% zyada` : "") +
       ` — profit ${inr(b.profit_per_month)} mahina, abhi ke ${inr(c.profit_per_month)} ke muqable. Bolo 'ye test karo' to main isse live map pe chala dunga.`;
@@ -295,7 +315,8 @@ export async function route(qRaw: string, t: Tools, ctx: { projectOpen: boolean;
       const projectPage = !["dashboard", "new_project", "methodology", "settings", "home"].includes(page);
       if (projectPage && !ctx.projectOpen) return needProject;
       await call("navigate", { page });
-      return `${name} khol diya. Is page ke baare me jaanna ho to bolo 'is page pe kya hai'.`;
+      await new Promise((r) => setTimeout(r, 1800)); // let the new page render before reading it
+      return `${name} khol diya. ${describePage()}`;
     }
   }
 

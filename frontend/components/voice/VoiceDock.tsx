@@ -87,6 +87,19 @@ function VoiceDockInner() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const convoRef = useRef<any>(null);
   const pending = useRef<string | null>(null);
+  // realtime health: a session that dies before the agent says anything was refused (no credits, limits); skip it for 10 min
+  const realtimeDown = useRef(false);
+  const wantRealtime = useRef(false);
+  const connectedAt = useRef(0);
+  const agentSpoke = useRef(false);
+  const fallbackRef = useRef<(why: string) => void>(() => {});
+  useEffect(() => {
+    try {
+      realtimeDown.current = Date.now() - Number(sessionStorage.getItem("siq-rt-down") || 0) < 600_000;
+    } catch {
+      /* storage blocked */
+    }
+  }, []);
 
   const [open, setOpen] = useState(false);
   const [engine, setEngine] = useState<Engine>("realtime");
@@ -375,6 +388,8 @@ function VoiceDockInner() {
   const convo: any = useConversation({
     clientTools: tools,
     onConnect: () => {
+      connectedAt.current = Date.now();
+      agentSpoke.current = false;
       setPhase("listening");
       const q = pending.current;
       pending.current = null;
@@ -383,15 +398,24 @@ function VoiceDockInner() {
         setTimeout(() => convoRef.current?.sendUserMessage?.(q), 400);
       }
     },
-    onDisconnect: () => setPhase("idle"),
+    onDisconnect: () => {
+      const refused = wantRealtime.current && !agentSpoke.current && (!connectedAt.current || Date.now() - connectedAt.current < 10_000);
+      if (refused) fallbackRef.current("Realtime voice abhi available nahi hai (ElevenLabs credits/limit), isliye browser voice pe chal raha hoon.");
+      else setPhase("idle");
+    },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onMessage: (m: any) => {
       const text = m?.message ?? m?.text;
       const src = m?.source ?? m?.role;
+      if (src !== "user") agentSpoke.current = true;
       if (text) push(src === "user" ? "you" : "strata", String(text));
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    onError: (e: any) => setErr(typeof e === "string" ? e : e?.message || "Voice connection error"),
+    onError: (e: any) => {
+      const msg = typeof e === "string" ? e : e?.message || "Voice connection error";
+      if (/quota|credit|limit|exceeded/i.test(msg)) fallbackRef.current("ElevenLabs ke credits khatam hain, isliye browser voice pe chal raha hoon.");
+      else setErr(msg);
+    },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any);
 
@@ -406,37 +430,80 @@ function VoiceDockInner() {
   const recRef = useRef<{ stop: () => void; start: () => void; abort: () => void } | null>(null);
   const wantRec = useRef(false);
   const speakingRef = useRef(false);
+  const recRunning = useRef(false);
+  const watchdog = useRef<ReturnType<typeof setInterval> | null>(null);
+  const voiceRef = useRef<SpeechSynthesisVoice | null>(null);
+  const speechChain = useRef<Promise<void>>(Promise.resolve());
 
-  const speak = useCallback((text: string) => {
-    return new Promise<void>((resolve) => {
-      if (typeof window === "undefined" || !("speechSynthesis" in window)) return resolve();
-      const u = new SpeechSynthesisUtterance(text.replace(/₹/g, "rupees "));
-      const voices = window.speechSynthesis.getVoices();
-      u.voice = voices.find((v) => v.lang === "hi-IN") || voices.find((v) => v.lang === "en-IN") || voices.find((v) => v.lang.startsWith("en-GB")) || voices.find((v) => v.lang.startsWith("en")) || null;
-      u.rate = 1.02;
+  /** Most natural Indian voice the browser has: Edge's neural en-IN / hi-IN, then Chrome's Google Hindi. */
+  useEffect(() => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    const pick = () => {
+      const score = (v: SpeechSynthesisVoice) =>
+        (v.lang === "en-IN" ? 12 : v.lang === "hi-IN" ? 11 : v.lang.startsWith("en") ? 2 : 0) +
+        (/natural|neural|online/i.test(v.name) ? 8 : 0) + (/google/i.test(v.name) ? 3 : 0) + (/neerja|swara|prabhat|madhur/i.test(v.name) ? 2 : 0);
+      voiceRef.current = [...window.speechSynthesis.getVoices()].sort((x, y) => score(y) - score(x))[0] || null;
+    };
+    pick();
+    window.speechSynthesis.addEventListener("voiceschanged", pick);
+    return () => window.speechSynthesis.removeEventListener("voiceschanged", pick);
+  }, []);
+
+  const startRec = useCallback(() => {
+    if (!recRef.current || recRunning.current || speakingRef.current || !wantRec.current) return;
+    try {
+      recRef.current.start();
+    } catch {
+      /* already starting */
+    }
+  }, []);
+
+  const speakNow = useCallback(
+    async (text: string) => {
+      if (typeof window === "undefined" || !("speechSynthesis" in window) || !text.trim()) return;
       speakingRef.current = true;
       setPhase("speaking");
       try {
-        recRef.current?.stop();
+        recRef.current?.abort(); // don't transcribe our own voice
       } catch {
         /* not running */
       }
-      u.onend = u.onerror = () => {
-        speakingRef.current = false;
-        if (wantRec.current) {
-          setPhase("listening");
-          try {
-            recRef.current?.start();
-          } catch {
-            /* already running */
+      // short sentences: Chrome silently stops utterances longer than ~15 s and never fires onend
+      const chunks = text.replace(/₹/g, "rupees ").match(/[^.!?।]+[.!?।]*/g) || [text];
+      for (const c of chunks.map((x) => x.trim()).filter(Boolean)) {
+        await new Promise<void>((resolve) => {
+          const u = new SpeechSynthesisUtterance(c);
+          if (voiceRef.current) {
+            u.voice = voiceRef.current;
+            u.lang = voiceRef.current.lang;
           }
-        }
-        resolve();
-      };
-      window.speechSynthesis.cancel();
-      window.speechSynthesis.speak(u);
-    });
-  }, []);
+          u.rate = 1.03;
+          const t = setTimeout(resolve, 2500 + c.length * 90); // safety net if onend never fires
+          u.onend = u.onerror = () => {
+            clearTimeout(t);
+            resolve();
+          };
+          window.speechSynthesis.speak(u);
+        });
+        if (!wantRec.current && !speakingRef.current) break;
+      }
+      speakingRef.current = false;
+      if (wantRec.current) {
+        setPhase("listening");
+        setTimeout(startRec, 150);
+      }
+    },
+    [startRec],
+  );
+  /** Lines are spoken in order and never cut each other off. */
+  const speak = useCallback(
+    (text: string) => {
+      const p = speechChain.current.then(() => speakNow(text));
+      speechChain.current = p.catch(() => undefined);
+      return p;
+    },
+    [speakNow],
+  );
 
   const askBackend = useCallback(
     async (q: string, pushed = false) => {
@@ -510,8 +577,13 @@ function VoiceDockInner() {
     },
     [askBackend, push, speak, tools],
   );
-  const runLocalRef = useRef(runLocal);
-  runLocalRef.current = runLocal;
+  const turnChain = useRef<Promise<void>>(Promise.resolve());
+  const queued = useCallback((q: string) => {
+    turnChain.current = turnChain.current.then(() => runLocal(q)).catch(() => undefined);
+    return turnChain.current;
+  }, [runLocal]);
+  const runLocalRef = useRef(queued);
+  runLocalRef.current = queued;
 
   const startBrowser = useCallback(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -542,31 +614,42 @@ function VoiceDockInner() {
         void runLocalRef.current(fin.trim());
       }
     };
+    rec.onstart = () => {
+      recRunning.current = true;
+    };
+    // Chrome ends recognition after silences, errors and ~60 s; restart every time while the panel is listening
     rec.onend = () => {
-      if (wantRec.current && !speakingRef.current) {
-        try {
-          rec.start();
-        } catch {
-          /* restarting too fast */
-        }
-      }
+      recRunning.current = false;
+      if (wantRec.current && !speakingRef.current) setTimeout(startRec, 200);
     };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     rec.onerror = (e: any) => {
-      if (e?.error === "not-allowed") {
+      if (e?.error === "not-allowed" || e?.error === "service-not-allowed") {
         setErr("Microphone permission was denied. Allow the mic in the address bar, or type instead.");
         wantRec.current = false;
         setTyping(true);
       }
     };
+    try {
+      recRef.current?.abort();
+    } catch {
+      /* none */
+    }
     recRef.current = rec;
     wantRec.current = true;
-    rec.start();
+    if (watchdog.current) clearInterval(watchdog.current);
+    watchdog.current = setInterval(() => {
+      if (wantRec.current && !speakingRef.current && !recRunning.current) startRec();
+    }, 2000);
+    startRec();
     setPhase("listening");
-  }, []);
+  }, [startRec]);
 
   const stopBrowser = useCallback(() => {
     wantRec.current = false;
+    speakingRef.current = false;
+    if (watchdog.current) clearInterval(watchdog.current);
+    watchdog.current = null;
     try {
       recRef.current?.abort();
     } catch {
@@ -633,14 +716,18 @@ function VoiceDockInner() {
         if (q) void runLocalRef.current(q);
         return;
       }
-      if (which === "realtime") {
+      if (which === "realtime" && !realtimeDown.current) {
         try {
+          wantRealtime.current = true;
+          connectedAt.current = 0;
+          agentSpoke.current = false;
           await convo.startSession({ agentId: AGENT_ID, connectionType: "webrtc" });
-          setEngine("realtime");
+          if (!realtimeDown.current) setEngine("realtime");
           return;
         } catch (e) {
           console.warn("realtime voice failed, falling back to browser voice", e);
-          setErr("Realtime voice unavailable right now; switched to browser voice.");
+          wantRealtime.current = false;
+          setErr("Realtime voice abhi available nahi hai, isliye browser voice pe chal raha hoon.");
         }
       }
       setEngine("browser");
@@ -653,6 +740,7 @@ function VoiceDockInner() {
   );
 
   const stop = useCallback(async () => {
+    wantRealtime.current = false;
     try {
       if (engine === "realtime") await convo.endSession();
     } catch {
@@ -663,6 +751,24 @@ function VoiceDockInner() {
     setPhase("idle");
     setInterim("");
   }, [convo, engine, stopBrowser, stopMeter]);
+
+  // realtime refused: keep the mic open, switch to browser voice and answer whatever was asked
+  fallbackRef.current = (why: string) => {
+    if (wantRec.current) return; // already fell back (onError and onDisconnect can both fire)
+    realtimeDown.current = true;
+    wantRealtime.current = false;
+    try {
+      sessionStorage.setItem("siq-rt-down", String(Date.now()));
+    } catch {
+      /* storage blocked */
+    }
+    setErr(why);
+    setEngine("browser");
+    startBrowser();
+    const q = pending.current;
+    pending.current = null;
+    if (q) void runLocalRef.current(q);
+  };
 
   useEffect(() => () => {
     stopBrowser();
@@ -691,12 +797,12 @@ function VoiceDockInner() {
       convo.sendUserMessage(q);
       return;
     }
-    if (engine === "realtime" && !active) {
+    if (engine === "realtime" && !active && !realtimeDown.current) {
       pending.current = q;
       await start("realtime");
       return;
     }
-    await runLocal(q);
+    await runLocalRef.current(q);
   };
   const sendTyped = async () => {
     const q = draft.trim();
