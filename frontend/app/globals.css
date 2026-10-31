@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 /*
-  StrataIQ — "Paper & cobalt"
-  A light, editorial interface: warm paper ground, white surfaces, near-black type,
+  StrataIQ — "Survey blue" (app side)
+  A light, cool interface: blue-grey ground, white surfaces, near-black type,
   one cobalt for *you* (your site, your customers). Data colours always encode provenance:
   amber = observed competitors, green = field-verified, red = synthetic agents.
 
@@ -11,23 +11,23 @@
 */
 @theme {
   --font-sans: var(--font-inter-tight), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-inter-tight), ui-sans-serif, sans-serif;
+  --font-display: var(--font-archivo), var(--font-inter-tight), ui-sans-serif, sans-serif;
   --font-serif: var(--font-instrument), ui-serif, Georgia, serif;
   --font-mono: var(--font-jbmono), ui-monospace, SFMono-Regular, monospace;
   --font-deva: var(--font-tiro), serif;
 
-  --color-ink-950: #f5f3ee; /* page */
+  --color-ink-950: #f3f4f7; /* page */
   --color-ink-900: #ffffff; /* surface */
-  --color-ink-850: #fbfaf7;
-  --color-ink-800: #f0eee8;
-  --color-ink-700: #e7e4dc; /* hairline */
-  --color-ink-600: #d8d4ca;
-  --color-ink-500: #a9a59b;
-  --color-ink-400: #75716a; /* tertiary text */
-  --color-ink-300: #5c5953; /* secondary text */
-  --color-ink-200: #34322e;
-  --color-ink-100: #131312; /* primary text */
-  --color-paper: #f5f3ee;
+  --color-ink-850: #f9fafb;
+  --color-ink-800: #eef0f4;
+  --color-ink-700: #e2e5eb; /* hairline */
+  --color-ink-600: #d1d5dd;
+  --color-ink-500: #9ba1ad;
+  --color-ink-400: #6b7180; /* tertiary text */
+  --color-ink-300: #4a505d; /* secondary text */
+  --color-ink-200: #282c35;
+  --color-ink-100: #0d1017; /* primary text */
+  --color-paper: #f3f4f7;
 
   --color-accent: #2f49ff;      /* you: candidate site, your customers (cobalt) */
   --color-accent-dim: #dfe4ff;
@@ -35,7 +35,7 @@
   --color-field: #3f7a14;       /* verified on the ground by a field researcher */
   --color-userdata: #7c3aed;    /* user-entered evidence */
   --color-model: #0f766e;       /* model estimate */
-  --color-assumption: #6b6760;  /* assumption */
+  --color-assumption: #6b7180;  /* assumption */
   --color-agent: #e5484d;       /* synthetic agents */
   --color-warn: #a16207;
   --color-danger: #dc2626;
@@ -68,8 +68,8 @@ body {
 
 .font-display {
   font-family: var(--font-display);
-  font-optical-sizing: auto;
-  letter-spacing: -0.04em;
+  font-stretch: 112%;
+  letter-spacing: -0.035em;
 }
 
 /* editorial accent: an italic serif word inside a sans headline */
@@ -109,7 +109,7 @@ body {
   border: 1px solid rgb(0 0 0 / 0.07);
   backdrop-filter: blur(18px) saturate(1.4);
   -webkit-backdrop-filter: blur(18px) saturate(1.4);
-  box-shadow: 0 1px 2px rgb(20 18 10 / 0.05), 0 18px 48px -20px rgb(20 18 10 / 0.22);
+  box-shadow: 0 1px 2px rgb(13 16 40 / 0.05), 0 18px 48px -20px rgb(13 16 40 / 0.22);
 }
 
 .contours {
@@ -133,7 +133,7 @@ body {
 }
 .lift:hover {
   transform: translateY(-2px);
-  box-shadow: 0 1px 2px rgb(20 18 10 / 0.04), 0 22px 44px -24px rgb(20 18 10 / 0.25);
+  box-shadow: 0 1px 2px rgb(13 16 40 / 0.04), 0 22px 44px -24px rgb(13 16 40 / 0.25);
 }
 
 .sheen {
@@ -409,7 +409,7 @@ html.lenis body {
 .maplibregl-ctrl-group {
   background: rgb(255 255 255 / 0.92) !important;
   border: 1px solid rgb(0 0 0 / 0.08) !important;
-  box-shadow: 0 8px 24px -12px rgb(20 18 10 / 0.25) !important;
+  box-shadow: 0 8px 24px -12px rgb(13 16 40 / 0.25) !important;
   border-radius: 10px !important;
   overflow: hidden;
 }
@@ -436,7 +436,7 @@ html.lenis body {
   border-radius: 10px;
   padding: 8px 10px;
   font-size: 12px;
-  box-shadow: 0 12px 30px -14px rgb(20 18 10 / 0.3);
+  box-shadow: 0 12px 30px -14px rgb(13 16 40 / 0.3);
 }
 .maplibregl-popup-tip {
   border-top-color: #fff !important;

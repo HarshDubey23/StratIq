@@ -91,6 +91,8 @@ export default function MapView(props: Props) {
   const deck = useRef<DeckHandle | null>(null);
   const [deckReady, setDeckReady] = useState(false);
   const introDone = useRef(false);
+  const [zoom, setZoom] = useState(13);
+  const streetLevel = zoom >= 14.6;
 
   // ---- create map once ----
   useEffect(() => {
@@ -134,6 +136,7 @@ export default function MapView(props: Props) {
           });
           setDeckReady(true);
         });
+        m.on("zoomend", () => setZoom(m!.getZoom()));
         m.addSource("siq-catchment", { type: "geojson", data: EMPTY });
         m.addSource("siq-zones", { type: "geojson", data: EMPTY });
         m.addSource("siq-activity", { type: "geojson", data: EMPTY });
@@ -298,15 +301,15 @@ export default function MapView(props: Props) {
       d.type = "button";
       d.setAttribute("aria-label", `Candidate ${c.label}`);
       d.style.cssText = `display:flex;align-items:center;gap:6px;padding:3px 8px 3px 4px;border-radius:999px;font:600 11px var(--font-inter-tight),sans-serif;cursor:pointer;
-        background:${c.active ? "#2F49FF" : "#FFFFFF"};color:${c.active ? "#F5F3EE" : "#131312"};border:1px solid ${c.active ? "#8A9BFF" : "#D8D4CA"};box-shadow:0 6px 16px -6px rgba(20,18,10,.35)`;
+        background:${c.active ? "#2F49FF" : "#FFFFFF"};color:${c.active ? "#F3F4F7" : "#131312"};border:1px solid ${c.active ? "#8A9BFF" : "#D8D4CA"};box-shadow:0 6px 16px -6px rgba(13,16,40,.35)`;
       const dot = document.createElement("span");
-      dot.style.cssText = `width:10px;height:10px;border-radius:999px;background:${c.active ? "#F5F3EE" : "#2F49FF"}`;
+      dot.style.cssText = `width:10px;height:10px;border-radius:999px;background:${c.active ? "#F3F4F7" : "#2F49FF"}`;
       const t = document.createElement("span");
       t.textContent = c.label;
       if (c.active) {
         dot.style.position = "relative";
         const ring = document.createElement("span");
-        ring.style.cssText = "position:absolute;inset:-4px;border-radius:999px;border:2px solid #F5F3EE;animation:ping-soft 1.8s cubic-bezier(.16,1,.3,1) infinite";
+        ring.style.cssText = "position:absolute;inset:-4px;border-radius:999px;border:2px solid #F3F4F7;animation:ping-soft 1.8s cubic-bezier(.16,1,.3,1) infinite";
         dot.append(ring);
       }
       d.append(dot, t);
@@ -368,10 +371,11 @@ export default function MapView(props: Props) {
           id: "comp-glow", data: comps, getPosition: (c: MapCompetitor) => [c.lng, c.lat], getRadius: 70, radiusUnits: "meters",
           getFillColor: (c: MapCompetitor) => (c.kind === "osm" || c.kind === "fsq" ? [...C.comp, 55] : c.kind === "field" ? [...C.field, 55] : [...C.user, 55]) as [number, number, number, number], stroked: false,
         }),
-      depth && L.competitors !== false &&
+      // names only from street level, so they never pile into one blob when zoomed out
+      depth && L.competitors !== false && streetLevel &&
         new DL.TextLayer({
           id: "comp-labels",
-          data: [...comps].filter((c) => c.name && !/^unnamed/i.test(c.name)).sort((a, b) => (w[b.id] || 0) - (w[a.id] || 0)).slice(0, 30),
+          data: [...comps].filter((c) => c.name && !/^unnamed/i.test(c.name)).sort((a, b) => (w[b.id] || 0) - (w[a.id] || 0)).slice(0, 12),
           getPosition: (c: MapCompetitor) => [c.lng, c.lat, 120 + ((w[c.id] || 0) / wmax) * 520 + 30],
           getText: (c: MapCompetitor) => (c.name.length > 26 ? `${c.name.slice(0, 25)}…` : c.name),
           getSize: 12, sizeUnits: "pixels", getColor: [19, 19, 18, 240], getTextAnchor: "middle", getAlignmentBaseline: "bottom",
@@ -409,7 +413,7 @@ export default function MapView(props: Props) {
           transitions: { getElevation: { duration: 1600, easing: easeOut, enter: () => [0] } },
         }),
     ].filter(Boolean));
-  }, [deckReady, props.zones, props.competitors, props.candidates, props.layers, props.depth, props.zoneSpacingKm, props.competitorWeight, props.opportunity]);
+  }, [deckReady, streetLevel, props.zones, props.competitors, props.candidates, props.layers, props.depth, props.zoneSpacingKm, props.competitorWeight, props.opportunity]);
 
   useEffect(() => {
     const m = map.current;

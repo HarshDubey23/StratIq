@@ -37,6 +37,7 @@ export default function MarketPage() {
   const [sel, setSel] = useState<string | null>(null);
   const [addMode, setAddMode] = useState(false);
   const [draft, setDraft] = useState<{ lat: number; lng: number } | null>(null);
+  const [layersOpen, setLayersOpen] = useState(false);
   const [layers, setLayers] = useState<Record<LayerKey, boolean>>({ catchment: true, zones: true, competitors: true, agents: false, activity: false, buildings3d: true });
   const [baseResult, setBaseResult] = useState<SimResult | null>(null);
   const [dirty, setDirty] = useState(false);
@@ -200,9 +201,15 @@ export default function MarketPage() {
             <MapPinPlus className="h-3.5 w-3.5" /> {addMode ? "Click the map to place it" : "Add competitor"}
           </Button>
         </div>
-        <div className="panel absolute bottom-8 left-3 z-10 w-56 rounded-xl p-3 text-xs">
-          <div className="mb-1.5 flex items-center gap-1.5 font-medium text-ink-200"><Layers className="h-3.5 w-3.5" /> Layers</div>
-          {(
+        <div className={cn("panel absolute bottom-8 left-3 z-10 rounded-xl text-xs transition-[width] duration-300", layersOpen ? "w-56 p-3" : "w-auto p-0")}>
+          <button
+            onClick={() => setLayersOpen((x) => !x)}
+            aria-expanded={layersOpen}
+            className={cn("flex items-center gap-1.5 font-medium text-ink-200", layersOpen ? "mb-1.5" : "h-9 px-3")}
+          >
+            <Layers className="h-3.5 w-3.5" /> Layers
+          </button>
+          {layersOpen && (
             [
               ["catchment", "Catchment", "border-accent"],
               ["zones", "Population zones", "bg-[#6E5BFF]"],
@@ -219,9 +226,11 @@ export default function MarketPage() {
               {k === "agents" && !baseResult && <span className="text-ink-500">(run first)</span>}
             </label>
           ))}
-          <div className="mt-1.5 border-t border-black/[0.07] pt-1.5 text-[10px] leading-snug text-ink-500">
-            Purple = user-entered competitors; white ring = hypothetical. Building heights are shown only where mapped in OSM.
-          </div>
+          {layersOpen && (
+            <div className="mt-1.5 border-t border-black/[0.07] pt-1.5 text-[10px] leading-snug text-ink-500">
+              Purple = user-entered competitors; white ring = hypothetical. Building heights are shown only where mapped in OSM.
+            </div>
+          )}
         </div>
         {loading && !refreshing && <div className="absolute right-14 top-3 z-10 rounded bg-ink-900/90 px-2 py-1"><Spinner label="Loading" /></div>}
         {(autoRunning || liveReady) && (

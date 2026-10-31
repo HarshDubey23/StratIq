@@ -141,7 +141,7 @@ export default function LiveMap(p: LiveMapProps) {
       const d = document.createElement("div");
       const sz = you ? 22 : 10 + Math.min(14, (shares[b.idx - 1] || 0) * 60);
       d.title = you ? "Your business" : `${b.name} (modeled share ${Math.round((shares[b.idx - 1] || 0) * 100)}%)`;
-      d.style.cssText = `width:${sz}px;height:${sz}px;border-radius:999px;background:${you ? "#2F49FF" : "#F59E0B"};border:2px solid #F5F3EE;box-shadow:0 0 0 ${you ? 6 : 3}px ${you ? "rgba(47,73,255,.28)" : "rgba(245,158,11,.28)"};${you ? "animation:siqpulse 1.6s infinite" : ""}`;
+      d.style.cssText = `width:${sz}px;height:${sz}px;border-radius:999px;background:${you ? "#2F49FF" : "#F59E0B"};border:2px solid #F3F4F7;box-shadow:0 0 0 ${you ? 6 : 3}px ${you ? "rgba(47,73,255,.28)" : "rgba(245,158,11,.28)"};${you ? "animation:siqpulse 1.6s infinite" : ""}`;
       return new maplibregl.Marker({ element: d }).setLngLat([b.lng, b.lat]).addTo(m);
     });
   }, [ready, p.abm]);

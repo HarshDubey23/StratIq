@@ -14,7 +14,7 @@ const btnBase =
   "inline-flex items-center justify-center gap-2 rounded-lg text-sm font-medium tracking-[-0.01em] transition-[background,color,box-shadow,transform,border-color] duration-300 ease-out active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap";
 const btnVariants: Record<BtnVariant, string> = {
   primary: "sheen bg-accent text-white shadow-[0_1px_0_rgba(255,255,255,.25)_inset,0_6px_18px_-8px_rgba(47,73,255,.7)] hover:bg-[#2238e0]",
-  secondary: "border border-black/[0.09] bg-white text-ink-100 shadow-[0_1px_2px_rgba(20,18,10,.04)] hover:border-black/20",
+  secondary: "border border-black/[0.09] bg-white text-ink-100 shadow-[0_1px_2px_rgba(13,16,40,.04)] hover:border-black/20",
   ghost: "text-ink-300 hover:bg-black/[0.05] hover:text-ink-100",
   danger: "border border-danger/40 bg-danger/10 text-red-700 hover:bg-danger/20",
 };
@@ -58,7 +58,7 @@ export function ButtonLink({
 
 export function Card({ className, children, ...rest }: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn("rounded-xl border border-black/[0.07] bg-white shadow-[0_1px_2px_rgba(20,18,10,.03)]", className)} {...rest}>
+    <div className={cn("rounded-xl border border-black/[0.07] bg-white shadow-[0_1px_2px_rgba(13,16,40,.03)]", className)} {...rest}>
       {children}
     </div>
   );

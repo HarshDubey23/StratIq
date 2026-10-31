@@ -805,7 +805,7 @@ function VoiceDockInner() {
 
       <button
         onClick={() => (open ? (active ? void stop() : void start()) : (setOpen(true), void start()))}
-        className="group pointer-events-auto flex items-center rounded-full border border-black/[0.08] bg-white/90 p-1.5 shadow-[0_1px_2px_rgba(20,18,10,.05),0_18px_40px_-16px_rgba(20,18,10,.35)] backdrop-blur-xl transition-[border-color,transform] duration-500 hover:-translate-y-0.5 hover:border-accent/40"
+        className="group pointer-events-auto flex items-center rounded-full border border-black/[0.08] bg-white/90 p-1.5 shadow-[0_1px_2px_rgba(13,16,40,.05),0_18px_40px_-16px_rgba(13,16,40,.35)] backdrop-blur-xl transition-[border-color,transform] duration-500 hover:-translate-y-0.5 hover:border-accent/40"
         aria-label={active ? "Stop voice analyst" : "Talk to Strata, the voice analyst"}
         title="Strata se baat karo · press V"
       >
@@ -831,7 +831,7 @@ function Orb({ level, phase, size }: { level: number; phase: Phase; size: number
         style={{
           transform: `scale(${s})`,
           transition: "transform 90ms linear",
-          background: "conic-gradient(from 210deg, #2F49FF, #E5484D, #F59E0B, #0F766E, #2F49FF)",
+          background: "conic-gradient(from 210deg, #2F49FF, #7F93FF, #C7D0FF, #5A70FF, #2F49FF)",
           filter: "blur(6px)",
           opacity: phase === "idle" ? 0.55 : 0.95,
           animation: busy ? "orb-spin 1.6s linear infinite" : "orb-spin 9s linear infinite",

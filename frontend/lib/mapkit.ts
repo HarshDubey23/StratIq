@@ -12,12 +12,12 @@ export const STYLE_DARK = "https://tiles.openfreemap.org/styles/positron"; // li
 export const STYLE_FALLBACK = "https://tiles.openfreemap.org/styles/liberty";
 
 export const C = {
-  ground: "#efede6",
-  water: "#cfdcea",
-  park: "#e1e8d6",
+  ground: "#eef0f4",
+  water: "#d2ddef",
+  park: "#e2ebdf",
   road: "#ffffff",
-  roadMajor: "#fbfaf6",
-  label: "#7a766d",
+  roadMajor: "#ffffff",
+  label: "#6b7180",
   you: [47, 73, 255] as [number, number, number],
   youSoft: [138, 155, 255] as [number, number, number],
   comp: [245, 158, 11] as [number, number, number],
@@ -61,7 +61,7 @@ function blueprint(m: MLMap, layers: { id: string; type: string }[], minzoom: nu
       if (/road|highway|street|tunnel|bridge|path|rail/.test(id)) {
         const major = /motorway|trunk|primary|major/.test(id);
         safe(() => m.setPaintProperty(l.id, "line-color", BP.line));
-        safe(() => m.setPaintProperty(l.id, "line-opacity", major ? 0.75 : 0.32));
+        safe(() => m.setPaintProperty(l.id, "line-opacity", major ? 0.5 : 0.18));
       } else if (!id.includes("water")) safe(() => m.setLayoutProperty(l.id, "visibility", "none"));
     } else if (l.type === "symbol") safe(() => m.setLayoutProperty(l.id, "visibility", "none"));
   }
@@ -128,7 +128,7 @@ export function enhanceMap(m: MLMap, opts: { buildingsMinZoom?: number; building
           paint: {
             "fill-extrusion-color": [
               "interpolate", ["linear"], ["coalesce", ["get", "render_height"], 6],
-              0, "#f7f5f0", 12, "#efece5", 30, "#e6e2d9", 80, "#dad5ca", 200, "#cbc5b8",
+              0, "#f8f9fb", 12, "#eef0f4", 30, "#e3e6ec", 80, "#d5d9e1", 200, "#c4c9d3",
             ],
             "fill-extrusion-height": ["interpolate", ["linear"], ["zoom"], 12.5, 0, 14, ["coalesce", ["get", "render_height"], 6]],
             "fill-extrusion-base": ["coalesce", ["get", "render_min_height"], 0],
@@ -141,13 +141,13 @@ export function enhanceMap(m: MLMap, opts: { buildingsMinZoom?: number; building
     );
   }
   // low sun from the side gives the white blocks readable faces
-  safe(() => m.setLight({ anchor: "map", color: "#fff6ea", intensity: 0.5, position: [1.3, 210, 40] }));
+  safe(() => m.setLight({ anchor: "map", color: "#ffffff", intensity: 0.5, position: [1.3, 210, 40] }));
   const anyMap = m as unknown as { setSky?: (s: Record<string, unknown>) => void };
   safe(() =>
     anyMap.setSky?.({
       "sky-color": "#dfe6f6",
-      "horizon-color": "#f3efe6",
-      "fog-color": "#F5F3EE",
+      "horizon-color": "#eef1f7",
+      "fog-color": "#F3F4F7",
       "sky-horizon-blend": 0.6,
       "horizon-fog-blend": 0.7,
       "fog-ground-blend": 0.35,

@@ -220,6 +220,13 @@ export default function Landing() {
   const [busy, setBusy] = useState<null | "live" | "idea">(null);
   const [goErr, setGoErr] = useState<string | null>(null);
   const [opened, setOpened] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const on = () => setScrolled(window.scrollY > 24);
+    on();
+    window.addEventListener("scroll", on, { passive: true });
+    return () => window.removeEventListener("scroll", on);
+  }, []);
   const placeholder = useTypewriter(IDEAS);
   const { progress, scene } = useStoryProgress();
   useLenis();
@@ -282,8 +289,8 @@ export default function Landing() {
     <div className="lp relative">
       <Intro onDone={() => setOpened(true)} />
 
-      <header className="fixed inset-x-0 top-0 z-40">
-        <nav className="mx-auto flex h-[72px] max-w-[1400px] items-center justify-between px-5 md:px-10">
+      <header className={cn("fixed inset-x-0 top-0 z-40 transition-[background-color,border-color] duration-500", "border-b bg-[#2F49FF]/90 backdrop-blur-md", scrolled ? "border-white/15" : "border-transparent")}>
+        <nav className="mx-auto flex h-16 max-w-[1400px] items-center justify-between px-5 md:px-10">
           <Wordmark />
           <div className="hidden items-center gap-8 text-[14.5px] text-white/75 md:flex">
             <a href="#story" className="lp-link">How it works</a>
@@ -304,7 +311,7 @@ export default function Landing() {
           <div className="sticky top-0 h-[100svh] overflow-hidden">
             <HeroMap spot={spot} comps={comps} scene={scene} progress={progress} />
             <div aria-hidden className="lp-grid pointer-events-none absolute inset-0" />
-            <div aria-hidden className={cn("pointer-events-none absolute inset-0 transition-opacity duration-700", scene === 0 ? "opacity-100" : "opacity-0")} style={{ background: "radial-gradient(90% 75% at 0% 100%, rgba(16,28,160,.9), rgba(16,28,160,.35) 45%, transparent 70%)" }} />
+            <div aria-hidden className={cn("pointer-events-none absolute inset-0 transition-opacity duration-700", scene === 0 ? "opacity-100" : "opacity-0")} style={{ background: "radial-gradient(95% 80% at 0% 100%, rgba(26,40,200,.92), rgba(26,40,200,.45) 45%, rgba(47,73,255,0) 72%)" }} />
             <ol aria-hidden className={cn("pointer-events-none absolute right-5 top-1/2 hidden -translate-y-1/2 flex-col gap-3 transition-opacity duration-700 md:flex md:right-10", scene > 0 ? "opacity-100" : "opacity-0")}>
               {CHAPTERS.map((c, i) => (
                 <li key={c.title} className={cn("h-px transition-all duration-500", scene === i + 1 ? "w-12 bg-white" : scene > i + 1 ? "w-6 bg-white/70" : "w-6 bg-white/30")} />
@@ -401,12 +408,13 @@ export default function Landing() {
                   </div>
                 </section>
               ))}
+              <div aria-hidden className="h-[45svh] bg-gradient-to-b from-transparent via-[#2F49FF]/70 to-[#2F49FF]" />
             </div>
           </div>
         </div>
 
         {/* ---------------- field research ---------------- */}
-        <section id="field" className="relative border-t border-white/15">
+        <section id="field" className="relative">
           <div className="mx-auto grid max-w-[1400px] items-center gap-16 px-5 py-28 md:px-10 md:py-40 lg:grid-cols-[1.15fr_0.85fr]">
             <div>
               <h2 className="lp-wide text-[clamp(2.4rem,5.4vw,5.4rem)] leading-[0.9] tracking-[-0.045em]">When the map runs out, someone walks the street.</h2>

@@ -17,7 +17,7 @@ export const metadata: Metadata = {
     "Pick any business and any place. StrataIQ loads the real competitors and population around it, adds ground data from a field researcher, simulates 10,000 customers on a 3D map, and shows profit, risk and break-even before you invest.",
 };
 
-export const viewport: Viewport = { themeColor: "#f5f3ee", colorScheme: "light" };
+export const viewport: Viewport = { themeColor: "#f3f4f7", colorScheme: "light" };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
