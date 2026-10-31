@@ -42,6 +42,10 @@ class Settings:
     routing_max_coords: int = field(default_factory=lambda: int(os.getenv("ROUTING_MAX_COORDS", "100")))
     anthropic_api_key: str = field(default_factory=lambda: os.getenv("ANTHROPIC_API_KEY", ""))
     anthropic_model: str = field(default_factory=lambda: os.getenv("ANTHROPIC_MODEL", "claude-haiku-5-5"))
+    # Speko voice gateway: LLM brain + Hinglish TTS for the voice analyst
+    speko_api_key: str = field(default_factory=lambda: os.getenv("SPEKO_API_KEY", ""))
+    speko_url: str = field(default_factory=lambda: os.getenv("SPEKO_URL", "https://api.speko.dev"))
+    speko_voice: str = field(default_factory=lambda: os.getenv("SPEKO_VOICE", "cb9c954d-bcaa-43ed-82bf-aeb5e88a3cb5"))  # Cartesia Hindi male
     http_timeout_s: float = field(default_factory=lambda: float(os.getenv("HTTP_TIMEOUT_S", "40")))
     persons_per_building: float = field(default_factory=lambda: float(os.getenv("PERSONS_PER_BUILDING", "12")))
     abm_agents: int = field(default_factory=lambda: int(os.getenv("ABM_AGENTS", "10000")))

@@ -25,6 +25,18 @@ import { quickCreate } from "@/components/QuickStart";
 const AGENT_ID = process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID || "agent_3201m5jvb75gfymtmw8m34wck59b";
 
 type Engine = "realtime" | "browser";
+interface AgentCall {
+  id: string;
+  name: string;
+  args: string;
+}
+interface AgentMsg {
+  role: "user" | "assistant" | "tool";
+  content: string;
+  toolCalls?: AgentCall[];
+  toolCallId?: string;
+  isError?: boolean;
+}
 type Phase = "idle" | "connecting" | "listening" | "thinking" | "speaking";
 interface Turn {
   who: "you" | "strata";
@@ -102,7 +114,8 @@ function VoiceDockInner() {
   }, []);
 
   const [open, setOpen] = useState(false);
-  const [engine, setEngine] = useState<Engine>("realtime");
+  // Speko (browser ears + Speko brain and voice) is the default; ElevenLabs realtime stays selectable
+  const [engine, setEngine] = useState<Engine>("browser");
   const [phase, setPhase] = useState<Phase>("idle");
   const [turns, setTurns] = useState<Turn[]>([]);
   const [interim, setInterim] = useState("");
@@ -458,9 +471,42 @@ function VoiceDockInner() {
     }
   }, []);
 
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const ttsFailures = useRef(0);
+  /** Natural Hinglish voice from Speko (Cartesia Hindi). Throws so the caller can fall back to the browser voice. */
+  const playSpeko = useCallback(async (text: string) => {
+    const r = await fetch("/api/v1/assistant/tts", {
+      method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: text.slice(0, 1500) }),
+    });
+    if (!r.ok) throw new Error(`tts ${r.status}`);
+    const url = URL.createObjectURL(await r.blob());
+    try {
+      const a = new Audio(url);
+      audioRef.current = a;
+      await new Promise<void>((resolve, reject) => {
+        const t = setTimeout(resolve, 90_000);
+        a.onended = () => {
+          clearTimeout(t);
+          resolve();
+        };
+        a.onerror = () => {
+          clearTimeout(t);
+          reject(new Error("audio"));
+        };
+        a.play().catch((e) => {
+          clearTimeout(t);
+          reject(e);
+        });
+      });
+    } finally {
+      audioRef.current = null;
+      URL.revokeObjectURL(url);
+    }
+  }, []);
+
   const speakNow = useCallback(
     async (text: string) => {
-      if (typeof window === "undefined" || !("speechSynthesis" in window) || !text.trim()) return;
+      if (typeof window === "undefined" || !text.trim()) return;
       speakingRef.current = true;
       setPhase("speaking");
       try {
@@ -468,8 +514,27 @@ function VoiceDockInner() {
       } catch {
         /* not running */
       }
+      const spoken = text.replace(/₹\s?([\d,.]+(?:\s?(?:lakh|crore))?)/g, "$1 rupaye").replace(/₹/g, "");
+      let done = false;
+      if (ttsFailures.current < 2) {
+        try {
+          await playSpeko(spoken);
+          done = true;
+          ttsFailures.current = 0;
+        } catch {
+          ttsFailures.current++;
+        }
+      }
+      if (done || !("speechSynthesis" in window)) {
+        speakingRef.current = false;
+        if (wantRec.current) {
+          setPhase("listening");
+          setTimeout(startRec, 150);
+        }
+        return;
+      }
       // short sentences: Chrome silently stops utterances longer than ~15 s and never fires onend
-      const chunks = text.replace(/₹/g, "rupees ").match(/[^.!?।]+[.!?।]*/g) || [text];
+      const chunks = spoken.match(/[^.!?।]+[.!?।]*/g) || [text];
       for (const c of chunks.map((x) => x.trim()).filter(Boolean)) {
         await new Promise<void>((resolve) => {
           const u = new SpeechSynthesisUtterance(c);
@@ -493,7 +558,7 @@ function VoiceDockInner() {
         setTimeout(startRec, 150);
       }
     },
-    [startRec],
+    [playSpeko, startRec],
   );
   /** Lines are spoken in order and never cut each other off. */
   const speak = useCallback(
@@ -551,11 +616,77 @@ function VoiceDockInner() {
     [path, push, router, speak, tools],
   );
 
-  /** Local Hinglish router (runs the real tools), then the backend fact router for anything it doesn't recognise. */
+  const history = useRef<AgentMsg[]>([]);
+  const toolRan = useRef(false);
+  /** One user turn through the Speko brain: it may call several tools (run here, in the browser) before answering. */
+  const agentTurn = useCallback(
+    async (q: string): Promise<string> => {
+      const h = history.current;
+      h.push({ role: "user", content: q });
+      for (let hop = 0; hop < 6; hop++) {
+        // send the recent tail, starting at a user turn so no tool result loses its call
+        let from = h.length - 1;
+        for (let i = Math.max(0, h.length - 30); i < h.length; i++) {
+          if (h[i].role === "user") {
+            from = i;
+            break;
+          }
+        }
+        const res = await jfetch<{ text: string; tool_calls: AgentCall[] }>("/api/v1/assistant/agent", {
+          method: "POST", json: { messages: h.slice(from), page: pathRef.current, project_open: !!pidRef.current },
+        });
+        if (!res.tool_calls?.length) {
+          h.push({ role: "assistant", content: res.text });
+          return res.text;
+        }
+        h.push({ role: "assistant", content: res.text || "", toolCalls: res.tool_calls });
+        if (res.text) {
+          push("strata", res.text);
+          void speak(res.text);
+        }
+        for (const tc of res.tool_calls) {
+          const fn = (tools as unknown as Record<string, (a?: unknown) => Promise<string>>)[tc.name];
+          let out: string;
+          let isError = !fn;
+          toolRan.current = true;
+          try {
+            out = fn ? await fn(JSON.parse(tc.args || "{}")) : `Unknown tool ${tc.name}`;
+          } catch (e) {
+            out = e instanceof Error ? e.message : "tool failed";
+            isError = true;
+          }
+          h.push({ role: "tool", content: String(out).slice(0, 6000), toolCallId: tc.id, ...(isError ? { isError: true } : {}) });
+        }
+      }
+      return "Ye kaam thoda lamba ho gaya. Ek baar phir bolo, main wahin se continue karta hoon.";
+    },
+    [push, speak, tools],
+  );
+
+  /** Speko brain first; if it can't be reached, the local Hinglish router (same tools), then the backend fact router. */
   const runLocal = useCallback(
     async (q: string) => {
       push("you", q);
       setPhase("thinking");
+      toolRan.current = false;
+      try {
+        const ans = await agentTurn(q);
+        if (ans) {
+          push("strata", ans);
+          await speak(ans);
+          return;
+        }
+      } catch (e) {
+        console.warn("voice brain unavailable, using the built-in router", e);
+        history.current = []; // a half-finished tool exchange must not be replayed
+        if (toolRan.current) {
+          // the action already happened; running the fallback router would do it twice
+          const msg = "Kaam kar diya hai, screen pe dekh lo. Bas jawab bolne me dikkat aayi — kuch aur poochna ho to bolo.";
+          push("strata", msg);
+          await speak(msg);
+          return;
+        }
+      }
       try {
         const say = (line: string) => {
           push("strata", line);
@@ -575,7 +706,7 @@ function VoiceDockInner() {
       }
       await askBackend(q, true);
     },
-    [askBackend, push, speak, tools],
+    [agentTurn, askBackend, push, speak, tools],
   );
   const turnChain = useRef<Promise<void>>(Promise.resolve());
   const queued = useCallback((q: string) => {
@@ -656,6 +787,7 @@ function VoiceDockInner() {
       /* ignore */
     }
     recRef.current = null;
+    audioRef.current?.pause();
     if (typeof window !== "undefined") window.speechSynthesis?.cancel();
   }, []);
 
@@ -830,7 +962,7 @@ function VoiceDockInner() {
             <div className="min-w-0 flex-1">
               <div className="font-display text-xl font-medium tracking-tight" aria-live="polite">{statusText[phase]}</div>
               <div className="mt-0.5 text-xs text-ink-400">
-                {engine === "realtime" ? "Realtime voice" : "Browser voice"} · {projectId ? "reading this project's live data" : "no project open"}
+                {engine === "realtime" ? "ElevenLabs realtime" : "Speko voice"} · {projectId ? "reading this project's live data" : "no project open"}
               </div>
             </div>
             <button onClick={() => { void stop(); setOpen(false); }} className="rounded-full p-1.5 text-ink-400 hover:bg-black/5 hover:text-ink-100" aria-label="Close voice analyst">
@@ -901,7 +1033,7 @@ function VoiceDockInner() {
             <div className="flex gap-1">
               {(["realtime", "browser"] as Engine[]).map((e) => (
                 <button key={e} disabled={active} onClick={() => setEngine(e)} className={cn("rounded-full px-2 py-0.5", engine === e ? "bg-black/10 text-ink-100" : "hover:text-ink-200", active && "opacity-50")}>
-                  {e === "realtime" ? "Realtime" : "Browser"}
+                  {e === "realtime" ? "ElevenLabs" : "Speko"}
                 </button>
               ))}
             </div>
