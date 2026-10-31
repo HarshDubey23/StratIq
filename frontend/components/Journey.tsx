@@ -8,6 +8,7 @@ import { BookA, Check, ChevronDown, ChevronRight, Crosshair, Footprints, Map as 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { cn } from "@/components/ui";
 import type { Project } from "@/lib/types";
 
@@ -125,7 +126,7 @@ export function Journey({ project }: { project: Project }) {
   return (
     <>
       <div className="mt-4 flex items-center gap-3">
-        <nav aria-label="Project" className="-mb-px flex min-w-0 flex-1 items-stretch overflow-x-auto">
+        <nav aria-label="Project" className="-mb-px flex min-w-0 flex-1 items-stretch overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {steps.map((s, i) => {
             const active = path.startsWith(base + s.seg);
             return (
@@ -149,23 +150,24 @@ export function Journey({ project }: { project: Project }) {
               </Link>
             );
           })}
+        </nav>
+        <div className="mb-2 flex shrink-0 items-center gap-1">
           <div className="relative shrink-0">
-            <button onClick={() => setMore((m) => !m)} aria-expanded={more} className={cn("flex items-center gap-1 px-3 pb-3 pt-1.5 text-[13px]", moreActive ? "text-ink-100" : "text-ink-400 hover:text-ink-100")}>
+            <button onClick={() => setMore((m) => !m)} aria-expanded={more} className={cn("flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs", moreActive ? "text-ink-100" : "text-ink-400 hover:text-ink-100")}>
               {moreActive?.label || "More"} <ChevronDown className="h-3.5 w-3.5" />
             </button>
             {more && (
-              <div className="panel rise absolute left-0 top-full z-50 w-44 rounded-lg p-1">
+              <div className="panel rise absolute right-0 top-full z-50 mt-1 w-44 rounded-lg p-1">
                 {MORE.map((m) => (
                   <Link key={m.label} href={base + m.seg} className="block rounded-md px-3 py-2 text-[13px] text-ink-200 hover:bg-black/[0.06] hover:text-ink-100">{m.label}</Link>
                 ))}
               </div>
             )}
           </div>
-        </nav>
-        <div className="mb-2 hidden shrink-0 items-center gap-1 lg:flex">
-          <span className="num mr-1 font-mono text-[11px] text-ink-500">{doneN}/6</span>
-          <button onClick={() => setTour(true)} className="rounded-md px-2.5 py-1.5 text-xs text-ink-400 hover:bg-black/5 hover:text-ink-100">How it works</button>
-          <button onClick={() => setWords(true)} className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs text-ink-400 hover:bg-black/5 hover:text-ink-100"><BookA className="h-3.5 w-3.5" /> Glossary</button>
+
+          <span className="num mr-1 hidden font-mono text-[11px] text-ink-500 lg:inline">{doneN}/6</span>
+          <button onClick={() => setTour(true)} className="hidden rounded-md lg:inline-block px-2.5 py-1.5 text-xs text-ink-400 hover:bg-black/5 hover:text-ink-100">How it works</button>
+          <button onClick={() => setWords(true)} className="hidden items-center lg:inline-flex gap-1 rounded-md px-2.5 py-1.5 text-xs text-ink-400 hover:bg-black/5 hover:text-ink-100"><BookA className="h-3.5 w-3.5" /> Glossary</button>
           {next && (
             <Link href={base + next.seg} className="sheen group ml-1 inline-flex h-8 items-center gap-1.5 rounded-lg bg-accent px-3 text-xs font-medium text-white hover:bg-[#2238e0]" title={next.hint}>
               Next: {next.label} <ChevronRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
@@ -173,8 +175,9 @@ export function Journey({ project }: { project: Project }) {
           )}
         </div>
       </div>
-      {tour && <Tour onClose={() => { setTour(false); try { localStorage.setItem("siq-tour-seen", "1"); } catch { /* ignore */ } }} base={base} />}
-      {words && <Glossary onClose={() => setWords(false)} />}
+      {/* portals: the header uses backdrop-filter, which would trap position:fixed dialogs inside it */}
+      {tour && createPortal(<Tour onClose={() => { setTour(false); try { localStorage.setItem("siq-tour-seen", "1"); } catch { /* ignore */ } }} base={base} />, document.body)}
+      {words && createPortal(<Glossary onClose={() => setWords(false)} />, document.body)}
     </>
   );
 }
@@ -191,7 +194,7 @@ function Tour({ onClose, base }: { onClose: () => void; base: string }) {
   const [i, setI] = useState(0);
   const s = SLIDES[i];
   return (
-    <div className="fixed inset-0 z-[95] flex items-center justify-center bg-ink-950/70 p-4 backdrop-blur-sm" role="dialog" aria-label="How StrataIQ works">
+    <div className="fixed inset-0 z-[95] flex items-center justify-center bg-ink-100/25 p-4 backdrop-blur-sm" role="dialog" aria-label="How StrataIQ works">
       <div className="panel rise w-full max-w-lg rounded-xl p-6">
         <div className="flex items-start justify-between">
           <s.icon className="h-7 w-7 text-accent" />
@@ -219,7 +222,7 @@ function Glossary({ onClose }: { onClose: () => void }) {
   const [q, setQ] = useState("");
   const items = GLOSSARY.filter(([k, v]) => !q || (k + v).toLowerCase().includes(q.toLowerCase()));
   return (
-    <div className="fixed inset-0 z-[95] flex justify-end bg-ink-950/60 backdrop-blur-sm" role="dialog" aria-label="Words explained" onClick={onClose}>
+    <div className="fixed inset-0 z-[95] flex justify-end bg-ink-100/25 backdrop-blur-sm" role="dialog" aria-label="Words explained" onClick={onClose}>
       <div className="panel h-full w-full max-w-md overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between">
           <h2 className="font-display text-xl font-medium">Words explained</h2>
