@@ -311,7 +311,9 @@ export default function Landing() {
           <div className="sticky top-0 h-[100svh] overflow-hidden">
             <HeroMap spot={spot} comps={comps} scene={scene} progress={progress} />
             <div aria-hidden className="lp-grid pointer-events-none absolute inset-0" />
-            <div aria-hidden className={cn("pointer-events-none absolute inset-0 transition-opacity duration-700", scene === 0 ? "opacity-100" : "opacity-0")} style={{ background: "radial-gradient(95% 80% at 0% 100%, rgba(26,40,200,.92), rgba(26,40,200,.45) 45%, rgba(47,73,255,0) 72%)" }} />
+            {/* scrim behind the hero copy: the city stays visible, the words never sit on pillars or roads */}
+            <div aria-hidden className={cn("pointer-events-none absolute inset-0 hidden transition-opacity duration-700 lg:block", scene === 0 ? "opacity-100" : "opacity-0")} style={{ background: "linear-gradient(90deg, rgba(36,56,232,.94) 0%, rgba(36,56,232,.82) 34%, rgba(47,73,255,.25) 56%, rgba(47,73,255,0) 68%)" }} />
+            <div aria-hidden className={cn("pointer-events-none absolute inset-0 transition-opacity duration-700 lg:hidden", scene === 0 ? "opacity-100" : "opacity-0")} style={{ background: "linear-gradient(180deg, rgba(47,73,255,0) 0%, rgba(40,62,240,.6) 22%, rgba(40,62,240,.94) 42%, rgba(40,62,240,.97) 100%)" }} />
             <ol aria-hidden className={cn("pointer-events-none absolute right-5 top-1/2 hidden -translate-y-1/2 flex-col gap-3 transition-opacity duration-700 md:flex md:right-10", scene > 0 ? "opacity-100" : "opacity-0")}>
               {CHAPTERS.map((c, i) => (
                 <li key={c.title} className={cn("h-px transition-all duration-500", scene === i + 1 ? "w-12 bg-white" : scene > i + 1 ? "w-6 bg-white/70" : "w-6 bg-white/30")} />
