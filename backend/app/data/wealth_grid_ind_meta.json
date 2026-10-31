@@ -1,5 +1,5 @@
 {
-  "built_at": "2026-10-31T03:39:16.981057+00:00",
+  "built_at": "2026-10-31T03:45:09.531833+00:00",
   "rwi": {
     "dataset": "Relative Wealth Index",
     "resource": "India and Pakistan_relative_wealth_index.csv",
@@ -15,7 +15,7 @@
   },
   "zoom": 14,
   "tiles_in": 594823,
-  "tiles_kept": 509845,
-  "population_total": 2615516345.4660187,
+  "tiles_kept": 509466,
+  "population_total": 1344296945.0979433,
   "tile_km_at_equator": 2.446
 }
