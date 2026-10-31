@@ -151,3 +151,16 @@ def test_population_fallback_uses_buildings_and_is_flagged(monkeypatch):
     assert snap["population"]["source"] == "estimate_buildings"
     assert snap["population"]["total"] == 1500 * 12
     assert any(e.get("fallback") == "building-based estimate" for e in snap["errors"])
+
+
+def test_routing_groups_zones_into_one_request_per_profile():
+    import numpy as np
+    rng = np.random.default_rng(0)
+    zones = [{"lat": 28.6 + rng.uniform(-.02, .02), "lng": 77.2 + rng.uniform(-.02, .02), "population": 500.0} for _ in range(300)]
+    origins, idx = mk.route_origins(zones, 59)
+    assert len(origins) <= 59 and len(idx) == 300 and idx.max() == len(origins) - 1
+    dests = [("a", 28.6, 77.2)]
+    tab = {"car": {"km": [[1.0]] * len(origins), "min": [[3.0]] * len(origins)}}
+    out = mk.expand_routes(tab, zones, origins, idx, dests)
+    km = np.array(out["car"]["km"], float)
+    assert km.shape == (300, 1) and (km > 0).all()

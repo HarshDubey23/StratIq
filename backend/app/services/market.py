@@ -114,20 +114,64 @@ def assess_coverage(competitors: list[dict], total_pop: float | None, n_building
 ROUTED_COMPETITORS = 40
 
 
+def route_origins(zones: list[dict], max_points: int) -> tuple[np.ndarray, np.ndarray]:
+    """Population-weighted grid-cell centroids (at most ``max_points``) to route from, and each zone's origin index.
+
+    Routing every ~300 m zone separately would take a dozen requests to the public server; zones in the same cell share
+    one road route and keep their own straight-line offset (applied in ``expand_routes``)."""
+    ll = np.array([[z["lat"], z["lng"]] for z in zones])
+    w = np.array([max(z["population"], 0.0) + 1e-6 for z in zones])
+    if len(zones) <= max_points:
+        return ll, np.arange(len(zones))
+    k = int(math.floor(math.sqrt(max_points)))
+    while True:
+        lo, hi = ll.min(0), ll.max(0)
+        cell = np.minimum(((ll - lo) / np.maximum(hi - lo, 1e-9) * k).astype(int), k - 1)
+        _, idx = np.unique(cell[:, 0] * k + cell[:, 1], return_inverse=True)
+        if idx.max() + 1 <= max_points or k <= 1:
+            break
+        k -= 1
+    n = idx.max() + 1
+    cen = np.stack([np.bincount(idx, w * ll[:, 0], n), np.bincount(idx, w * ll[:, 1], n)], 1) / np.bincount(idx, w, n)[:, None]
+    return cen, idx
+
+
+def expand_routes(tab: dict, zones: list[dict], origins: np.ndarray, idx: np.ndarray, dests: list[tuple[str, float, float]]) -> dict:
+    """Per-zone matrices: the origin's road route plus the zone's straight-line offset from its origin (x 1.3 circuity)."""
+    zl = np.array([[z["lat"], z["lng"]] for z in zones])
+    dl = np.array([[a, b] for _, a, b in dests])
+    off = (haversine_km(zl[:, :1], zl[:, 1:], dl[None, :, 0], dl[None, :, 1])
+           - haversine_km(origins[idx][:, :1], origins[idx][:, 1:], dl[None, :, 0], dl[None, :, 1])) * 1.3
+    out = {}
+    for prof, speed in (("car", 20.0), ("foot", 4.5)):
+        if prof not in tab:
+            continue
+        km = np.array(tab[prof]["km"], dtype=float)[idx]
+        mn = np.array(tab[prof]["min"], dtype=float)[idx]
+        km2 = np.maximum(km + off, 0.05)
+        mn2 = np.maximum(mn + off / speed * 60.0, 0.5)
+        out[prof] = {"km": np.where(np.isnan(km2), None, np.round(km2, 3)).tolist(),
+                     "min": np.where(np.isnan(mn2), None, np.round(mn2, 2)).tolist()}
+    return out
+
+
 async def _route(zones: list[dict], comps: list[dict], lat: float, lng: float, cache, sources: list, errors: list) -> dict | None:
     """Road-network distance/time from every zone to the site and the nearest competitors (stored with the snapshot)."""
     if not zones:
         return None
     near = sorted(comps, key=lambda c: haversine_km(lat, lng, c["lat"], c["lng"]))[:ROUTED_COMPETITORS]
     dests = [(routing.point_key(lat, lng), lat, lng)] + [(routing.point_key(c["lat"], c["lng"]), c["lat"], c["lng"]) for c in near]
+    # one table request per profile: origins + destinations must fit the server's coordinate limit
+    origins, idx = route_origins(zones, max(1, get_settings().routing_max_coords - len(dests)))
     try:
-        tab, prov = await asyncio.wait_for(routing.route_matrix([(z["lat"], z["lng"]) for z in zones], [(a, b) for _, a, b in dests], cache), 60)
+        tab, prov = await asyncio.wait_for(routing.route_matrix([tuple(o) for o in origins], [(a, b) for _, a, b in dests], cache), 60)
     except Exception as e:  # routing is an enrichment: never lose the snapshot over it
         msg = e.message if isinstance(e, ProviderError) else ("no response within 60 s" if isinstance(e, asyncio.TimeoutError) else f"{type(e).__name__}: {e}")
         errors.append({"source": "routing", "message": msg[:300], "fallback": "straight-line distance x circuity"})
         return None
-    sources.append({**prov, "layer": "routing"})
-    return {"dest_keys": [d[0] for d in dests], "dest_ll": [[round(a, 6), round(b, 6)] for _, a, b in dests], **tab}
+    sources.append({**prov, "layer": "routing", "detail": f"{prov.get('detail', '')}; {len(zones)} zones grouped into {len(origins)} routed origins".strip("; ")})
+    return {"dest_keys": [d[0] for d in dests], "dest_ll": [[round(a, 6), round(b, 6)] for _, a, b in dests], "origins": int(len(origins)),
+            **expand_routes(tab, zones, origins, idx, dests)}
 
 
 async def build_snapshot(*, lat: float, lng: float, catchment: dict, category: dict,

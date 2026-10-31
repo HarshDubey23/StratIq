@@ -11,6 +11,8 @@ let failures = 0;
 
 const browser = await chromium.launch({ args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--enable-webgl", "--ignore-gpu-blocklist"] });
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+// The first-visit product tour is a modal; the journey tests the app behind it, so mark it seen.
+await ctx.addInitScript(() => { try { localStorage.setItem("siq-tour-seen", "1"); } catch { /* ignore */ } });
 const page = await ctx.newPage();
 page.on("console", (m) => { if (["error", "warning"].includes(m.type())) L(`[console.${m.type()}] ${m.text().slice(0, 300)}`); });
 page.on("pageerror", (e) => { failures++; L(`[pageerror] ${e.message.slice(0, 500)}`); });
