@@ -1,0 +1,21 @@
+{
+  "built_at": "2026-10-31T03:39:16.981057+00:00",
+  "rwi": {
+    "dataset": "Relative Wealth Index",
+    "resource": "India and Pakistan_relative_wealth_index.csv",
+    "url": "https://data.humdata.org/dataset/76f2a2ea-ba50-40f5-b79c-db95d668b843/resource/977923ab-c65a-4203-b216-e4b7483d56a5/download/ind_pak_relative_wealth_index.csv",
+    "source_updated": "2021-04-08T18:42:30.554999",
+    "licence": "Other",
+    "citation": "Chi, Fang, Chatterjee & Blumenstock (2022) Microestimates of wealth for all low- and middle-income countries. PNAS 119(3)."
+  },
+  "population": {
+    "dataset": "WorldPop Global 1km UN-adjusted 2020, India",
+    "url": "https://data.worldpop.org/GIS/Population/Global_2000_2020_1km_UNadj/2020/IND/ind_ppp_2020_1km_Aggregated_UNadj.tif",
+    "licence": "CC BY 4.0"
+  },
+  "zoom": 14,
+  "tiles_in": 594823,
+  "tiles_kept": 509845,
+  "population_total": 2615516345.4660187,
+  "tile_km_at_equator": 2.446
+}
