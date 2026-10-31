@@ -6,6 +6,7 @@ import pytest
 from app.categories.resolver import resolve_offline
 from app.engine.geo import circle_polygon
 from app.providers import osm, population
+from app.providers.http import ProviderError
 from app.services.market import build_snapshot
 
 pytestmark = pytest.mark.live
@@ -19,7 +20,13 @@ def test_live_geocode():
 
 def test_live_overpass_gyms():
     cat = resolve_offline("gym")
-    pois, prov = asyncio.run(osm.fetch_pois(LAT, LNG, 2000, cat.filters))
+    try:
+        pois, prov = asyncio.run(osm.fetch_pois(LAT, LNG, 2000, cat.filters))
+    except ProviderError as e:
+        # Every public Overpass mirror timing out / 5xx is an outage on their side, not a regression here.
+        if all(("Timeout" in x or "HTTP 5" in x) for x in str(e).split(": ", 1)[-1].split("; ")):
+            pytest.skip(f"all Overpass mirrors unavailable: {e}")
+        raise
     assert isinstance(pois, list)
     print("gyms found:", len(pois), prov["source_updated_at"])
 

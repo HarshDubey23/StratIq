@@ -218,6 +218,47 @@ body {
   100% { transform: translateY(400%); }
 }
 
+/* landing: opening curtain */
+.intro {
+  transition: transform 1s var(--ease-in-out-quart), border-radius 1s var(--ease-in-out-quart);
+}
+.intro-lift {
+  transform: translateY(-100%);
+  border-bottom-left-radius: 50% 12vh;
+  border-bottom-right-radius: 50% 12vh;
+}
+.intro-word {
+  animation: rise 1s var(--ease-out-expo) both;
+}
+
+@keyframes wave {
+  0%, 100% { transform: scaleY(0.35); }
+  50% { transform: scaleY(1); }
+}
+.wave-bar {
+  transform-origin: center;
+  animation: wave 1.1s ease-in-out infinite;
+}
+
+@keyframes cue {
+  0%, 100% { transform: translateY(-2px); }
+  50% { transform: translateY(3px); }
+}
+.scroll-cue {
+  animation: cue 1.6s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(-1.5deg); }
+  50% { transform: translateY(-10px) rotate(-0.5deg); }
+}
+.phone-float {
+  animation: float 6s ease-in-out infinite;
+}
+.cta-orb {
+  animation: orb-breathe 7s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

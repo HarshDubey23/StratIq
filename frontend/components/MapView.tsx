@@ -90,6 +90,7 @@ export default function MapView(props: Props) {
   const [styleNote, setStyleNote] = useState<string | null>(null);
   const deck = useRef<DeckHandle | null>(null);
   const [deckReady, setDeckReady] = useState(false);
+  const introDone = useRef(false);
 
   // ---- create map once ----
   useEffect(() => {
@@ -103,9 +104,10 @@ export default function MapView(props: Props) {
         container: el.current,
         style,
         center: props.center,
-        zoom: props.zoom ?? 13.2,
-        pitch: props.pitch ?? 55,
-        bearing: -18,
+        // start high and flat; the first fit below is a slow descent into the catchment
+        zoom: (props.zoom ?? 13.2) - 1.8,
+        pitch: 0,
+        bearing: -60,
         attributionControl: { compact: true },
         maxPitch: 78,
       });
@@ -264,6 +266,18 @@ export default function MapView(props: Props) {
 
   useEffect(() => {
     const m = map.current;
+    if (!ready || !m || !props.agents?.length) return;
+    m.setPaintProperty("siq-agents", "circle-opacity-transition", { duration: 0, delay: 0 });
+    m.setPaintProperty("siq-agents", "circle-opacity", 0);
+    const id = setTimeout(() => {
+      m.setPaintProperty("siq-agents", "circle-opacity-transition", { duration: 1600, delay: 0 });
+      m.setPaintProperty("siq-agents", "circle-opacity", 0.85);
+    }, 60);
+    return () => clearTimeout(id);
+  }, [ready, props.agents]);
+
+  useEffect(() => {
+    const m = map.current;
     if (!ready || !m) return;
     const col = { osm: "#F59E0B", fsq: "#F59E0B", user: "#7C3AED", hypothetical: "#7C3AED", demo: "#D97706", field: "#65A30D" };
     (m.getSource("siq-comps") as GeoJSONSource).setData(
@@ -289,6 +303,12 @@ export default function MapView(props: Props) {
       dot.style.cssText = `width:10px;height:10px;border-radius:999px;background:${c.active ? "#F5F3EE" : "#2F49FF"}`;
       const t = document.createElement("span");
       t.textContent = c.label;
+      if (c.active) {
+        dot.style.position = "relative";
+        const ring = document.createElement("span");
+        ring.style.cssText = "position:absolute;inset:-4px;border-radius:999px;border:2px solid #F5F3EE;animation:ping-soft 1.8s cubic-bezier(.16,1,.3,1) infinite";
+        dot.append(ring);
+      }
       d.append(dot, t);
       d.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -331,7 +351,7 @@ export default function MapView(props: Props) {
           id: "pop-columns", data: zs, diskResolution: 6, radius, extruded: true, coverage: 0.92, angle: 30,
           getPosition: (z: MapZone) => [z.lng, z.lat], getElevation: (z: MapZone) => 6 + (z.value / max) * 240,
           getFillColor: (z: MapZone) => popColor(z.value / max, 85), pickable: true, material: { ambient: 0.5, diffuse: 0.6, shininess: 20 },
-          transitions: { getElevation: { duration: 900 } },
+          transitions: { getElevation: { duration: 1400, easing: easeOut, enter: () => [0] } },
           updateTriggers: { getElevation: [max], getFillColor: [max] },
         }),
       depth && L.competitors !== false &&
@@ -341,7 +361,7 @@ export default function MapView(props: Props) {
           getPosition: (c: MapCompetitor) => [c.lng, c.lat], getElevation: (c: MapCompetitor) => 120 + ((w[c.id] || 0) / wmax) * 520,
           getFillColor: (c: MapCompetitor) => (c.kind === "osm" || c.kind === "fsq" ? [...C.comp, 235] : c.kind === "field" ? [...C.field, 235] : [...C.user, 235]) as [number, number, number, number],
           pickable: true, onClick: (info: { object?: MapCompetitor }) => { if (info.object) handlers.current.onCompetitorClick?.(info.object.id); },
-          transitions: { getElevation: { duration: 900 } }, updateTriggers: { getElevation: [wmax, Object.keys(w).length] },
+          transitions: { getElevation: { duration: 1400, easing: easeOut, enter: () => [0] } }, updateTriggers: { getElevation: [wmax, Object.keys(w).length] },
         }),
       depth && L.competitors !== false &&
         new DL.ScatterplotLayer({
@@ -386,6 +406,7 @@ export default function MapView(props: Props) {
           id: "site-beacon", data: (props.candidates || []).map((c) => ({ ...c, tip: `${c.label} — your candidate site` })), diskResolution: 32, radius: 24, extruded: true,
           getPosition: (c: MapCandidate) => [c.lng, c.lat], getElevation: (c: MapCandidate) => (c.active === false ? 300 : 900),
           getFillColor: (c: MapCandidate) => (c.active === false ? [...C.youSoft, 150] : [...C.you, 255]) as [number, number, number, number], pickable: true,
+          transitions: { getElevation: { duration: 1600, easing: easeOut, enter: () => [0] } },
         }),
     ].filter(Boolean));
   }, [deckReady, props.zones, props.competitors, props.candidates, props.layers, props.depth, props.zoneSpacingKm, props.competitorWeight, props.opportunity]);
@@ -406,13 +427,15 @@ export default function MapView(props: Props) {
   useEffect(() => {
     const m = map.current;
     if (!ready || !m) return;
+    const intro = !introDone.current;
+    introDone.current = true;
     const ring = props.catchment?.coordinates?.[0];
     if (ring && ring.length) {
       const b = new maplibregl.LngLatBounds(ring[0] as [number, number], ring[0] as [number, number]);
       ring.forEach((c) => b.extend(c as [number, number]));
-      m.fitBounds(b, { padding: 40, duration: 900, pitch: props.pitch ?? 45 });
+      m.fitBounds(b, { padding: 40, duration: intro ? 2600 : 900, pitch: props.pitch ?? 45, bearing: intro ? -18 : m.getBearing() });
     } else {
-      m.flyTo({ center: props.center, zoom: props.zoom ?? 13.2, duration: 800 });
+      m.flyTo({ center: props.center, zoom: props.zoom ?? 13.2, duration: intro ? 2600 : 800, ...(intro ? { pitch: props.pitch ?? 55, bearing: -18 } : {}) });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, props.fitKey]);
@@ -425,4 +448,8 @@ export default function MapView(props: Props) {
       {styleNote && <div className="absolute left-2 top-2 rounded bg-ink-900/90 px-2 py-1 text-xs text-amber-800">{styleNote}</div>}
     </div>
   );
+}
+
+function easeOut(t: number) {
+  return 1 - Math.pow(1 - t, 4);
 }

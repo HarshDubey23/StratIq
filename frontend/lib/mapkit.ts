@@ -89,12 +89,13 @@ export function enhanceMap(m: MLMap, opts: { buildingsMinZoom?: number; building
       ),
     );
   }
-  safe(() => m.setLight({ anchor: "viewport", color: "#ffffff", intensity: 0.32, position: [1.4, 200, 35] }));
+  // low sun from the side gives the white blocks readable faces
+  safe(() => m.setLight({ anchor: "map", color: "#fff6ea", intensity: 0.5, position: [1.3, 210, 40] }));
   const anyMap = m as unknown as { setSky?: (s: Record<string, unknown>) => void };
   safe(() =>
     anyMap.setSky?.({
-      "sky-color": "#0b0d18",
-      "horizon-color": "#1a2050",
+      "sky-color": "#dfe6f6",
+      "horizon-color": "#f3efe6",
       "fog-color": "#F5F3EE",
       "sky-horizon-blend": 0.6,
       "horizon-fog-blend": 0.7,
