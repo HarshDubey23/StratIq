@@ -34,3 +34,20 @@ export function takePendingStrategy<T = { scenario_id?: string; result?: unknown
   w.__strataPending = undefined;
   return d;
 }
+
+/** Everything a person can read on the current page: title, headings, visible text (voice panel excluded) and the
+ *  numbers the page publishes. Lets the voice analyst "see" any page, not only the ones that publish numbers. */
+export function readPage() {
+  if (typeof document === "undefined") return null;
+  const root = document.querySelector<HTMLElement>("main") || document.body;
+  let text = root.innerText || "";
+  const dock = document.querySelector<HTMLElement>("[data-voice-dock]");
+  if (dock && root.contains(dock)) text = text.replace(dock.innerText, "");
+  text = text.replace(/[ \t]+/g, " ").replace(/\n{2,}/g, "\n").trim();
+  const headings = Array.from(root.querySelectorAll<HTMLElement>("h1, h2, h3"))
+    .filter((h) => !dock?.contains(h))
+    .map((h) => h.innerText.trim())
+    .filter(Boolean)
+    .slice(0, 24);
+  return { path: window.location.pathname, title: document.title, headings, visible_text: text.slice(0, 5000), truncated: text.length > 5000, numbers: readScreen() };
+}

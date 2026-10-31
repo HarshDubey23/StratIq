@@ -6,8 +6,9 @@
  * Two engines, same tools:
  *  - Realtime: ElevenLabs conversational agent (full-duplex, barge-in, natural voice). The agent's
  *    "client tools" run here in the browser and fetch real numbers from the StrataIQ API.
- *  - Browser: Web Speech API (continuous recognition) + the backend intent router + speech synthesis.
- *    Works without any third-party account; used automatically if the realtime engine can't start.
+ *  - Browser: Web Speech API (continuous recognition) + a local Hinglish command router (./route.ts) that runs the
+ *    same tools, then the backend fact router for open questions. Used automatically if the realtime engine can't start.
+ * Typed questions and suggestion chips go to the realtime agent (connecting it if needed), else the local router.
  *
  * Neither engine invents numbers: every figure comes from /assistant/facts or a real simulation run.
  */
@@ -16,7 +17,8 @@ import { AudioLines, Keyboard, Mic, MicOff, Send, X } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from "react";
 import { cn } from "@/components/ui";
-import { readScreen, sendStrategy } from "@/lib/screen";
+import { readPage, readScreen, sendStrategy } from "@/lib/screen";
+import { route, type Tools } from "./route";
 import { GLOSSARY } from "@/components/Journey";
 import { quickCreate } from "@/components/QuickStart";
 
@@ -82,6 +84,9 @@ function VoiceDockInner() {
   const pathRef = useRef(path);
   pathRef.current = path;
   const lastSuggested = useRef<{ label: string; changes: Record<string, number> } | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const convoRef = useRef<any>(null);
+  const pending = useRef<string | null>(null);
 
   const [open, setOpen] = useState(false);
   const [engine, setEngine] = useState<Engine>("realtime");
@@ -111,7 +116,7 @@ function VoiceDockInner() {
           return JSON.stringify({ error: e instanceof Error ? e.message : "facts unavailable" });
         }
       },
-      get_screen: async () => JSON.stringify(readScreen() || { page: pathRef.current, note: "This page publishes no numbers; use get_market_facts." }),
+      get_screen: async () => JSON.stringify(readPage() || { page: pathRef.current }),
       get_insights: async () => {
         const pid = pidRef.current;
         if (!pid) return JSON.stringify({ error: "Open a project first." });
@@ -369,7 +374,15 @@ function VoiceDockInner() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const convo: any = useConversation({
     clientTools: tools,
-    onConnect: () => setPhase("listening"),
+    onConnect: () => {
+      setPhase("listening");
+      const q = pending.current;
+      pending.current = null;
+      if (q) {
+        push("you", q);
+        setTimeout(() => convoRef.current?.sendUserMessage?.(q), 400);
+      }
+    },
     onDisconnect: () => setPhase("idle"),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onMessage: (m: any) => {
@@ -381,6 +394,8 @@ function VoiceDockInner() {
     onError: (e: any) => setErr(typeof e === "string" ? e : e?.message || "Voice connection error"),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any);
+
+  convoRef.current = convo;
 
   useEffect(() => {
     if (engine !== "realtime" || !active || phase === "connecting") return;
@@ -424,8 +439,8 @@ function VoiceDockInner() {
   }, []);
 
   const askBackend = useCallback(
-    async (q: string) => {
-      push("you", q);
+    async (q: string, pushed = false) => {
+      if (!pushed) push("you", q);
       setPhase("thinking");
       const pid = pidRef.current;
       try {
@@ -469,6 +484,35 @@ function VoiceDockInner() {
     [path, push, router, speak, tools],
   );
 
+  /** Local Hinglish router (runs the real tools), then the backend fact router for anything it doesn't recognise. */
+  const runLocal = useCallback(
+    async (q: string) => {
+      push("you", q);
+      setPhase("thinking");
+      try {
+        const say = (line: string) => {
+          push("strata", line);
+          void speak(line);
+        };
+        const ans = await route(q, tools as unknown as Tools, { projectOpen: !!pidRef.current, say });
+        if (ans) {
+          push("strata", ans);
+          await speak(ans);
+          return;
+        }
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "Kuch gadbad ho gayi.";
+        push("strata", msg);
+        await speak(msg);
+        return;
+      }
+      await askBackend(q, true);
+    },
+    [askBackend, push, speak, tools],
+  );
+  const runLocalRef = useRef(runLocal);
+  runLocalRef.current = runLocal;
+
   const startBrowser = useCallback(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const W = window as any;
@@ -495,7 +539,7 @@ function VoiceDockInner() {
       setInterim(tmp);
       if (fin.trim() && !speakingRef.current) {
         setInterim("");
-        void askBackend(fin.trim());
+        void runLocalRef.current(fin.trim());
       }
     };
     rec.onend = () => {
@@ -519,7 +563,7 @@ function VoiceDockInner() {
     wantRec.current = true;
     rec.start();
     setPhase("listening");
-  }, [askBackend]);
+  }, []);
 
   const stopBrowser = useCallback(() => {
     wantRec.current = false;
@@ -583,6 +627,10 @@ function VoiceDockInner() {
         setErr("No microphone access. Allow the mic, or type your question below.");
         setTyping(true);
         setPhase("listening");
+        setEngine("browser");
+        const q = pending.current;
+        pending.current = null;
+        if (q) void runLocalRef.current(q);
         return;
       }
       if (which === "realtime") {
@@ -597,6 +645,9 @@ function VoiceDockInner() {
       }
       setEngine("browser");
       startBrowser();
+      const q = pending.current;
+      pending.current = null;
+      if (q) void runLocalRef.current(q);
     },
     [convo, engine, startBrowser, startMeter],
   );
@@ -633,16 +684,25 @@ function VoiceDockInner() {
     return () => window.removeEventListener("keydown", h);
   }, [active, start, stop]);
 
+  /** One entry point for typed text and chips: the realtime agent (connecting it first if idle), else the local router. */
+  const ask = async (q: string) => {
+    if (engine === "realtime" && convo?.status === "connected" && typeof convo.sendUserMessage === "function") {
+      push("you", q);
+      convo.sendUserMessage(q);
+      return;
+    }
+    if (engine === "realtime" && !active) {
+      pending.current = q;
+      await start("realtime");
+      return;
+    }
+    await runLocal(q);
+  };
   const sendTyped = async () => {
     const q = draft.trim();
     if (!q) return;
     setDraft("");
-    if (engine === "realtime" && convo?.status === "connected" && typeof convo.sendUserMessage === "function") {
-      push("you", q);
-      convo.sendUserMessage(q);
-    } else {
-      await askBackend(q);
-    }
+    await ask(q);
   };
 
   const statusText: Record<Phase, string> = {
@@ -656,7 +716,7 @@ function VoiceDockInner() {
   if (hidden) return null;
 
   return (
-    <div className="no-print pointer-events-none fixed bottom-5 right-5 z-[90] flex flex-col items-end gap-3">
+    <div data-voice-dock className="no-print pointer-events-none fixed bottom-5 right-5 z-[90] flex flex-col items-end gap-3">
       {open && (
         <div className="panel rise pointer-events-auto w-[min(400px,calc(100vw-2.5rem))] overflow-hidden rounded-2xl" role="dialog" aria-label="Strata voice analyst">
           <div className="flex items-center gap-4 px-5 pt-5">
@@ -696,7 +756,7 @@ function VoiceDockInner() {
             {(projectId ? SUGGESTIONS.project : SUGGESTIONS.general).map((s) => (
               <button
                 key={s}
-                onClick={() => (engine === "realtime" && convo?.status === "connected" && convo.sendUserMessage ? (push("you", s), convo.sendUserMessage(s)) : void askBackend(s))}
+                onClick={() => void ask(s)}
                 className="rounded-full border border-black/10 px-2.5 py-1 text-[11.5px] text-ink-200 transition-colors hover:border-accent/50 hover:text-ink-100"
               >
                 {s}
