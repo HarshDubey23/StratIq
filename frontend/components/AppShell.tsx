@@ -39,49 +39,52 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   const side = (
-    <aside className="flex h-full w-60 flex-col border-r border-black/[0.06] bg-white">
-      <div className="flex h-16 items-center px-5">
-        <Logo href="/app" />
+    <aside className="flex h-full w-60 flex-col bg-night text-white">
+      <div className="flex h-16 items-center border-b border-white/10 px-5">
+        <Logo href="/app" tone="dark" />
       </div>
-      <div className="px-3 pb-3">
-        <Link href="/app/projects/new" className="sheen flex h-10 items-center justify-center gap-2 rounded-lg bg-accent text-sm font-medium text-white shadow-[0_8px_30px_-12px_rgba(47,73,255,.9)] transition-colors hover:bg-[#2238e0]">
-          <Plus className="h-4 w-4" /> New analysis
+      <div className="p-3">
+        <Link href="/app/projects/new" className="sheen flex h-11 items-center justify-between rounded-md bg-accent px-4 text-sm font-semibold text-white transition-colors hover:bg-white hover:text-night">
+          New analysis <Plus className="h-4 w-4" />
         </Link>
       </div>
-      <nav className="flex-1 space-y-0.5 px-3 pt-2" aria-label="Main">
-        <p className="idx px-3 pb-2">WORKSPACE</p>
-        {nav.filter((n) => n.href !== "/app/projects/new").map((n) => {
+      <nav className="flex-1 px-3 pt-3" aria-label="Main">
+        <p className="label-mono px-2 pb-2 text-white/35">Workspace</p>
+        {nav.filter((n) => n.href !== "/app/projects/new").map((n, i) => {
           const active = n.exact ? path === n.href : path.startsWith(n.href);
           return (
             <Link
               key={n.href}
               href={n.href}
               className={cn(
-                "relative flex items-center gap-3 rounded-lg px-3 py-2 text-[13.5px] transition-colors",
-                active ? "bg-black/[0.06] text-ink-100" : "text-ink-300 hover:bg-black/[0.03] hover:text-ink-100",
+                "group relative flex items-center gap-3 border-t border-white/[0.08] px-2 py-2.5 text-[13.5px] transition-colors",
+                active ? "text-white" : "text-white/55 hover:text-white",
               )}
             >
-              <n.icon className={cn("h-4 w-4", active && "text-accent")} /> {n.label}
+              <span className={cn("label-mono w-5 transition-colors", active ? "text-accent" : "text-white/30 group-hover:text-white/60")}>0{i + 1}</span>
+              <span className="flex-1">{n.label}</span>
+              <n.icon className={cn("h-4 w-4 transition-colors", active ? "text-accent" : "text-white/30 group-hover:text-white/60")} />
+              {active && <span aria-hidden className="absolute -left-3 top-1/2 h-5 w-[3px] -translate-y-1/2 bg-accent" />}
             </Link>
           );
         })}
       </nav>
-      <div className="mx-3 mb-3 flex items-center gap-2 rounded-lg border border-black/[0.06] px-3 py-2.5 text-xs text-ink-300" title={caps ? `Places: OSM + Foursquare · Population: WorldPop · Travel: ${caps.routing ? "road routing" : "radius"} · Model ${caps.model_version}` : undefined}>
+      <div className="mx-3 mb-3 flex items-center gap-2 rounded-md border border-white/10 px-3 py-2.5 text-xs text-white/60" title={caps ? `Places: OSM + Foursquare · Population: WorldPop · Travel: ${caps.routing ? "road routing" : "radius"} · Model ${caps.model_version}` : undefined}>
         <span className="relative flex h-2 w-2">
-          <span className={cn("absolute inline-flex h-full w-full rounded-full opacity-70", caps ? "animate-ping bg-ok" : "bg-ink-500")} />
-          <span className={cn("relative inline-flex h-2 w-2 rounded-full", caps ? "bg-ok" : "bg-ink-500")} />
+          <span className={cn("absolute inline-flex h-full w-full rounded-full opacity-70", caps ? "animate-ping bg-ok" : "bg-white/30")} />
+          <span className={cn("relative inline-flex h-2 w-2 rounded-full", caps ? "bg-[#3ddc84]" : "bg-white/30")} />
         </span>
         {caps ? "Live data connected" : "Connecting…"}
-        {caps && <span className="num ml-auto font-mono text-[10px] text-ink-500">{caps.model_version}</span>}
+        {caps && <span className="num ml-auto font-mono text-[10px] text-white/35">{caps.model_version}</span>}
       </div>
-      <div className="flex items-center justify-between gap-2 border-t border-black/[0.06] px-5 py-4 text-xs">
+      <div className="flex items-center justify-between gap-2 border-t border-white/10 px-5 py-4 text-xs">
         <span className="flex min-w-0 items-center gap-2">
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-accent text-[11px] font-semibold text-white">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-sm bg-accent text-[11px] font-semibold text-white">
             {(user?.name || user?.email || "?").slice(0, 1).toUpperCase()}
           </span>
-          <span className="truncate text-ink-300" title={user?.email}>{user?.name || user?.email || " "}</span>
+          <span className="truncate text-white/70" title={user?.email}>{user?.name || user?.email || " "}</span>
         </span>
-        <button onClick={logout} className="rounded-md p-1.5 text-ink-400 hover:bg-black/5 hover:text-ink-100" aria-label="Sign out" title="Sign out">
+        <button onClick={logout} className="rounded-sm p-1.5 text-white/45 hover:bg-white/10 hover:text-white" aria-label="Sign out" title="Sign out">
           <LogOut className="h-4 w-4" />
         </button>
       </div>
@@ -99,11 +102,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         )}
         <div className="flex min-w-0 flex-1 flex-col">
-          <div className="flex h-14 items-center gap-3 border-b border-black/[0.06] px-4 md:hidden">
-            <button onClick={() => setOpen((x) => !x)} aria-label="Menu" className="text-ink-200">
+          <div className="flex h-14 items-center gap-3 bg-night px-4 text-white md:hidden">
+            <button onClick={() => setOpen((x) => !x)} aria-label="Menu" className="text-white/80">
               {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
-            <Logo href="/app" />
+            <Logo href="/app" tone="dark" />
           </div>
           {children}
         </div>

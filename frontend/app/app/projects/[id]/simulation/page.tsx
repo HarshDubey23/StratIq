@@ -161,7 +161,8 @@ export default function SimulationLab() {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {/* scenario bar */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-black/[0.06] px-4 py-2 md:px-6">
+      <div className="flex flex-wrap items-center gap-2 border-b border-ink-100/10 bg-white px-4 py-2.5 md:px-6">
+        <span className="label-mono mr-1 text-ink-400">Scenarios</span>
         <div className="flex flex-wrap gap-1" role="tablist" aria-label="Scenarios">
           {scenarios.map((s) => (
             <button
@@ -169,11 +170,11 @@ export default function SimulationLab() {
               role="tab"
               aria-selected={s.id === sel.id}
               onClick={() => setSelId(s.id)}
-              className={cn("rounded-md border px-3 py-1.5 text-xs", s.id === sel.id ? "border-accent bg-accent/10 text-ink-100" : "border-black/[0.07] text-ink-300 hover:border-ink-500")}
+              className={cn("rounded-sm border px-3 py-1.5 text-xs font-medium transition-colors", s.id === sel.id ? "border-ink-100 bg-ink-100 text-white" : "border-ink-100/15 text-ink-300 hover:border-ink-100 hover:text-ink-100")}
             >
               {s.name}
-              {s.is_baseline && <span className="ml-1 text-ink-500">(baseline)</span>}
-              {!s.latest_run && <span className="ml-1 text-ink-500">· not run</span>}
+              {s.is_baseline && <span className="ml-1 opacity-60">(baseline)</span>}
+              {!s.latest_run && <span className="ml-1 opacity-60">· not run</span>}
               {s.latest_run?.stale && <span className="ml-1 text-amber-700">· changed</span>}
             </button>
           ))}
@@ -188,7 +189,7 @@ export default function SimulationLab() {
 
       <div className="grid flex-1 gap-0 xl:grid-cols-[320px_1fr_360px]">
         {/* LEFT: controls */}
-        <aside className="space-y-4 border-b border-black/[0.06] p-4 xl:max-h-[calc(100vh-150px)] xl:overflow-y-auto xl:border-b-0 xl:border-r">
+        <aside className="space-y-4 border-b border-ink-100/10 bg-white p-4 xl:max-h-[calc(100vh-150px)] xl:overflow-y-auto xl:border-b-0 xl:border-r">
           <div className="flex items-center justify-between gap-2">
             {renaming ? (
               <form onSubmit={(e) => { e.preventDefault(); rename((e.currentTarget.elements.namedItem("n") as HTMLInputElement).value); }} className="flex flex-1 gap-1">
@@ -196,7 +197,7 @@ export default function SimulationLab() {
                 <Button size="sm" type="submit">OK</Button>
               </form>
             ) : (
-              <button onClick={() => setRenaming(true)} className="truncate text-left text-sm font-semibold hover:text-accent" title="Rename">{sel.name}</button>
+              <button onClick={() => setRenaming(true)} className="font-display truncate text-left text-lg hover:text-accent" title="Rename">{sel.name}</button>
             )}
             {!sel.is_baseline && <button onClick={() => setDelOpen(true)} aria-label="Delete scenario" className="text-ink-500 hover:text-red-700"><Trash2 className="h-4 w-4" /></button>}
           </div>
@@ -245,8 +246,8 @@ export default function SimulationLab() {
             ))}
           </div>
 
-          <details className="group rounded-md border border-black/[0.07]" open>
-            <summary className="cursor-pointer px-3 py-2 text-xs font-medium text-ink-200">Monthly costs</summary>
+          <details className="group rounded-md border border-ink-100/[0.12]" open>
+            <summary className="label-mono cursor-pointer px-3 py-2.5 text-ink-200">Monthly costs</summary>
             <div className="grid grid-cols-2 gap-2 p-3 pt-0">
               {(["rent", "payroll", "utilities", "other_fixed"] as const).map((k) => (
                 <Field key={k} label={k === "other_fixed" ? "Other fixed" : k[0].toUpperCase() + k.slice(1)}>
@@ -262,8 +263,8 @@ export default function SimulationLab() {
             </div>
           </details>
 
-          <details className="rounded-md border border-black/[0.07]">
-            <summary className="cursor-pointer px-3 py-2 text-xs font-medium text-ink-200">Market assumptions (advanced)</summary>
+          <details className="rounded-md border border-ink-100/[0.12]">
+            <summary className="label-mono cursor-pointer px-3 py-2.5 text-ink-200">Market assumptions (advanced)</summary>
             <div className="space-y-3 p-3 pt-0">
               <Field label="Typical local price" kind={draft.reference_price ? "user" : "unknown"} hint="Leave empty to derive it from competitor prices you entered, or fall back to your baseline price.">
                 <NumberInput value={draft.reference_price} onChange={(v) => set("reference_price", v)} prefix="₹" allowEmpty placeholder="unknown" />
@@ -294,7 +295,7 @@ export default function SimulationLab() {
             </div>
           </details>
 
-          <div className="sticky bottom-0 -mx-4 flex gap-2 border-t border-black/[0.06] bg-ink-950/80 backdrop-blur-xl p-3">
+          <div className="sticky bottom-0 -mx-4 flex gap-2 border-t border-ink-100/10 bg-white/90 p-3 backdrop-blur-xl">
             <Button variant="secondary" size="sm" onClick={save} loading={saving} disabled={!dirty}><Save className="h-3.5 w-3.5" /> Save</Button>
             <Button variant="primary" className="flex-1" onClick={run} loading={running} disabled={!hasSnapshot}>
               <Play className="h-4 w-4" /> {res && !dirty && !stale ? "Recalculate" : "Run simulation"}
@@ -312,7 +313,7 @@ export default function SimulationLab() {
           {res?.evidence?.failed_layers?.includes("competitors") && res.competitors.length === 0 && (
             <Notice tone="warn">Competitor data failed to load for this location, so this run assumes no competitors and is optimistic. Refresh live data on the Market map, then re-run.</Notice>
           )}
-          <div className="relative h-[380px] overflow-hidden rounded-lg border border-black/[0.07]">
+          <div className="relative h-[380px] overflow-hidden rounded-md border border-ink-100/[0.12]">
             <MarketMap
               fill
               center={center}
@@ -326,7 +327,7 @@ export default function SimulationLab() {
               fitKey={`${draftLoc}-${market?.snapshot?.id || ""}`}
               onCandidateClick={(id) => setDraftLoc(id)}
             />
-            <div className="absolute bottom-8 left-2 z-10 space-y-1.5 rounded-xl border border-black/[0.07] bg-black/[0.025]/95 p-2 text-[11px]">
+            <div className="panel absolute bottom-8 left-2 z-10 space-y-1.5 rounded-md p-2 text-[11px]">
               <Segmented value={agentColor} onChange={setAgentColor} options={[{ value: "choice", label: "Colour by choice" }, { value: "red", label: "All agents" }]} />
               {agentColor === "choice" ? (
                 <div className="flex flex-wrap gap-x-3 gap-y-1 text-ink-300">
@@ -454,9 +455,9 @@ export default function SimulationLab() {
         </section>
 
         {/* RIGHT: results */}
-        <aside className="space-y-3 border-t border-black/[0.06] p-4 xl:max-h-[calc(100vh-150px)] xl:overflow-y-auto xl:border-l xl:border-t-0">
+        <aside className="space-y-3 border-t border-ink-100/10 bg-white/50 p-4 xl:max-h-[calc(100vh-150px)] xl:overflow-y-auto xl:border-l xl:border-t-0">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold">Results</h2>
+            <h2 className="font-display text-lg">Results</h2>
             {res && <Badge tone={sel.is_baseline ? "accent" : "neutral"}>{sel.is_baseline ? "baseline" : "vs baseline"}</Badge>}
           </div>
           {!res && <p className="text-sm text-ink-400">Run the simulation to see results.</p>}

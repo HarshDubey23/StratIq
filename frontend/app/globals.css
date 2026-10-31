@@ -1,33 +1,45 @@
 @import "tailwindcss";
 
 /*
-  StrataIQ — "Survey blue" (app side)
-  A light, cool interface: blue-grey ground, white surfaces, near-black type,
-  one cobalt for *you* (your site, your customers). Data colours always encode provenance:
+  StrataIQ — "Survey blue", one system for the landing page and the app.
+  Three grounds: cobalt (the landing field, primary actions), night (navigation, billboards),
+  paper (work surfaces). Archivo throughout, wide for headlines; mono uppercase for labels;
+  square corners and hairlines instead of soft shadows. Data colours always encode provenance:
   amber = observed competitors, green = field-verified, red = synthetic agents.
 
   The ink scale runs from page ground (950) to primary text (100), so components keep
   using bg-ink-950 / text-ink-100 and the theme lives here.
 */
 @theme {
-  --font-sans: var(--font-inter-tight), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-archivo), var(--font-inter-tight), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-archivo), var(--font-inter-tight), ui-sans-serif, sans-serif;
   --font-serif: var(--font-instrument), ui-serif, Georgia, serif;
   --font-mono: var(--font-jbmono), ui-monospace, SFMono-Regular, monospace;
   --font-deva: var(--font-tiro), serif;
 
-  --color-ink-950: #f3f4f7; /* page */
+  --color-ink-950: #ededf0; /* page */
   --color-ink-900: #ffffff; /* surface */
-  --color-ink-850: #f9fafb;
-  --color-ink-800: #eef0f4;
-  --color-ink-700: #e2e5eb; /* hairline */
-  --color-ink-600: #d1d5dd;
-  --color-ink-500: #9ba1ad;
-  --color-ink-400: #6b7180; /* tertiary text */
-  --color-ink-300: #4a505d; /* secondary text */
-  --color-ink-200: #282c35;
-  --color-ink-100: #0d1017; /* primary text */
-  --color-paper: #f3f4f7;
+  --color-ink-850: #f6f6f8;
+  --color-ink-800: #e8e8ec;
+  --color-ink-700: #dcdce2; /* hairline */
+  --color-ink-600: #c9c9d1;
+  --color-ink-500: #95959f;
+  --color-ink-400: #66666f; /* tertiary text */
+  --color-ink-300: #45454d; /* secondary text */
+  --color-ink-200: #26262b;
+  --color-ink-100: #0c0c0e; /* primary text */
+  --color-paper: #ededf0;
+  --color-night: #0c0c0e;     /* navigation, billboards */
+  --color-night-800: #1b1b1f;
+  --color-night-700: #2a2a30;
+
+  /* square corners everywhere; rounded-full stays round for dots and pills */
+  --radius-xs: 1px;
+  --radius-sm: 2px;
+  --radius-md: 3px;
+  --radius-lg: 4px;
+  --radius-xl: 5px;
+  --radius-2xl: 6px;
 
   --color-accent: #2f49ff;      /* you: candidate site, your customers (cobalt) */
   --color-accent-dim: #dfe4ff;
@@ -66,9 +78,11 @@ body {
   background: rgb(47 73 255 / 0.18);
 }
 
+/* the landing's wide Archivo, carried into the app (unlayered, so it outranks font-medium) */
 .font-display {
   font-family: var(--font-display);
-  font-stretch: 112%;
+  font-stretch: 118%;
+  font-weight: 650;
   letter-spacing: -0.035em;
 }
 
@@ -98,18 +112,27 @@ body {
 }
 
 .grid-bg {
-  background-image: linear-gradient(to right, rgb(0 0 0 / 0.045) 1px, transparent 1px),
-    linear-gradient(to bottom, rgb(0 0 0 / 0.045) 1px, transparent 1px);
-  background-size: 56px 56px;
+  background-image: linear-gradient(to right, rgb(0 0 0 / 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(0 0 0 / 0.05) 1px, transparent 1px);
+  background-size: 80px 80px;
 }
 
 /* floating surface used over maps and as menus / dialogs */
 .panel {
-  background: rgb(255 255 255 / 0.86);
-  border: 1px solid rgb(0 0 0 / 0.07);
-  backdrop-filter: blur(18px) saturate(1.4);
-  -webkit-backdrop-filter: blur(18px) saturate(1.4);
-  box-shadow: 0 1px 2px rgb(13 16 40 / 0.05), 0 18px 48px -20px rgb(13 16 40 / 0.22);
+  background: rgb(255 255 255 / 0.94);
+  border: 1px solid rgb(12 12 14 / 0.12);
+  backdrop-filter: blur(14px) saturate(1.3);
+  -webkit-backdrop-filter: blur(14px) saturate(1.3);
+  box-shadow: 0 24px 48px -28px rgb(12 12 14 / 0.35);
+}
+
+/* mono uppercase label, the Sprint-style "01.SECTION" voice */
+.label-mono {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .contours {
@@ -122,18 +145,19 @@ body {
 
 .idx {
   font-family: var(--font-mono);
-  font-size: 11.5px;
-  letter-spacing: 0.02em;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: var(--color-ink-400);
 }
 
-/* soft elevation for white cards on paper */
+/* hover on cards: a hard cobalt edge instead of a soft float */
 .lift {
   transition: transform 0.5s var(--ease-out-expo), box-shadow 0.5s var(--ease-out-expo), border-color 0.3s;
 }
 .lift:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 1px 2px rgb(13 16 40 / 0.04), 0 22px 44px -24px rgb(13 16 40 / 0.25);
+  transform: translate(-2px, -2px);
+  box-shadow: 4px 4px 0 var(--color-accent);
 }
 
 .sheen {
@@ -407,10 +431,10 @@ html.lenis body {
 
 /* MapLibre */
 .maplibregl-ctrl-group {
-  background: rgb(255 255 255 / 0.92) !important;
-  border: 1px solid rgb(0 0 0 / 0.08) !important;
-  box-shadow: 0 8px 24px -12px rgb(13 16 40 / 0.25) !important;
-  border-radius: 10px !important;
+  background: rgb(255 255 255 / 0.95) !important;
+  border: 1px solid rgb(12 12 14 / 0.14) !important;
+  box-shadow: none !important;
+  border-radius: 3px !important;
   overflow: hidden;
 }
 .maplibregl-ctrl-group button + button {
@@ -432,8 +456,8 @@ html.lenis body {
 .maplibregl-popup-content {
   background: #fff !important;
   color: var(--color-ink-100);
-  border: 1px solid rgb(0 0 0 / 0.08);
-  border-radius: 10px;
+  border: 1px solid rgb(12 12 14 / 0.14);
+  border-radius: 3px;
   padding: 8px 10px;
   font-size: 12px;
   box-shadow: 0 12px 30px -14px rgb(13 16 40 / 0.3);
@@ -471,4 +495,10 @@ select {
 /* soft cobalt glow behind auth / empty screens */
 .halo {
   background: radial-gradient(60% 50% at 50% 35%, rgb(47 73 255 / 0.1), transparent 70%);
+}
+
+/* thin scrollbars on the app's scrolling columns */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(12 12 14 / 0.2) transparent;
 }
