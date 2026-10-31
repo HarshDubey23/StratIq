@@ -61,11 +61,19 @@ def main(out_npz: str, out_meta: str) -> None:
         raise SystemExit("No India RWI resource found on HDX: " + ", ".join(r.get("name", "") for r in pkg["resources"])[:2000])
     rwi_res = res[0]
     text = fetch(rwi_res["url"]).decode("utf-8")
-    rows = list(csv.DictReader(io.StringIO(text)))
+    rows = [{k.strip().lower().lstrip("\ufeff"): v for k, v in r.items()} for r in csv.DictReader(io.StringIO(text))]
+    print("columns:", list(rows[0]), "rows:", len(rows), "resource:", rwi_res.get("name"))
     xs, ys, rwi, err = [], [], [], []
     zoom = None
     for r in rows:
-        x, y, z = quadkey_to_xyz(r["quadkey"].strip())
+        if r.get("quadkey"):
+            x, y, z = quadkey_to_xyz(r["quadkey"].strip())
+        else:  # some country files carry only the tile centroid: Bing tiles are zoom 14 (~2.4 km)
+            z = 14
+            la, lo = float(r.get("latitude") or r["lat"]), float(r.get("longitude") or r.get("lon") or r["lng"])
+            n = 2 ** z
+            x = int((lo + 180.0) / 360.0 * n)
+            y = int((1 - math.asinh(math.tan(math.radians(la))) / math.pi) / 2 * n)
         zoom = zoom or z
         if z != zoom:
             continue
