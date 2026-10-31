@@ -68,6 +68,8 @@ export function inr(x: unknown): string {
   const s = a >= 1e7 ? `₹${(a / 1e7).toFixed(a >= 1e8 ? 0 : 1)} crore` : a >= 1e5 ? `₹${(a / 1e5).toFixed(a >= 1e6 ? 0 : 1)} lakh` : `₹${Math.round(a).toLocaleString("en-IN")}`;
   return v < 0 ? `${s} ka loss` : s;
 }
+/** "₹40,000 profit har mahine" or "₹12,000 ka loss har mahine" */
+const pm = (x: unknown) => (Number(x) < 0 ? `${inr(-Number(x))} ka loss har mahine` : `${inr(x)} profit har mahine`);
 const num = (x: unknown) => (Number.isFinite(Number(x)) ? Math.round(Number(x)).toLocaleString("en-IN") : "?");
 const pct = (x: unknown) => (Number.isFinite(Number(x)) ? `${Math.round(Number(x) * 100)}%` : "?");
 const parse = (s: string) => {
@@ -122,7 +124,7 @@ function describePage(): string {
   if (n.day !== undefined) facts.push(`simulation day ${num(n.day)}`);
   if (n.orders_today !== undefined) facts.push(`aaj ${num(n.orders_today)} orders`);
   if (n.competitors !== undefined) facts.push(`${num(n.competitors)} competitors map pe`);
-  if (n.profit_per_month !== undefined) facts.push(`profit ${inr(n.profit_per_month)} mahina`);
+  if (n.profit_per_month !== undefined) facts.push(pm(n.profit_per_month));
   // a few short lines that carry money or percentages: the figures a person would read first
   const keyLines = pg.visible_text.split("\n").map((l) => l.trim())
     .filter((l) => l.length > 3 && l.length < 70 && /₹|%|\blakh\b|\bcrore\b/i.test(l)).slice(0, 3);
@@ -138,8 +140,8 @@ function runSentence(o: Record<string, unknown>): string {
   const b = o.before as Record<string, number> | null;
   if (!a) return "";
   const unit = (a as unknown as { unit?: string }).unit || "customers";
-  let s = ` Ab profit ${inr(a.profit_per_month)} mahina`;
-  if (b && b.profit_per_month !== undefined) s += ` (pehle ${inr(b.profit_per_month)})`;
+  let s = ` Ab ${pm(a.profit_per_month)}`;
+  if (b && b.profit_per_month !== undefined) s += ` (pehle ${pm(b.profit_per_month)})`;
   s += `, lagbhag ${num(a.units_per_month)} ${unit} mahine me`;
   if (a.break_even_units) s += `, break-even ${num(a.break_even_units)} ${unit} pe`;
   if (a.chance_of_loss !== undefined && a.chance_of_loss !== null) s += `, aur loss wale mahine ka chance ${pct(a.chance_of_loss)}`;
@@ -176,7 +178,7 @@ export async function route(qRaw: string, t: Tools, ctx: { projectOpen: boolean;
         if (o.error) return `Simulation nahi chal payi: ${o.error}`;
         const w = (o.what_if || {}) as Record<string, number>;
         const b = (o.baseline || {}) as Record<string, number>;
-        return `Price ${inr(changes.price)} pe: profit ${inr(w.operating_profit_per_month)} mahina, abhi ke ${inr(b.operating_profit_per_month)} ke muqable. ` +
+        return `Price ${inr(changes.price)} pe ${pm(w.operating_profit_per_month)}, jabki abhi ${pm(b.operating_profit_per_month)}. ` +
           `Customers ${num(w.customers_or_units_per_month)} vs ${num(b.customers_or_units_per_month)}` +
           (w.probability_of_loss != null ? `, loss ka chance ${pct(w.probability_of_loss)}` : "") +
           `. Ye sirf what-if hai, plan nahi badla — save karna ho to bolo 'price ${num(changes.price)} kar do'.`;
@@ -218,9 +220,13 @@ export async function route(qRaw: string, t: Tools, ctx: { projectOpen: boolean;
     const best = (o.best_sites || [])[0];
     if (!best) return "Is catchment me compare karne layak dusri jagah nahi mili.";
     if (Number(best.profit_per_month) <= Number(cur.profit_per_month))
-      return `Aapki current site hi is area me best hai: ${inr(cur.profit_per_month)} mahina profit. Agli best jagah ${inr(best.profit_per_month)} deti hai.`;
-    return `Sabse acchi jagah aapki site se ${best.from_current_km} km door hai — wahan same plan se ${inr(best.profit_per_month)} mahina profit, abhi ke ${inr(cur.profit_per_month)} ke muqable. ` +
-      `Ek km me ${num(best.people_within_1km)} log aur 500 m me ${num(best.competitors_within_500m)} competitors. Map pe green pillars me dikha diya. Rent wahan same maana hai, isliye local rent check kar lena.`;
+      return `Aapki current site hi is area me best hai: ${pm(cur.profit_per_month)}. Agli best jagah pe ${pm(best.profit_per_month)}.`;
+    // both still losing: moving alone won't fix it, say so
+    const stillLoss = Number(best.profit_per_month) < 0
+      ? " Lekin dhyaan do, wahan bhi loss hai — sirf jagah badalne se kaam nahi banega; rent, price ya setup ka size bhi badalna padega. Bolo 'profit kaise badhega' to main best combination nikalta hoon."
+      : "";
+    return `Sabse acchi jagah aapki site se ${best.from_current_km} km door hai. Wahan same plan se ${pm(best.profit_per_month)}, jabki abhi ${pm(cur.profit_per_month)}. ` +
+      `Ek km me ${num(best.people_within_1km)} log aur 500 m me ${num(best.competitors_within_500m)} competitors. Map pe green pillars me dikha diya. Rent wahan same maana hai, isliye local rent check kar lena.${stillLoss}`;
   }
 
   // 5. best strategy / how to increase profit
@@ -237,7 +243,7 @@ export async function route(qRaw: string, t: Tools, ctx: { projectOpen: boolean;
     if (!Object.keys(lastSuggestion).length) lastSuggestion = null;
     return `${num(o.combinations_tested)} combinations me sabse zyada profit: price ${inr(b.price)}, marketing ${inr(b.marketing_spend)} mahina` +
       (b.capacity_scale && b.capacity_scale !== 1 ? `, capacity ${Math.round((b.capacity_scale - 1) * 100)}% zyada` : "") +
-      ` — profit ${inr(b.profit_per_month)} mahina, abhi ke ${inr(c.profit_per_month)} ke muqable. Bolo 'ye test karo' to main isse live map pe chala dunga.`;
+      `. Isse ${pm(b.profit_per_month)}, jabki abhi ${pm(c.profit_per_month)}. Bolo 'ye test karo' to main isse das hazaar agents pe chala ke verify karta hoon.`;
   }
 
   // 6. analysis / insights
@@ -275,7 +281,7 @@ export async function route(qRaw: string, t: Tools, ctx: { projectOpen: boolean;
     if (o.status === "still_loading") return "Data abhi bhi load ho raha hai, background me chalta rahega. Thodi der me poochna.";
     if (o.status === "failed") return "Live data abhi load nahi ho paya — OpenStreetMap busy ho sakta hai. Thodi der baad try karo.";
     const s = o.simulation || {};
-    return `Live data aa gaya aur simulation chal gayi: lagbhag ${num(s.units_per_month)} ${s.unit || "customers"} mahina, profit ${inr(s.profit_per_month)}${s.chance_of_loss !== undefined ? `, loss ka chance ${pct(s.chance_of_loss)}` : ""}.`;
+    return `Live data aa gaya aur simulation chal gayi: lagbhag ${num(s.units_per_month)} ${s.unit || "customers"} mahina, ${pm(s.profit_per_month)}${s.chance_of_loss !== undefined ? `, loss ka chance ${pct(s.chance_of_loss)}` : ""}.`;
   }
 
   // 10. projects
