@@ -32,7 +32,12 @@ def test_live_overpass_gyms():
 
 
 def test_live_worldpop():
-    total, prov = asyncio.run(population.worldpop_total([circle_polygon(LAT, LNG, 1.0)]))
+    try:
+        total, prov = asyncio.run(population.worldpop_total([circle_polygon(LAT, LNG, 1.0)]))
+    except ProviderError as e:
+        if "Timeout" in str(e) or "did not finish in time" in str(e):
+            pytest.skip(f"WorldPop unavailable: {e}")
+        raise
     assert total > 1000
     print("population 1km:", round(total))
 

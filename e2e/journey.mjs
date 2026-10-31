@@ -200,6 +200,11 @@ await step("live gym journey", async () => {
   const firstComp = page.locator("aside ul button").first();
   await page.getByRole("button", { name: /Competitors/ }).click();
   if (await firstComp.count()) { await firstComp.click(); await shot("15-live-competitor-detail"); }
+  // a run needs population; when the public WorldPop service is down there is nothing to simulate, so stop here
+  if ((snap.body.errors || []).some((e) => e.source === "population") && !snap.body.population?.total) {
+    L("SKIP rest of live gym journey: WorldPop population service unavailable (outside outage)");
+    return;
+  }
   await page.goto(`${BASE}/app/projects/${pid}/simulation`);
   await page.getByRole("button", { name: /Run simulation/ }).first().click();
   await page.getByText("Profit distribution").waitFor({ timeout: 90000 });
