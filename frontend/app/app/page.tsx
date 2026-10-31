@@ -64,18 +64,21 @@ export default function Dashboard() {
 
   return (
     <main className="mx-auto w-full max-w-7xl px-4 py-10 md:px-10">
-      <div className="rise flex flex-col justify-between gap-6 md:flex-row md:items-end">
-        <div>
-          <p className="idx uppercase">{user?.name && user.name !== "Guest" ? `Namaste, ${user.name.split(" ")[0]}` : "Namaste"}</p>
-          <h1 className="font-display mt-3 max-w-3xl text-[clamp(2.2rem,4.6vw,4rem)] font-medium leading-[0.95] tracking-[-0.05em]">What would you open, and where?</h1>
-          <p className="mt-4 max-w-xl text-[15px] text-ink-300">Describe any business and pick any street. StrataIQ loads the real market around it and simulates who would come.</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="secondary" onClick={liveDemo} loading={liveBusy}>
-            <span className="relative flex h-2 w-2"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-ok opacity-70" /><span className="relative inline-flex h-2 w-2 rounded-full bg-ok" /></span>
-            Live demo
-          </Button>
-          <ButtonLink href="/app/projects/new" variant="primary">New analysis <ArrowRight className="h-4 w-4" /></ButtonLink>
+      <div className="rise relative overflow-hidden rounded-md bg-accent text-white">
+        <div aria-hidden className="lp-grid pointer-events-none absolute inset-0" />
+        <div className="relative flex flex-col justify-between gap-8 p-6 md:flex-row md:items-end md:p-10">
+          <div>
+            <p className="label-mono text-white/60">{user?.name && user.name !== "Guest" ? `Namaste, ${user.name.split(" ")[0]}` : "Namaste"}</p>
+            <h1 className="lp-wide mt-4 max-w-3xl text-[clamp(2.2rem,4.8vw,4.4rem)] leading-[0.9] tracking-[-0.045em]">What would you open, and where?</h1>
+            <p className="mt-5 max-w-xl text-[15.5px] leading-relaxed text-white/75">Describe any business and pick any street. StrataIQ loads the real market around it and simulates who would come.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="secondary" onClick={liveDemo} loading={liveBusy}>
+              <span className="relative flex h-2 w-2"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-ok opacity-70" /><span className="relative inline-flex h-2 w-2 rounded-full bg-ok" /></span>
+              Live demo
+            </Button>
+            <Link href="/app/projects/new" className="inline-flex h-10 items-center gap-2 whitespace-nowrap rounded-md bg-night px-4.5 text-sm font-semibold text-white transition-colors hover:bg-white hover:text-night">New analysis <ArrowRight className="h-4 w-4" /></Link>
+          </div>
         </div>
       </div>
 
@@ -83,15 +86,15 @@ export default function Dashboard() {
         <QuickStart />
       </div>
 
-      <div className="rise rise-2 mt-4 grid gap-px overflow-hidden rounded-xl border border-black/[0.07] bg-black/[0.07] sm:grid-cols-2 lg:grid-cols-4">
+      <div className="rise rise-2 mt-4 grid gap-px overflow-hidden rounded-md border border-ink-100/[0.12] bg-ink-100/[0.12] sm:grid-cols-2 lg:grid-cols-4">
         {actions.map((a, i) => (
-          <Link key={a.t} href={a.href} className="group relative bg-ink-950 p-5 transition-colors duration-300 hover:bg-ink-900">
+          <Link key={a.t} href={a.href} className="group relative bg-white p-5 transition-colors duration-300 hover:bg-night hover:text-white">
             <div className="flex items-center justify-between">
-              <span className="idx">0{i + 1}/</span>
+              <span className="idx group-hover:text-white/50">0{i + 1}.</span>
               <a.i className="h-4.5 w-4.5 text-ink-400 transition-colors group-hover:text-accent" />
             </div>
-            <div className="font-display mt-8 text-[17px] font-medium tracking-tight">{a.t}</div>
-            <div className="mt-1 flex items-center justify-between text-[13px] text-ink-400">
+            <div className="font-display mt-8 text-[17px] tracking-tight">{a.t}</div>
+            <div className="mt-1 flex items-center justify-between text-[13px] text-ink-400 group-hover:text-white/60">
               {a.d}
               <ArrowRight className="h-4 w-4 -translate-x-1 opacity-0 transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100" />
             </div>
@@ -99,8 +102,8 @@ export default function Dashboard() {
         ))}
       </div>
 
-      <div className="mt-14 flex items-end justify-between border-b border-black/[0.06] pb-3">
-        <h2 className="font-display text-xl font-medium tracking-tight">Your simulations {projects && projects.length > 0 && <span className="num ml-1 font-mono text-sm text-ink-500">{projects.length}</span>}</h2>
+      <div className="mt-14 flex items-end justify-between border-b border-ink-100 pb-3">
+        <h2 className="font-display text-2xl tracking-tight">Your simulations {projects && projects.length > 0 && <span className="num ml-1 font-mono text-sm text-ink-500">{projects.length}</span>}</h2>
         <Button size="sm" variant="ghost" onClick={demo} loading={busy}>
           <FlaskConical className="h-3.5 w-3.5" /> Open labelled demo
         </Button>
@@ -124,10 +127,10 @@ export default function Dashboard() {
         {projects && projects.length > 0 && (
           <div className="grid gap-3 md:grid-cols-2">
             {projects.map((p) => (
-              <div key={p.id} className="lift group flex flex-col rounded-xl border border-black/[0.07] bg-ink-900/80 p-5 hover:border-black/15">
+              <div key={p.id} className="lift group flex flex-col rounded-md border border-ink-100/[0.12] bg-white p-5 hover:border-ink-100">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <Link href={`/app/projects/${p.id}`} className="font-display block truncate text-lg font-medium tracking-tight group-hover:text-accent">{p.name}</Link>
+                    <Link href={`/app/projects/${p.id}`} className="font-display block truncate text-lg tracking-tight group-hover:text-accent">{p.name}</Link>
                     <div className="mt-0.5 truncate text-xs text-ink-400">
                       {p.category.label} · {p.locations[0]?.address || `${p.locations[0]?.lat.toFixed(4)}, ${p.locations[0]?.lng.toFixed(4)}`}
                     </div>
@@ -145,16 +148,16 @@ export default function Dashboard() {
                   {p.summary ? (
                     <div className="grid grid-cols-3 gap-2 border-t border-black/[0.06] pt-4">
                       <div>
-                        <div className="text-[11px] text-ink-400">{p.summary.unit_label}</div>
-                        <div className="num font-display mt-0.5 text-lg font-medium">{num(p.summary.units_sold)}</div>
+                        <div className="label-mono text-[10px] text-ink-400">{p.summary.unit_label}</div>
+                        <div className="num font-display mt-1 text-lg">{num(p.summary.units_sold)}</div>
                       </div>
                       <div>
-                        <div className="text-[11px] text-ink-400">Profit / month</div>
-                        <div className={`num font-display mt-0.5 text-lg font-medium ${p.summary.operating_profit < 0 ? "text-red-700" : "text-ok"}`}>{money(p.summary.operating_profit, { compact: true })}</div>
+                        <div className="label-mono text-[10px] text-ink-400">Profit / month</div>
+                        <div className={`num font-display mt-1 text-lg ${p.summary.operating_profit < 0 ? "text-red-700" : "text-ok"}`}>{money(p.summary.operating_profit, { compact: true })}</div>
                       </div>
                       <div>
-                        <div className="text-[11px] text-ink-400">Chance of a loss</div>
-                        <div className="num font-display mt-0.5 text-lg font-medium">{pct(p.summary.prob_loss)}</div>
+                        <div className="label-mono text-[10px] text-ink-400">Chance of a loss</div>
+                        <div className="num font-display mt-1 text-lg">{pct(p.summary.prob_loss)}</div>
                       </div>
                     </div>
                   ) : (

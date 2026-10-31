@@ -125,8 +125,8 @@ export function Journey({ project }: { project: Project }) {
 
   return (
     <>
-      <div className="mt-4 flex items-center gap-3">
-        <nav aria-label="Project" className="-mb-px flex min-w-0 flex-1 items-stretch overflow-x-auto [mask-image:linear-gradient(to_right,black_85%,transparent)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="-mx-4 mt-4 flex items-stretch gap-3 border-t border-white/10 pr-4 md:-mx-8 md:pr-8">
+        <nav aria-label="Project" className="flex min-w-0 flex-1 items-stretch overflow-x-auto [mask-image:linear-gradient(to_right,black_85%,transparent)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {steps.map((s, i) => {
             const active = path.startsWith(base + s.seg);
             return (
@@ -134,26 +134,25 @@ export function Journey({ project }: { project: Project }) {
                 key={s.key}
                 href={base + s.seg}
                 title={s.hint}
-                className={cn("group relative flex shrink-0 items-center gap-2 px-3 pb-3 pt-1.5 text-[13px] transition-colors", active ? "text-ink-100" : "text-ink-400 hover:text-ink-100")}
+                className={cn("group relative flex shrink-0 items-center gap-2 border-r border-white/10 px-4 py-3 text-[13px] transition-colors first:pl-4 md:first:pl-8", active ? "bg-accent text-white" : "text-white/55 hover:bg-white/[0.06] hover:text-white")}
               >
                 <span
                   className={cn(
-                    "num flex h-5 w-5 items-center justify-center rounded-md font-mono text-[10px] transition-colors",
-                    active ? "bg-accent text-white" : s.done ? "bg-field/15 text-field" : "bg-black/[0.06] text-ink-400 group-hover:bg-black/10",
+                    "num flex h-5 min-w-5 items-center justify-center font-mono text-[11px] transition-colors",
+                    active ? "text-white" : s.done ? "text-[#3ddc84]" : "text-white/35 group-hover:text-white/70",
                   )}
                 >
-                  {s.done && !active ? <Check className="h-3 w-3" /> : i + 1}
+                  {s.done && !active ? <Check className="h-3.5 w-3.5" /> : `0${i + 1}.`}
                 </span>
                 {s.label}
-                {s.key === "field" && (project.field?.records ?? 0) > 0 && <span className="num rounded bg-field/15 px-1 font-mono text-[10px] text-field">{project.field?.records}</span>}
-                <span className={cn("absolute inset-x-3 -bottom-px h-[2px] rounded-full bg-accent transition-transform duration-500", active ? "scale-x-100" : "scale-x-0")} style={{ transitionTimingFunction: "cubic-bezier(.16,1,.3,1)" }} />
+                {s.key === "field" && (project.field?.records ?? 0) > 0 && <span className="num rounded-sm bg-[#3ddc84]/15 px-1 font-mono text-[10px] text-[#3ddc84]">{project.field?.records}</span>}
               </Link>
             );
           })}
         </nav>
-        <div className="mb-2 flex shrink-0 items-center gap-1">
+        <div className="flex shrink-0 items-center gap-1 py-2">
           <div className="relative shrink-0">
-            <button onClick={() => setMore((m) => !m)} aria-expanded={more} className={cn("flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs", moreActive ? "text-ink-100" : "text-ink-400 hover:text-ink-100")}>
+            <button onClick={() => setMore((m) => !m)} aria-expanded={more} className={cn("flex items-center gap-1 rounded-sm px-2.5 py-1.5 text-xs", moreActive ? "text-white" : "text-white/55 hover:text-white")}>
               {moreActive?.label || "More"} <ChevronDown className="h-3.5 w-3.5" />
             </button>
             {more && (
@@ -165,11 +164,11 @@ export function Journey({ project }: { project: Project }) {
             )}
           </div>
 
-          <span className="num mr-1 hidden font-mono text-[11px] text-ink-500 lg:inline">{doneN}/6</span>
-          <button onClick={() => setTour(true)} className="hidden rounded-md lg:inline-block px-2.5 py-1.5 text-xs text-ink-400 hover:bg-black/5 hover:text-ink-100">How it works</button>
-          <button onClick={() => setWords(true)} className="hidden items-center lg:inline-flex gap-1 rounded-md px-2.5 py-1.5 text-xs text-ink-400 hover:bg-black/5 hover:text-ink-100"><BookA className="h-3.5 w-3.5" /> Glossary</button>
+          <span className="num mr-1 hidden font-mono text-[11px] text-white/35 lg:inline">{doneN}/6</span>
+          <button onClick={() => setTour(true)} className="hidden rounded-sm lg:inline-block px-2.5 py-1.5 text-xs text-white/55 hover:bg-white/10 hover:text-white">How it works</button>
+          <button onClick={() => setWords(true)} className="hidden items-center lg:inline-flex gap-1 rounded-sm px-2.5 py-1.5 text-xs text-white/55 hover:bg-white/10 hover:text-white"><BookA className="h-3.5 w-3.5" /> Glossary</button>
           {next && (
-            <Link href={base + next.seg} className="sheen group ml-1 inline-flex h-8 items-center gap-1.5 rounded-lg bg-accent px-3 text-xs font-medium text-white hover:bg-[#2238e0]" title={next.hint}>
+            <Link href={base + next.seg} className="sheen group ml-1 inline-flex h-8 items-center gap-1.5 rounded-sm bg-white px-3 text-xs font-semibold text-night transition-colors hover:bg-accent hover:text-white" title={next.hint}>
               Next: {next.label} <ChevronRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
             </Link>
           )}
@@ -200,7 +199,7 @@ function Tour({ onClose, base }: { onClose: () => void; base: string }) {
           <s.icon className="h-7 w-7 text-accent" />
           <button onClick={onClose} aria-label="Close" className="rounded-full p-1 text-ink-400 hover:text-ink-100"><X className="h-4 w-4" /></button>
         </div>
-        <h2 className="font-display mt-4 text-2xl font-medium tracking-tight">{s.t}</h2>
+        <h2 className="font-display mt-4 text-2xl tracking-tight">{s.t}</h2>
         <p className="mt-2 text-[15px] leading-relaxed text-ink-300">{s.d}</p>
         <div className="mt-6 flex items-center gap-2">
           {SLIDES.map((_, k) => <button key={k} onClick={() => setI(k)} aria-label={`Slide ${k + 1}`} className={cn("h-1.5 rounded-full transition-all", k === i ? "w-6 bg-accent" : "w-1.5 bg-black/20")} />)}
@@ -225,7 +224,7 @@ function Glossary({ onClose }: { onClose: () => void }) {
     <div className="fixed inset-0 z-[95] flex justify-end bg-ink-100/25 backdrop-blur-sm" role="dialog" aria-label="Words explained" onClick={onClose}>
       <div className="panel h-full w-full max-w-md overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between">
-          <h2 className="font-display text-xl font-medium">Words explained</h2>
+          <h2 className="font-display text-xl">Words explained</h2>
           <button onClick={onClose} aria-label="Close" className="rounded-full p-1 text-ink-400 hover:text-ink-100"><X className="h-4 w-4" /></button>
         </div>
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search a word…" aria-label="Search a word" className="mt-4 h-10 w-full rounded-lg border border-black/10 bg-black/[0.04] px-4 text-sm outline-none focus:border-accent/60" />

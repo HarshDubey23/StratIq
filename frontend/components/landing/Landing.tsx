@@ -290,17 +290,20 @@ export default function Landing() {
       <Intro onDone={() => setOpened(true)} />
 
       <header className={cn("fixed inset-x-0 top-0 z-40 transition-[background-color,border-color] duration-500", "border-b bg-[#2F49FF]/90 backdrop-blur-md", scrolled ? "border-white/15" : "border-transparent")}>
-        <nav className="mx-auto flex h-16 max-w-[1400px] items-center justify-between px-5 md:px-10">
-          <Wordmark />
-          <div className="hidden items-center gap-8 text-[14.5px] text-white/75 md:flex">
-            <a href="#story" className="lp-link">How it works</a>
-            <a href="#field" className="lp-link">Field research</a>
-            <a href="#voice" className="lp-link">Voice</a>
-            <Link href="/methodology" className="lp-link">Methodology</Link>
+        <nav className="mx-auto flex h-16 max-w-[1400px] items-stretch justify-between px-5 md:px-10">
+          <div className="flex items-center">
+            <Wordmark />
+          </div>
+          <div className="label-mono hidden h-full items-stretch text-white/70 md:flex">
+            {[["#story", "How it works"], ["#field", "Field research"], ["#voice", "Voice"], ["/methodology", "Methodology"]].map(([h, t], i) => (
+              <Link key={h} href={h} className="group flex items-center gap-1.5 border-l border-white/15 px-5 transition-colors last:border-r hover:bg-white hover:text-[#2F49FF]">
+                <span className="text-white/40 group-hover:text-[#2F49FF]/50">0{i + 1}.</span>{t}
+              </Link>
+            ))}
           </div>
           <div className="flex items-center gap-2">
             <Link href="/sign-in" className="hidden h-10 items-center px-3 text-[14.5px] text-white/80 transition-colors hover:text-white sm:inline-flex">Sign in</Link>
-            <Link href="/sign-up" className="inline-flex h-10 items-center rounded-full bg-white px-5 text-[14.5px] font-semibold text-[#2F49FF] transition-transform hover:scale-[1.03]">Start free</Link>
+            <Link href="/sign-up" className="inline-flex h-10 items-center rounded-[3px] bg-white px-5 text-[14.5px] font-semibold text-[#2F49FF] transition-colors hover:bg-black hover:text-white">Start free</Link>
           </div>
         </nav>
       </header>
@@ -339,7 +342,7 @@ export default function Landing() {
                   </p>
                   <form
                     onSubmit={(e) => { e.preventDefault(); void simulate(idea || placeholder); }}
-                    className={cn("lp-fade mt-7 flex max-w-[640px] flex-col gap-1.5 rounded-[10px] bg-white p-1.5 sm:flex-row", opened && "is-go")}
+                    className={cn("lp-fade mt-7 flex max-w-[640px] flex-col gap-1.5 rounded-[4px] bg-white p-1.5 sm:flex-row", opened && "is-go")}
                     style={{ transitionDelay: "720ms" }}
                   >
                     <label htmlFor="idea" className="sr-only">Your business idea</label>
@@ -350,7 +353,7 @@ export default function Landing() {
                       placeholder={placeholder || " "}
                       className="h-14 min-w-0 flex-1 bg-transparent px-4 text-[17px] text-black outline-none placeholder:text-black/40"
                     />
-                    <button type="submit" className="inline-flex h-14 shrink-0 items-center justify-center gap-2 rounded-[7px] bg-black px-6 text-[16px] font-semibold text-white transition-colors hover:bg-[#1a1a1a]">
+                    <button type="submit" className="inline-flex h-14 shrink-0 items-center justify-center gap-2 rounded-[3px] bg-black px-6 text-[16px] font-semibold text-white transition-colors hover:bg-[#2F49FF]">
                       {busy === "idea" && <Loader2 className="h-4 w-4 animate-spin" />} Simulate my idea
                     </button>
                   </form>
@@ -364,7 +367,7 @@ export default function Landing() {
                 </div>
 
                 {/* live billboard: the city above is this street, these rivals */}
-                <aside className={cn("lp-fade w-full rounded-[6px] bg-black p-5 text-white", opened && "is-go")} style={{ transitionDelay: "900ms" }}>
+                <aside className={cn("lp-fade w-full rounded-[3px] bg-black p-5 text-white", opened && "is-go")} style={{ transitionDelay: "900ms" }}>
                   <div className="flex items-center justify-between text-[13px] text-white/60">
                     <span className="flex items-center gap-2">
                       <span className={cn("h-1.5 w-1.5 rounded-full", loading ? "animate-pulse bg-white/60" : loadErr ? "bg-[#FF4B3E]" : "bg-white")} />
@@ -401,8 +404,8 @@ export default function Landing() {
               {CHAPTERS.map((c, i) => (
                 <section key={c.title} data-scene={i + 1} className="flex min-h-[120svh] items-center px-5 md:px-10">
                   <div className={cn("mx-auto flex w-full max-w-[1400px]", i % 2 ? "justify-end" : "justify-start")}>
-                    <article className={cn("lp-bb w-full max-w-[470px] rounded-[6px] bg-black p-7 text-white md:p-9", i % 2 && "lp-bb-r", scene === i + 1 && "is-on")}>
-                      <div className="lp-num text-[13px] text-white/50">{i + 1} / {CHAPTERS.length}</div>
+                    <article className={cn("lp-bb w-full max-w-[470px] rounded-[3px] bg-black p-7 text-white md:p-9", i % 2 && "lp-bb-r", scene === i + 1 && "is-on")}>
+                      <div className="label-mono text-white/50">0{i + 1}. / 0{CHAPTERS.length}</div>
                       <h2 className="lp-wide mt-6 text-[clamp(1.9rem,3.2vw,2.9rem)] leading-[0.98] tracking-[-0.035em]">{c.title}</h2>
                       <p className="mt-4 text-[16.5px] leading-[1.55] text-white/70">{c.body}</p>
                       <ChapterFact i={i} area={area} comps={comps.length} loading={loading} catLabel={catLabel} on={scene === i + 1} />
@@ -478,15 +481,15 @@ export default function Landing() {
 
         {/* ---------------- CTA ---------------- */}
         <section className="px-5 md:px-10">
-          <div className="mx-auto max-w-[1400px] rounded-[6px] bg-white px-6 py-16 text-black md:px-14 md:py-24">
+          <div className="mx-auto max-w-[1400px] rounded-[3px] bg-white px-6 py-16 text-black md:px-14 md:py-24">
             <h2 className="lp-wide max-w-4xl text-[clamp(2.8rem,7.5vw,7.4rem)] leading-[0.86] tracking-[-0.05em]">Run the market first.</h2>
             <div className="mt-12 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
               <p className="max-w-md text-[18px] leading-[1.5] text-black/65">Three minutes and one line of text — before the deposit, before the fit-out.</p>
               <div className="flex flex-wrap gap-3">
-                <Link href="/sign-up" className="inline-flex h-14 items-center gap-2 rounded-full bg-[#2F49FF] px-7 text-[16px] font-semibold text-white transition-transform hover:scale-[1.03]">
+                <Link href="/sign-up" className="inline-flex h-14 items-center gap-2 rounded-[3px] bg-[#2F49FF] px-7 text-[16px] font-semibold text-white transition-colors hover:bg-black">
                   Start free <ArrowUpRight className="h-4 w-4" />
                 </Link>
-                <button onClick={liveDemo} className="inline-flex h-14 items-center gap-2 rounded-full border border-black/20 px-7 text-[16px] font-semibold transition-colors hover:border-black">
+                <button onClick={liveDemo} className="inline-flex h-14 items-center gap-2 rounded-[3px] border border-black/20 px-7 text-[16px] font-semibold transition-colors hover:border-black hover:bg-black hover:text-white">
                   {busy === "live" && <Loader2 className="h-4 w-4 animate-spin" />} See the live demo
                 </button>
               </div>

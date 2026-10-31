@@ -80,16 +80,17 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-ink-950 px-4">
-      <div aria-hidden className="halo pointer-events-none absolute inset-0" />
-      <div aria-hidden className="grid-bg pointer-events-none absolute inset-0 [mask-image:radial-gradient(60%_50%_at_50%_45%,black,transparent)]" />
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-accent px-4 py-10">
+      <div aria-hidden className="lp-grid pointer-events-none absolute inset-0" />
+      <div aria-hidden className="lp-wide pointer-events-none absolute inset-x-0 bottom-0 select-none text-center text-[19vw] leading-[0.78] tracking-[-0.06em] text-white/[0.07]">StrataIQ</div>
       <div className="rise relative w-full max-w-sm">
         <div className="mb-10 flex justify-center">
-          <Logo />
+          <Logo tone="dark" />
         </div>
-        <form onSubmit={submit} className="panel space-y-4 rounded-xl p-7" noValidate>
+        <form onSubmit={submit} className="space-y-4 rounded-md bg-white p-7 text-ink-100 shadow-[12px_12px_0_var(--color-night)]" noValidate>
           <div>
-            <h1 className="font-display text-2xl font-medium tracking-tight">{mode === "sign-up" ? "Create your account" : "Sign in"}</h1>
+            <p className="label-mono text-accent">{mode === "sign-up" ? "01. New account" : "01. Welcome back"}</p>
+            <h1 className="font-display mt-2 text-[28px] leading-none tracking-tight">{mode === "sign-up" ? "Create your account" : "Sign in"}</h1>
             <p className="mt-1 text-sm text-ink-300">
               {demo ? "Sign in to open the labelled demo scenario." : mode === "sign-up" ? "Start testing business ideas against a model of the real market." : "Welcome back."}
             </p>
@@ -112,7 +113,7 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
           <button
             type="button"
             onClick={guest}
-            className="w-full rounded-lg border border-black/10 py-2.5 text-sm text-ink-200 transition-colors hover:border-black/25 hover:text-ink-100"
+            className="w-full rounded-md border border-ink-100/15 py-2.5 text-sm font-semibold text-ink-200 transition-colors hover:border-ink-100 hover:bg-ink-100 hover:text-white"
           >
             Continue as guest
           </button>
