@@ -56,7 +56,7 @@ def tile_bounds(x: np.ndarray, y: np.ndarray, z: int) -> tuple[np.ndarray, ...]:
 
 def main(out_npz: str, out_meta: str) -> None:
     pkg = json.loads(fetch(HDX_PKG))["result"]
-    res = [r for r in pkg["resources"] if r.get("name", "").lower().startswith("ind") and r.get("url", "").lower().endswith(".csv")]
+    res = [r for r in pkg["resources"] if "ind_pak" in (r.get("name", "") + r.get("url", "")).lower()]  # India ships as ind_pak_*.csv
     if not res:
         raise SystemExit("No India RWI resource found on HDX: " + ", ".join(r.get("name", "") for r in pkg["resources"])[:2000])
     rwi_res = res[0]
@@ -100,6 +100,8 @@ def main(out_npz: str, out_meta: str) -> None:
     r1 = np.clip(np.ceil((lat0 - tr.f) / tr.e).astype(int), 0, H)
     pop = sat[r1, c1] - sat[r0, c1] - sat[r1, c0] + sat[r0, c0]
 
+    if not len(xs):
+        raise SystemExit("no tiles parsed")
     keep = pop > 0  # outside India's WorldPop raster (incl. Pakistan) -> no population -> dropped
     xs, ys, rwi, err, pop = xs[keep], ys[keep], rwi[keep], err[keep], pop[keep]
     order = np.argsort(rwi, kind="stable")
