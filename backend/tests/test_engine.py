@@ -184,7 +184,6 @@ def test_monte_carlo_is_batched_for_dense_markets():
 
 def test_spatial_matrices_integration():
     """Verify precomputed routing distance and travel-time matrix integration and fallback."""
-    from app.engine.geo import compute_spatial_matrices, travel_time_matrix_minutes
     arch = ARCHETYPES["membership"]
     zones = make_zones()
     comps = make_comps(2)

@@ -187,6 +187,7 @@ export interface MarketData {
   competitors: CompetitorRec[];
   locations: Location[];
   category: Category;
+  income?: IncomeEvidence | null;
 }
 
 export interface Pct {

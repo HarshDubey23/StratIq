@@ -10,6 +10,7 @@ import { Map as MarketMap, } from "@/components/Map";
 import type { LayerKey } from "@/components/MapView";
 import { useProject } from "@/components/ProjectContext";
 import { Badge, Button, cn, Dialog, EmptyState, ErrorState, Evidence, Field, Input, Notice, NumberInput, Segmented, Select, Spinner } from "@/components/ui";
+import { IncomeMix } from "@/components/RealData";
 import { api, ApiError } from "@/lib/api";
 import { ago, money, num, pct, when } from "@/lib/format";
 import { refreshLocation, waitForSnapshot } from "@/lib/market";
@@ -322,6 +323,7 @@ export default function MarketPage() {
                       <PopulationFallback projectId={p.id} locationId={locId!} onSaved={refresh} />
                     )}
                   </div>
+                  {data?.income && <IncomeMix income={data.income} />}
                   <div className="rounded-md border border-white/[0.07] p-3">
                     <div className="mb-1 flex items-center justify-between text-xs">
                       <span className="font-medium text-ink-200">Data coverage</span>

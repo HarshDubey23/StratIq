@@ -209,7 +209,16 @@ def market(project_id: str, location_id: str | None = Query(default=None), user:
         out_comps.append(d)
     out_comps.sort(key=lambda x: x["distance_km"])
     loading = loading_snapshot(db, loc.id)
-    return {"location": location_out(loc), "snapshot": snapshot_out(snap) if snap else None, "competitors": out_comps,
+    income = None
+    if snap is not None and snap.zones:
+        try:  # who lives here: the same real-data income layer the simulation uses (fast; no network)
+            from ..categories.archetypes import get_archetype
+            from ..services.runs import MarketInputs
+            mi = MarketInputs(get_archetype(p.category["archetype"]), (p.category or {}).get("key"), snap, 42, 1.3, 20.0)
+            income = mi.behaviour.summary if mi.behaviour else None
+        except Exception:  # pragma: no cover - enrichment must never break the market page
+            log.exception("income layer failed for snapshot %s", snap.id)
+    return {"location": location_out(loc), "snapshot": snapshot_out(snap) if snap else None, "competitors": out_comps, "income": income,
             "loading_snapshot_id": loading.id if loading else None,
             "locations": [location_out(l) for l in p.locations], "category": p.category}
 
