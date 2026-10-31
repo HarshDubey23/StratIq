@@ -51,7 +51,7 @@ function Q({ n, label, children }: { n: string; label: React.ReactNode; children
     <div className="space-y-2">
       <div className="flex items-baseline gap-2 text-[13.5px] text-ink-100">
         <span className="idx">{n}</span>
-        {label}
+        <span>{label}</span>
       </div>
       {children}
     </div>
