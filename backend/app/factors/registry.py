@@ -19,7 +19,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 
-from .evidence_map import EVIDENCE_STATUS_MAP, EvidenceStatus
+from .evidence_map import EVIDENCE_STATUS_MAP
 
 DOMAINS = {
     "geography": "Geography & built environment",

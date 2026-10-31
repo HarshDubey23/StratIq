@@ -18,9 +18,8 @@ Replaces the generic appointment archetype with procedure-level clinical economi
 """
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 import math
-import numpy as np
 
 
 @dataclass(frozen=True)

@@ -15,7 +15,6 @@ from scipy.special import logsumexp
 
 from app.engine.choice.conditional_logit import (
     ChoiceDataset,
-    ChoiceEstimationResult,
     ConditionalLogitEstimator,
 )
 from app.engine.choice.validation import calculate_calibration_curve, evaluate_holdout

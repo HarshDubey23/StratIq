@@ -1,0 +1,40 @@
+name: Build real-data assets
+
+# Downloads public datasets that the sandboxed build cannot reach and commits compact, versioned extracts
+# into backend/app/data/. Re-run manually to refresh. Sources and licences are written to the *_meta.json files.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - backend/scripts/build_wealth_grid.py
+      - .github/workflows/data.yml
+
+permissions:
+  contents: write
+
+jobs:
+  wealth-grid:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install numpy rasterio
+      - name: Build India wealth grid (Meta RWI x WorldPop)
+        run: |
+          mkdir -p backend/app/data
+          python backend/scripts/build_wealth_grid.py backend/app/data/wealth_grid_ind.npz backend/app/data/wealth_grid_ind_meta.json > build.log 2>&1 \
+            || { echo "::error title=build failed::$(tail -c 1500 build.log | tr '\n' ' ')"; exit 1; }
+          echo "::notice title=wealth grid::$(python -c "import json;m=json.load(open('backend/app/data/wealth_grid_ind_meta.json'));print(m['tiles_kept'],'tiles, zoom',m['zoom'],', pop',round(m['population_total']))")"
+          ls -la backend/app/data
+      - name: Commit
+        run: |
+          git config user.name "HarshDubey23"
+          git config user.email "harsh.2428cseaiml127@kiet.edu"
+          git add backend/app/data/wealth_grid_ind.npz backend/app/data/wealth_grid_ind_meta.json
+          git diff --cached --quiet && exit 0
+          git commit -m "data: rebuild India wealth grid (Meta RWI x WorldPop)"
+          git pull --rebase origin main
+          git push origin HEAD:main

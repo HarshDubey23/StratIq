@@ -11,7 +11,7 @@ import pytest
 
 from app.categories.competitors import classify_competitor
 from app.categories.resolver import rank_taxonomy, resolve_offline
-from app.categories.taxonomy import TAXONOMY
+
 
 
 @pytest.mark.parametrize(

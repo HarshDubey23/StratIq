@@ -22,7 +22,7 @@ import numpy as np
 from scipy.special import ndtr
 
 from ..categories.archetypes import Archetype
-from .geo import compute_spatial_matrices, distance_matrix_km
+from .geo import compute_spatial_matrices
 
 
 MODEL_VERSION = "siq-choice-1.2"
