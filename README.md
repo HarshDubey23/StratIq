@@ -25,6 +25,8 @@ scenario comparisons and a list of what to verify next.
 | Any business category | Free text → catalogue match (70+ seed categories) → optional AI tag mapping validated against an allow-list → keyword fallback. Mapped to one of 6 economic model types. |
 | Any place | Nominatim search or drop a pin; radius or travel-time (openrouteservice) catchment |
 | Live evidence with provenance | OpenStreetMap competitors and buildings (Overpass), WorldPop population; retrieval time and source-update time kept separately; coverage indicator from observable signals |
+| Real spending power (India) | Each agent's monthly spend comes from MoSPI HCES 2023-24 curves for its state × rural/urban, placed tile by tile with Meta's Relative Wealth Index (population-weighted with WorldPop) by rank matching. Segment shares, willingness to pay and participation follow the area's real rich/poor mix ([docs/research/REAL_DATA_SOURCES.md](docs/research/REAL_DATA_SOURCES.md)) |
+| Real road distance | Every zone is routed to the site and nearest competitors over OpenStreetMap roads (OSRM), walking and driving; straight-line × circuity only if routing fails, and the run says which |
 | Customer-choice simulation | Vectorised multinomial logit with outside option, lognormal affordability by segment, distance decay, awareness from marketing, capacity limits ([docs/MODEL.md](docs/MODEL.md)) |
 | Uncertainty | Monte Carlo (seeded, reproducible) → P10/P50/P90 profit, modeled P(loss); tornado, price and marketing sweeps, stress tests, break-even thresholds |
 | Agent Genome | 10,000 synthetic agents per run at real population density, **each with a 615-parameter genome** (16 correlated latent traits conditioned on age and income, 46 real-geometry measurements, 553 generated parameters). Every parameter is consumed by the model — audited in tests. [docs/GENOME.md](docs/GENOME.md) |
@@ -110,4 +112,6 @@ Free Render instances sleep when idle; open `/api/health` a minute before a live
 ## Data and licences
 
 Map data © OpenStreetMap contributors (ODbL) · Population © WorldPop, University of Southampton (CC BY 4.0) ·
+Consumption © MoSPI HCES 2023-24 · Relative Wealth Index © Meta Data for Good / Chi et al. 2022 (CC BY-NC 4.0, non-commercial) ·
+State boundaries © geoBoundaries (CC BY 4.0) · Routing © OSRM / FOSSGIS ·
 Tiles © OpenFreeMap / OpenMapTiles · Routing © openrouteservice by HeiGIT. Contributor usernames from OSM are discarded.
