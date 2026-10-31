@@ -374,8 +374,8 @@ export default function MapView(props: Props) {
           data: [...comps].filter((c) => c.name && !/^unnamed/i.test(c.name)).sort((a, b) => (w[b.id] || 0) - (w[a.id] || 0)).slice(0, 30),
           getPosition: (c: MapCompetitor) => [c.lng, c.lat, 120 + ((w[c.id] || 0) / wmax) * 520 + 30],
           getText: (c: MapCompetitor) => (c.name.length > 26 ? `${c.name.slice(0, 25)}…` : c.name),
-          getSize: 12, sizeUnits: "pixels", getColor: [236, 239, 245, 235], getTextAnchor: "middle", getAlignmentBaseline: "bottom",
-          background: true, getBackgroundColor: [12, 17, 28, 210], backgroundPadding: [6, 3], fontFamily: "Geist, system-ui, sans-serif",
+          getSize: 12, sizeUnits: "pixels", getColor: [19, 19, 18, 240], getTextAnchor: "middle", getAlignmentBaseline: "bottom",
+          background: true, getBackgroundColor: [255, 255, 255, 235], getBorderColor: [0, 0, 0, 30], getBorderWidth: 1, backgroundPadding: [6, 3], fontFamily: "Inter Tight, system-ui, sans-serif",
           characterSet: "auto", updateTriggers: { getPosition: [wmax, Object.keys(w).length] },
         }),
       (props.opportunity || []).length > 0 &&
@@ -399,7 +399,7 @@ export default function MapView(props: Props) {
           getPosition: (o: MapOpportunity) => [o.lng, o.lat, 900 - 110 * ((o.rank || 1) - 1) + 40],
           getText: (o: MapOpportunity) => o.label || `#${o.rank}`, getSize: 13, sizeUnits: "pixels", getColor: [4, 6, 11, 255],
           getTextAnchor: "middle", getAlignmentBaseline: "bottom", background: true, getBackgroundColor: [69, 224, 168, 235],
-          backgroundPadding: [6, 3], fontFamily: "Geist, system-ui, sans-serif", fontWeight: 600, characterSet: "auto",
+          backgroundPadding: [6, 3], fontFamily: "Inter Tight, system-ui, sans-serif", fontWeight: 600, characterSet: "auto",
         }),
       depth && (props.candidates || []).length > 0 &&
         new DL.ColumnLayer({

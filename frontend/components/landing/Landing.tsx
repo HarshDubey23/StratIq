@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Logo } from "@/components/brand";
 import { cn } from "@/components/ui";
-import type { Person } from "./HeroMap";
 import { SPOTS, type PreviewComp, type Spot } from "./spots";
 
 const HeroMap = dynamic(() => import("./HeroMap"), { ssr: false, loading: () => <div className="absolute inset-0 bg-ink-800" /> });
@@ -237,7 +236,6 @@ export default function Landing() {
   const [idea, setIdea] = useState("");
   const [busy, setBusy] = useState<null | "live" | "idea">(null);
   const [goErr, setGoErr] = useState<string | null>(null);
-  const [people, setPeople] = useState<Person[]>([]);
   const placeholder = useTypewriter(IDEAS);
   const scene = useScene(CHAPTERS.length);
   useReveal();
@@ -295,7 +293,6 @@ export default function Landing() {
 
   const comps = preview && preview.spot.key === spot.key ? preview.competitors : [];
   const catLabel = CATS.find((c) => c.key === cat)?.label.toLowerCase() || "businesses";
-  const share = (c: Person["choice"]) => (people.length ? Math.round((100 * people.filter((p) => p.choice === c).length) / people.length) : 0);
   const area = spot.label.split(",")[0];
 
   return (
@@ -323,7 +320,7 @@ export default function Landing() {
         {/* ---------------- the stage: one pinned 3D city under the hero and the story ---------------- */}
         <div className="relative">
           <div className="sticky top-0 h-[100svh] overflow-hidden">
-            <HeroMap spot={spot} comps={comps} scene={scene} onPeople={setPeople} />
+            <HeroMap spot={spot} comps={comps} scene={scene} />
             {/* chapter rail */}
             <ol className={cn("pointer-events-none absolute right-5 top-1/2 hidden -translate-y-1/2 flex-col gap-3 transition-opacity duration-700 md:flex", scene > 0 ? "opacity-100" : "opacity-0")} aria-hidden>
               {CHAPTERS.map((c, i) => (
@@ -337,20 +334,20 @@ export default function Landing() {
 
           <div className="relative -mt-[100svh]">
             {/* ---------------- hero ---------------- */}
-            <section data-scene={0} className="relative flex min-h-[100svh] flex-col justify-end pb-8 pt-28 md:pb-10">
+            <section data-scene={0} className="relative flex min-h-[100svh] flex-col justify-end pb-6 pt-24 md:pb-8">
               <div aria-hidden className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,#F5F3EE_0%,rgba(245,243,238,.92)_30%,rgba(245,243,238,.35)_58%,rgba(245,243,238,0)_75%)] max-md:bg-[linear-gradient(180deg,rgba(245,243,238,.2)_0%,rgba(245,243,238,.9)_45%,#F5F3EE_100%)]" />
               <div className="relative mx-auto w-full max-w-[1320px] px-5 md:px-8">
                 <p data-reveal className="inline-flex items-center gap-2 rounded-full border border-black/[0.08] bg-white/80 px-3 py-1.5 text-[13px] text-ink-300 backdrop-blur">
                   <span className="relative flex h-1.5 w-1.5"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-ok opacity-60" /><span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-ok" /></span>
                   Live market data for any street in India
                 </p>
-                <h1 className="reveal-lines mt-6 max-w-[1000px] font-display text-[clamp(3rem,8vw,8.4rem)] font-medium leading-[0.9] tracking-[-0.06em]">
+                <h1 className="reveal-lines mt-5 max-w-[900px] font-display text-[clamp(2.8rem,6.3vw,6.4rem)] font-medium leading-[0.92] tracking-[-0.06em]">
                   <span className="line-mask"><span style={{ transitionDelay: "120ms" }}>Know if your shop</span></span>
                   <span className="line-mask"><span style={{ transitionDelay: "220ms" }}>will <span className="serif text-accent">work</span>,</span></span>
                   <span className="line-mask"><span style={{ transitionDelay: "320ms" }} className="text-[0.52em] leading-[1.1] tracking-[-0.04em] text-ink-300">before you sign the lease.</span></span>
                 </h1>
 
-                <div className="mt-8 grid items-end gap-6 lg:grid-cols-[minmax(0,640px)_1fr]">
+                <div className="mt-7 grid items-end gap-6 lg:grid-cols-[minmax(0,640px)_1fr]">
                   <div>
                     <form
                       data-reveal
@@ -411,7 +408,7 @@ export default function Landing() {
                   </div>
                 </div>
 
-                <a href="#story" className="mt-10 hidden items-center gap-2 text-[13px] text-ink-400 transition-colors hover:text-ink-100 md:inline-flex">
+                <a href="#story" className="mt-6 hidden items-center gap-2 text-[13px] text-ink-400 transition-colors hover:text-ink-100 md:inline-flex">
                   <span className="flex h-8 w-8 items-center justify-center rounded-full border border-black/10 bg-white/70"><ArrowDown className="scroll-cue h-3.5 w-3.5" /></span>
                   Scroll to walk the street
                 </a>
@@ -430,7 +427,7 @@ export default function Landing() {
                       </div>
                       <h2 className="mt-8 font-display text-[clamp(2rem,3.6vw,3.2rem)] font-medium leading-[0.98] tracking-[-0.05em]">{c.title}</h2>
                       <p className="mt-4 text-[16px] leading-relaxed text-ink-300">{c.body}</p>
-                      <ChapterStat i={i} area={area} comps={comps.length} loading={loading} catLabel={catLabel} share={share} />
+                      <ChapterStat i={i} area={area} comps={comps.length} loading={loading} catLabel={catLabel} />
                     </article>
                   </div>
                 </section>
@@ -556,14 +553,14 @@ export default function Landing() {
         <footer className="mx-auto max-w-[1320px] px-5 pb-8 pt-20 md:px-8">
           <div className="flex flex-col gap-4 text-[12.5px] text-ink-400 md:flex-row md:items-center md:justify-between">
             <p className="max-w-2xl">Map data © OpenStreetMap contributors (ODbL) · Places © Foursquare · Population © WorldPop (CC BY 4.0) · Tiles © OpenFreeMap / OpenMapTiles · Voice by ElevenLabs</p>
-            <div className="flex gap-5">
+            <div className="flex shrink-0 gap-5 whitespace-nowrap">
               <Link href="/methodology" className="hover:text-ink-100">Methodology & limitations</Link>
               <Link href="/sign-in" className="hover:text-ink-100">Sign in</Link>
             </div>
           </div>
           <div className="reveal-lines mt-10 select-none" aria-hidden>
             <span className="line-mask">
-              <span className="block font-display text-[21vw] font-medium leading-[0.8] tracking-[-0.075em] text-ink-100 xl:text-[270px]">
+              <span className="block pb-[0.14em] font-display text-[21vw] font-medium leading-[0.86] tracking-[-0.075em] text-ink-100 xl:text-[270px]">
                 Strata<span className="serif text-accent">IQ</span>
               </span>
             </span>
@@ -574,8 +571,8 @@ export default function Landing() {
   );
 }
 
-/** One fact per chapter. Chapter 4's shares come from the drawing above and say so. */
-function ChapterStat({ i, area, comps, loading, catLabel, share }: { i: number; area: string; comps: number; loading: boolean; catLabel: string; share: (c: Person["choice"]) => number }) {
+/** One fact per chapter. */
+function ChapterStat({ i, area, comps, loading, catLabel }: { i: number; area: string; comps: number; loading: boolean; catLabel: string }) {
   const box = "mt-7 border-t border-black/[0.08] pt-5";
   if (i === 0) return <div className={box}><div className="font-mono text-[12px] text-ink-400">Now showing</div><div className="mt-1 font-display text-[28px] font-medium tracking-[-0.04em]">{area}</div></div>;
   if (i === 1)
@@ -595,17 +592,12 @@ function ChapterStat({ i, area, comps, loading, catLabel, share }: { i: number; 
   if (i === 3)
     return (
       <div className={box}>
-        <div className="flex h-2.5 overflow-hidden rounded-full bg-black/[0.06]">
-          <span className="bg-accent transition-all duration-1000" style={{ width: `${share("you")}%` }} />
-          <span className="bg-agent transition-all duration-1000" style={{ width: `${share("rival")}%` }} />
-          <span className="bg-ink-500 transition-all duration-1000" style={{ width: `${share("none")}%` }} />
+        <div className="flex flex-wrap gap-x-5 gap-y-2 text-[14px]">
+          <span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-accent" /> Chose you</span>
+          <span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-agent" /> Chose a rival</span>
+          <span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-ink-500" /> Not buying today</span>
         </div>
-        <div className="mt-3 grid grid-cols-3 text-[13px]">
-          <span><b className="num font-medium">{share("you")}%</b> <span className="text-ink-400">you</span></span>
-          <span><b className="num font-medium">{share("rival")}%</b> <span className="text-ink-400">a rival</span></span>
-          <span><b className="num font-medium">{share("none")}%</b> <span className="text-ink-400">nothing</span></span>
-        </div>
-        <p className="mt-3 text-[12px] text-ink-400">Illustration on this page. The real run uses the calibrated choice model.</p>
+        <p className="mt-3 text-[12px] text-ink-400">The crowd on this page is an illustration. Your real run uses the calibrated choice model.</p>
       </div>
     );
   return (
