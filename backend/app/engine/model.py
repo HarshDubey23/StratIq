@@ -205,7 +205,8 @@ def run_choice(arch: Archetype, m: MarketArrays, biz: BusinessInputs, p: dict[st
     if not keep_detail and D > 1 and D * per_draw > MAX_BLOCK:
         step = max(1, MAX_BLOCK // per_draw)
         parts = [_run_choice(arch, m, biz, {k: v[i:i + step] for k, v in p.items()}, False) for i in range(0, D, step)]
-        return {k: np.concatenate([q[k] for q in parts], axis=0) for k in parts[0]}
+        DRAW_KEYS = {"units_by_alt", "in_market_units", "prices", "afford_user_by_segment", "awareness_user", "P", "N", "reach_user"}
+        return {k: np.concatenate([q[k] for q in parts], axis=0) if k in DRAW_KEYS else parts[0][k] for k in parts[0]}
     return _run_choice(arch, m, biz, p, keep_detail)
 
 
