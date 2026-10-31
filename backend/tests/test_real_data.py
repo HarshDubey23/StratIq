@@ -84,3 +84,16 @@ def test_end_to_end_with_evidence():
     # richer agents value the gym more
     wtp = np.array([r[cols.index("wtp")] for r in out["agents"]["rows"]], float)
     assert np.corrcoef(np.log(mp), np.log(wtp))[0, 1] > 0.5
+
+
+def test_market_inputs_use_income_layer_without_admin_lookup():
+    """Old/demo snapshots have no reverse-geocoded state: a wealth tile alone must switch the income layer on."""
+    from types import SimpleNamespace
+
+    from app.services.runs import MarketInputs
+    snap = SimpleNamespace(zones=[{"lat": 12.9352, "lng": 77.6245, "population": 900.0}], population={})
+    mi = MarketInputs(get_archetype("membership"), "gym", snap, 1, 1.3, 20.0)
+    if ei._grid() is None:
+        pytest.skip("wealth grid not built")
+    assert mi.income is not None and mi.income.method.startswith("rwi")
+    assert mi.arch.segments[0].label.startswith("Bottom 40%")

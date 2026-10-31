@@ -218,7 +218,7 @@ class MarketInputs:
         india = adm.get("country_code") in ("IN", "", None)
         if self.zones and india:
             ctx = ei.build_context(self.zone_ll[:, 0], self.zone_ll[:, 1], state=adm.get("state"), sector=adm.get("settlement"))
-            if ctx.method == "rwi_rank" or adm.get("country_code") == "IN":
+            if ctx.method.startswith("rwi") or adm.get("country_code") == "IN":
                 self.income = ctx
                 self.behaviour = eb.build(arch, category_key, ctx, len(self.zones), age_sex=pop_meta.get("age_sex"), seed=seed)
                 self.arch = eb.apply(arch, self.behaviour)
