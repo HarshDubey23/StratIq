@@ -1,5 +1,6 @@
 """Live checks against real providers. Run with RUN_LIVE=1 (CI does this in a separate job)."""
 import asyncio
+import re
 
 import pytest
 
@@ -35,7 +36,8 @@ def test_live_worldpop():
     try:
         total, prov = asyncio.run(population.worldpop_total([circle_polygon(LAT, LNG, 1.0)]))
     except ProviderError as e:
-        if "Timeout" in str(e) or "did not finish in time" in str(e):
+        # network-level failures of the public service (timeouts, dropped connections), not a bug here
+        if re.search(r"Timeout|ReadError|ConnectError|RemoteProtocolError|did not finish in time", str(e)):
             pytest.skip(f"WorldPop unavailable: {e}")
         raise
     assert total > 1000
