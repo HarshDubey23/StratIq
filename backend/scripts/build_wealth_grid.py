@@ -90,15 +90,20 @@ def main(out_npz: str, out_meta: str) -> None:
         if ds.nodata is not None:
             a[a == ds.nodata] = 0.0
         tr = ds.transform
-        H, W = a.shape
-    sat = np.zeros((H + 1, W + 1))
-    sat[1:, 1:] = a.cumsum(0).cumsum(1)
-    lon0, lat0, lon1, lat1 = tile_bounds(xs, ys, zoom)
-    c0 = np.clip(np.floor((lon0 - tr.c) / tr.a).astype(int), 0, W)
-    c1 = np.clip(np.ceil((lon1 - tr.c) / tr.a).astype(int), 0, W)
-    r0 = np.clip(np.floor((lat1 - tr.f) / tr.e).astype(int), 0, H)
-    r1 = np.clip(np.ceil((lat0 - tr.f) / tr.e).astype(int), 0, H)
-    pop = sat[r1, c1] - sat[r0, c1] - sat[r1, c0] + sat[r0, c0]
+    # every populated pixel is assigned to the zoom-z tile containing its centre (an exact partition, no double counting)
+    rr, cc = np.nonzero(a > 0)
+    plon = tr.c + (cc + 0.5) * tr.a
+    plat = tr.f + (rr + 0.5) * tr.e
+    n = 2 ** zoom
+    px = np.floor((plon + 180.0) / 360.0 * n).astype(np.int64)
+    py = np.floor((1 - np.arcsinh(np.tan(np.radians(plat))) / np.pi) / 2 * n).astype(np.int64)
+    pkey = px * n + py
+    ukey, inv = np.unique(pkey, return_inverse=True)
+    tile_pop = np.bincount(inv, weights=a[rr, cc])
+    tkey = xs * n + ys
+    i = np.clip(np.searchsorted(ukey, tkey), 0, len(ukey) - 1)
+    pop = np.where(ukey[i] == tkey, tile_pop[i], 0.0)
+    print("raster population", round(float(a.sum())), "covered by RWI tiles", round(float(pop.sum())))
 
     if not len(xs):
         raise SystemExit("no tiles parsed")
