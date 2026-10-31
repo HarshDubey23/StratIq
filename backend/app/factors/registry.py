@@ -19,6 +19,8 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 
+from .evidence_map import EVIDENCE_STATUS_MAP, EvidenceStatus
+
 DOMAINS = {
     "geography": "Geography & built environment",
     "demographics": "Demographics",
@@ -44,6 +46,7 @@ class Factor:
     source: str
     role: str
     description: str
+    evidence_status: str = "UNSUPPORTED"
 
     def as_dict(self) -> dict:
         return asdict(self)
@@ -53,7 +56,8 @@ _F: list[Factor] = []
 
 
 def f(key, label, domain, group, unit, scope, source, role, description=""):
-    _F.append(Factor(key, label, domain, group, unit, scope, source, role, description or label))
+    status = EVIDENCE_STATUS_MAP.get(key, "UNSUPPORTED")
+    _F.append(Factor(key, label, domain, group, unit, scope, source, role, description or label, status))
 
 
 # ------------------------------------------------------------------ geography (70)
@@ -596,9 +600,10 @@ BY_KEY = {x.key: x for x in FACTORS}
 
 
 def counts() -> dict:
-    out = {"total": len(FACTORS), "by_domain": {}, "by_role": {}, "by_source": {}}
+    out = {"total": len(FACTORS), "by_domain": {}, "by_role": {}, "by_source": {}, "by_evidence_status": {}}
     for x in FACTORS:
         out["by_domain"][x.domain] = out["by_domain"].get(x.domain, 0) + 1
         out["by_role"][x.role] = out["by_role"].get(x.role, 0) + 1
         out["by_source"][x.source] = out["by_source"].get(x.source, 0) + 1
+        out["by_evidence_status"][x.evidence_status] = out["by_evidence_status"].get(x.evidence_status, 0) + 1
     return out

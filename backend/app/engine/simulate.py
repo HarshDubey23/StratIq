@@ -47,11 +47,12 @@ class SimulationError(ValueError):
 def simulate(arch: Archetype, zones: list[Zone], comps: list[Competitor], biz: BusinessInputs,
              overrides: dict | None = None, *, mc_draws: int = 800, seed: int = 42,
              with_sensitivity: bool = True, n_agents: int = 1500,
-             travel_km: np.ndarray | None = None) -> dict:
+             travel_km: np.ndarray | None = None,
+             travel_time_min: np.ndarray | None = None) -> dict:
     t0 = time.perf_counter()
     try:
         params = ResolvedParams.from_archetype(arch, overrides)
-        m = build_arrays(arch, zones, comps, biz, params, travel_km)
+        m = build_arrays(arch, zones, comps, biz, params, travel_km, travel_time_min)
     except ValueError as e:
         raise SimulationError(str(e)) from e
     capacity = float(arch.capacity_units(biz.capacity))
@@ -68,7 +69,8 @@ def simulate(arch: Archetype, zones: list[Zone], comps: list[Competitor], biz: B
         pv = params.draws(1, None)
         for k, v in (values or {}).items():
             pv[k] = np.full(1, v, float)
-        mm = m if (b.lat, b.lng, b.price, b.quality) == (biz.lat, biz.lng, biz.price, biz.quality) else build_arrays(arch, zones, comps, b, params, travel_km)
+        mm = m if (b.lat, b.lng, b.price, b.quality) == (biz.lat, biz.lng, biz.price, biz.quality) else build_arrays(arch, zones, comps, b, params, travel_km, travel_time_min)
+
         r = run_choice(arch, mm, b, pv)
         demand = float(r["units_by_alt"][0, 0]) * mult_units
         units = min(demand, capacity)

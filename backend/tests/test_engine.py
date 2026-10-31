@@ -2,6 +2,7 @@
 import math
 
 import numpy as np
+import pytest
 
 from app.categories.archetypes import ARCHETYPES
 from app.engine.finance import economics
@@ -179,3 +180,53 @@ def test_monte_carlo_is_batched_for_dense_markets():
     finally:
         em.MAX_BLOCK = old
     assert np.allclose(whole, batched)
+
+
+def test_spatial_matrices_integration():
+    """Verify precomputed routing distance and travel-time matrix integration and fallback."""
+    from app.engine.geo import compute_spatial_matrices, travel_time_matrix_minutes
+    arch = ARCHETYPES["membership"]
+    zones = make_zones()
+    comps = make_comps(2)
+    b = biz()
+    params = ResolvedParams.from_archetype(arch)
+
+    # 1. Fallback mode: no precomputed matrices
+    m_fallback = build_arrays(arch, zones, comps, b, params)
+    assert m_fallback.dist_source == "haversine_circuity_fallback"
+    assert m_fallback.travel_time_source == "circuity_speed_fallback"
+    assert m_fallback.travel_time_min is not None
+    assert m_fallback.travel_time_min.shape == m_fallback.dist_km.shape
+    # Travel time should be (dist / 20) * 60 = dist * 3
+    expected_tt = np.maximum(m_fallback.dist_km * 3.0, 1.0)
+    assert np.allclose(m_fallback.travel_time_min, expected_tt, rtol=1e-4)
+
+    # 2. Precomputed matrices mode
+    Z, J = len(zones), 1 + len(comps)
+    precomputed_dist = np.full((Z, J), 2.5)
+    precomputed_time = np.full((Z, J), 12.0)
+
+    m_precomp = build_arrays(
+        arch, zones, comps, b, params,
+        travel_km=precomputed_dist,
+        travel_time_min=precomputed_time,
+    )
+    assert m_precomp.dist_source == "precomputed_network"
+    assert m_precomp.travel_time_source == "precomputed_network"
+    assert np.all(m_precomp.dist_km == 2.5)
+    assert np.all(m_precomp.travel_time_min == 12.0)
+
+    # 3. run_choice using travel time impedance
+    pv = params.draws(1, None)
+    assert "beta_travel_time" in pv, "beta_travel_time must be naturally populated in parameter draws"
+    assert "max_travel_time_min" in pv, "max_travel_time_min must be naturally populated in parameter draws"
+    res_choice = run_choice(arch, m_precomp, b, pv)
+    assert res_choice["travel_time_min"] is not None
+    assert res_choice["travel_time_source"] == "precomputed_network"
+
+    # 4. Shape validation on precomputed matrices
+    with pytest.raises(ValueError, match="travel_km shape"):
+        build_arrays(arch, zones, comps, b, params, travel_km=np.zeros((Z + 1, J)))
+
+    with pytest.raises(ValueError, match="travel_time_min shape"):
+        build_arrays(arch, zones, comps, b, params, travel_time_min=np.zeros((Z, J + 1)))

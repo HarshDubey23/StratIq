@@ -12,3 +12,6 @@ out/
 *.log
 .DS_Store
 frontend/next-env.d.ts
+
+.agents/
+docker-compose.*local*.yml

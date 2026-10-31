@@ -25,6 +25,78 @@ def distance_matrix_km(zone_lat, zone_lng, pt_lat, pt_lng) -> np.ndarray:
     return haversine_km(zl, zg, pl, pg)
 
 
+def travel_time_matrix_minutes(
+    dist_km: np.ndarray,
+    speed_kmh: float = 20.0,
+    congestion_factor: float = 1.0,
+) -> np.ndarray:
+    """Computes travel-time matrix T_{zj} (minutes) from distance matrix D_{zj} (km).
+    
+    Formula:
+        T_{zj} = (D_{zj} / speed_kmh) * 60.0 * congestion_factor
+    Floored at 1.0 minute to account for local access, egress, and parking.
+    """
+    speed = max(1.0, float(speed_kmh))
+    time_min = (np.asarray(dist_km, float) / speed) * 60.0 * float(congestion_factor)
+    return np.maximum(time_min, 1.0)
+
+
+def compute_spatial_matrices(
+    zone_lats: list[float] | np.ndarray,
+    zone_lngs: list[float] | np.ndarray,
+    dest_lats: list[float] | np.ndarray,
+    dest_lngs: list[float] | np.ndarray,
+    *,
+    circuity: float = 1.3,
+    speed_kmh: float = 20.0,
+    travel_km: np.ndarray | None = None,
+    travel_time_min: np.ndarray | None = None,
+) -> tuple[np.ndarray, np.ndarray, dict]:
+    """Computes or accepts pre-computed distance matrix D_{zj} (km) and travel-time matrix T_{zj} (minutes).
+    
+    Falls back to Haversine * circuity factor when explicit routing distance is not provided.
+    Falls back to (distance / speed_kmh) * 60 when explicit routing travel time is not provided.
+    
+    Returns:
+        (dist_km, travel_time_min, metadata)
+    """
+    Z = len(zone_lats)
+    J = len(dest_lats)
+    if travel_km is not None:
+        travel_km_arr = np.asarray(travel_km, float)
+        if travel_km_arr.shape != (Z, J):
+            raise ValueError(f"travel_km shape {travel_km_arr.shape} does not match expected ({Z}, {J})")
+        dist = np.maximum(travel_km_arr, 0.15)
+        dist_source = "precomputed_network"
+    else:
+        raw_dist = distance_matrix_km(zone_lats, zone_lngs, dest_lats, dest_lngs)
+        dist = np.maximum(raw_dist * float(circuity), 0.15)
+        dist_source = "haversine_circuity_fallback"
+
+    if travel_time_min is not None:
+        tt_arr = np.asarray(travel_time_min, float)
+        if tt_arr.shape != (Z, J):
+            raise ValueError(f"travel_time_min shape {tt_arr.shape} does not match expected ({Z}, {J})")
+        tt = np.maximum(tt_arr, 1.0)
+        time_source = "precomputed_network"
+    else:
+        tt = travel_time_matrix_minutes(dist, speed_kmh=speed_kmh)
+        time_source = "circuity_speed_fallback"
+
+    metadata = {
+        "dist_source": dist_source,
+        "travel_time_source": time_source,
+        "circuity_factor": float(circuity),
+        "assumed_speed_kmh": float(speed_kmh),
+        "min_dist_km": float(np.min(dist)) if dist.size else 0.0,
+        "max_dist_km": float(np.max(dist)) if dist.size else 0.0,
+        "min_travel_time_min": float(np.min(tt)) if tt.size else 0.0,
+        "max_travel_time_min": float(np.max(tt)) if tt.size else 0.0,
+    }
+    return dist, tt, metadata
+
+
+
 def km_to_deg_lat(km: float) -> float:
     return km / 110.574
 

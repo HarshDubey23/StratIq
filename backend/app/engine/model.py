@@ -22,7 +22,8 @@ import numpy as np
 from scipy.special import ndtr
 
 from ..categories.archetypes import Archetype
-from .geo import distance_matrix_km
+from .geo import compute_spatial_matrices, distance_matrix_km
+
 
 MODEL_VERSION = "siq-choice-1.2"
 
@@ -85,6 +86,24 @@ class ResolvedParams:
         values.setdefault("activity_equivalent", 120.0)
         ranges.setdefault("activity_equivalent", (60.0, 200.0))
         status.setdefault("activity_equivalent", "assumption")
+
+        speed = 20.0
+        values.setdefault("urban_speed_kmh", speed)
+        ranges.setdefault("urban_speed_kmh", (15.0, 30.0))
+        status.setdefault("urban_speed_kmh", "assumption")
+
+        dist_decay = values.get("distance_decay", 0.5)
+        dist_decay_range = ranges.get("distance_decay", (0.3, 0.8))
+        values.setdefault("beta_travel_time", dist_decay * (speed / 60.0))
+        ranges.setdefault("beta_travel_time", (dist_decay_range[0] * (speed / 60.0), dist_decay_range[1] * (speed / 60.0)))
+        status.setdefault("beta_travel_time", "derived")
+
+        max_km = values.get("max_km", 3.0)
+        max_km_range = ranges.get("max_km", (1.5, 6.0))
+        values.setdefault("max_travel_time_min", (max_km / speed) * 60.0)
+        ranges.setdefault("max_travel_time_min", ((max_km_range[0] / speed) * 60.0, (max_km_range[1] / speed) * 60.0))
+        status.setdefault("max_travel_time_min", "derived")
+
         for k, v in (overrides or {}).items():
             if k not in values or v is None:
                 continue
@@ -118,27 +137,36 @@ class MarketArrays:
     quality_known: np.ndarray  # [J] bool
     ref_price: float
     ref_price_status: str
+    travel_time_min: np.ndarray | None = None  # [Z, J] travel-time in minutes
+    dist_source: str = "haversine_circuity"
+    travel_time_source: str = "speed_fallback"
 
 
 def build_arrays(arch: Archetype, zones: list[Zone], comps: list[Competitor], biz: BusinessInputs,
-                 params: ResolvedParams, travel_km: np.ndarray | None = None) -> MarketArrays:
+                 params: ResolvedParams, travel_km: np.ndarray | None = None,
+                 travel_time_min: np.ndarray | None = None) -> MarketArrays:
     if not zones:
         raise ValueError("No demand zones: population data is required to simulate demand.")
     if biz.price <= 0:
         raise ValueError("Price must be positive.")
     lats = [biz.lat] + [c.lat for c in comps]
     lngs = [biz.lng] + [c.lng for c in comps]
-    if travel_km is None:
-        d = distance_matrix_km([z.lat for z in zones], [z.lng for z in zones], lats, lngs)
-        d = d * params.values["circuity"]
-    else:
-        d = np.asarray(travel_km, float)
-    # Zone centroids are ~150-250 m from any point inside them; floor avoids zero-distance artifacts.
-    d = np.maximum(d, 0.15)
+    zone_lats = [z.lat for z in zones]
+    zone_lngs = [z.lng for z in zones]
+
+    circuity = params.values.get("circuity", 1.3)
+    speed_kmh = params.values.get("urban_speed_kmh", 20.0)
+
+    d, tt, meta = compute_spatial_matrices(
+        zone_lats, zone_lngs, lats, lngs,
+        circuity=circuity, speed_kmh=speed_kmh,
+        travel_km=travel_km, travel_time_min=travel_time_min,
+    )
+
     pop = np.array([max(0.0, z.population) for z in zones], float)
     act = np.array([max(0.0, z.activity) for z in zones], float)
     if arch.demand_base == "residents_and_activity":
-        weight = pop + act * params.values["activity_equivalent"]
+        weight = pop + act * params.values.get("activity_equivalent", 120.0)
     else:
         weight = pop
     known_prices = [c.price for c in comps if c.price and c.price > 0]
@@ -153,6 +181,7 @@ def build_arrays(arch: Archetype, zones: list[Zone], comps: list[Competitor], bi
     return MarketArrays(
         dist_km=d, weight=weight, prices=prices, price_known=~np.isnan(prices),
         quality=quality, quality_known=~np.isnan(quality), ref_price=ref, ref_price_status=ref_status,
+        travel_time_min=tt, dist_source=meta["dist_source"], travel_time_source=meta["travel_time_source"],
     )
 
 
@@ -207,10 +236,19 @@ def _run_choice(arch: Archetype, m: MarketArrays, biz: BusinessInputs, p: dict[s
     # Utility V[D,Z,S,J]
     v_q = p["beta_quality"][:, None] * (quality - 0.5)  # [D,J]
     v_p = -(p["beta_price"][:, None, None] * seg_ps[None, :, None]) * np.log(prices[:, None, :] / m.ref_price)  # [D,S,J]
-    decay = p["distance_decay"][:, None, None, None] / seg_dt[None, None, :, None]  # [D,1,S,1]
-    v_d = -decay * m.dist_km[None, :, None, :]  # [D,Z,S,J]
-    V = v_q[:, None, None, :] + v_p[:, None, :, :] + v_d + np.log(aw)[:, None, None, :]
-    reach = m.dist_km[None, :, None, :] <= (p["max_km"][:, None, None, None] * seg_dt[None, None, :, None])
+    if "beta_travel_time" in p and m.travel_time_min is not None:
+        decay = p["beta_travel_time"][:, None, None, None] / seg_dt[None, None, :, None]
+        v_spatial = -decay * m.travel_time_min[None, :, None, :]
+    else:
+        decay = p["distance_decay"][:, None, None, None] / seg_dt[None, None, :, None]
+        v_spatial = -decay * m.dist_km[None, :, None, :]
+
+    V = v_q[:, None, None, :] + v_p[:, None, :, :] + v_spatial + np.log(aw)[:, None, None, :]
+    if "max_travel_time_min" in p and m.travel_time_min is not None:
+        reach = m.travel_time_min[None, :, None, :] <= (p["max_travel_time_min"][:, None, None, None] * seg_dt[None, None, :, None])
+    else:
+        reach = m.dist_km[None, :, None, :] <= (p["max_km"][:, None, None, None] * seg_dt[None, None, :, None])
+
     A = afford[:, None, :, :] * np.exp(V) * reach
     denom = np.exp(p["outside_utility"])[:, None, None] + A.sum(axis=3)  # [D,Z,S]
     P = A / denom[..., None]  # [D,Z,S,J]
@@ -225,9 +263,14 @@ def _run_choice(arch: Archetype, m: MarketArrays, biz: BusinessInputs, p: dict[s
         "prices": prices,
         "afford_user_by_segment": afford[:, :, 0],  # [D,S]
         "awareness_user": aw[:, 0],
+        "dist_km": m.dist_km,
+        "travel_time_min": m.travel_time_min,
+        "dist_source": m.dist_source,
+        "travel_time_source": m.travel_time_source,
     }
     if keep_detail:
         out["P"] = P
         out["N"] = N
         out["reach_user"] = reach[..., 0]
     return out
+

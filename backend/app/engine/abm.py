@@ -257,6 +257,132 @@ def cache_get(key: str) -> Population | None:
     return p
 
 
+COHORT_STATES = ["unaware", "aware", "considering", "trial", "loyal", "churned"]
+
+
+def build_cohort_transition_matrix(
+    n_t: np.ndarray,
+    p_aware_daily: float,
+    p_in_market_daily: float,
+    p_choice: float,
+    p_trial_to_loyal: float = 0.10,
+    p_churn_daily: float = 0.08 / 30.0,
+    p_winback_daily: float = 0.005,
+    wom_rate: float = 0.015,
+) -> np.ndarray:
+    """Constructs row-stochastic transition matrix T_t (6x6) for customer cohorts:
+    0: Unaware
+    1: Aware (not currently evaluating)
+    2: Considering (actively choosing this period)
+    3: Trial (first-time / new customer)
+    4: Loyal (repeat customer)
+    5: Churned (lost customer)
+
+    T_ij = P(State_{t+1} = j | State_t = i)
+    Every row sums strictly to 1.0.
+    """
+    T = np.zeros((6, 6), dtype=float)
+    total_pop = max(1.0, float(np.sum(n_t)))
+    active_customers = float(n_t[3] + n_t[4])
+    wom_factor = min(0.5, wom_rate * (active_customers / total_pop) * 30.0)
+    effective_p_aware = min(1.0, max(0.0, p_aware_daily + wom_factor))
+
+    # Row 0: Unaware -> Aware or stays Unaware
+    T[0, 1] = effective_p_aware
+    T[0, 0] = 1.0 - effective_p_aware
+
+    # Row 1: Aware -> Considering (based on daily participation frequency) or stays Aware
+    p_consider = min(1.0, max(0.0, p_in_market_daily))
+    T[1, 2] = p_consider
+    T[1, 1] = 1.0 - p_consider
+
+    # Row 2: Considering -> Trial (if choosing business) or back to Aware (if choosing comp/outside)
+    p_c = min(1.0, max(0.0, p_choice))
+    T[2, 3] = p_c
+    T[2, 1] = 1.0 - p_c
+
+    # Row 3: Trial -> Loyal (repeat conversion), Churned (dissatisfied/switched), or stays Trial/Active
+    p_churn = min(1.0, max(0.0, p_churn_daily))
+    p_loyal = min(1.0 - p_churn, max(0.0, p_trial_to_loyal))
+    T[3, 4] = p_loyal
+    T[3, 5] = p_churn
+    T[3, 3] = max(0.0, 1.0 - p_loyal - p_churn)
+
+    # Row 4: Loyal -> Churned or stays Loyal
+    T[4, 5] = p_churn
+    T[4, 4] = 1.0 - p_churn
+
+    # Row 5: Churned -> Win-back to Considering or stays Churned
+    p_wb = min(1.0, max(0.0, p_winback_daily))
+    T[5, 2] = p_wb
+    T[5, 5] = 1.0 - p_wb
+
+    return T
+
+
+def run_cohort_transition_baseline(
+    total_population: float,
+    days: int,
+    p_aware_daily: float,
+    p_in_market_daily: float,
+    p_choice: float,
+    p_trial_to_loyal: float = 0.05,
+    p_churn_daily: float = 0.08 / 30.0,
+    p_winback_daily: float = 0.005,
+    wom_rate: float = 0.015,
+) -> dict:
+    """Simulates deterministic cohort state transitions:
+        n_{t+1} = n_t * T_t
+
+    Guarantees:
+    - Conservation of total population at every time step (sum(n_t) == total_population).
+    - Row-stochastic transition matrices (sum_j T_{ij} == 1.0).
+    - Strictly non-negative counts.
+    - Zero stochastic Monte Carlo variance.
+    """
+    if days <= 0:
+        raise ValueError(f"days must be positive, got {days}")
+    if total_population < 0:
+        raise ValueError(f"total_population cannot be negative, got {total_population}")
+
+    n_t = np.zeros(6, dtype=float)
+    n_t[0] = float(total_population)
+
+    history = np.zeros((days, 6), dtype=float)
+
+    for d in range(days):
+        T_t = build_cohort_transition_matrix(
+            n_t=n_t,
+            p_aware_daily=p_aware_daily,
+            p_in_market_daily=p_in_market_daily,
+            p_choice=p_choice,
+            p_trial_to_loyal=p_trial_to_loyal,
+            p_churn_daily=p_churn_daily,
+            p_winback_daily=p_winback_daily,
+            wom_rate=wom_rate,
+        )
+        n_t = n_t @ T_t
+        # Numerical guard: project onto simplex conserving total population
+        n_t = np.maximum(0.0, n_t)
+        sum_n = n_t.sum()
+        if sum_n > 0:
+            n_t = (n_t / sum_n) * total_population
+        history[d] = n_t
+
+    return {
+        "cohort_names": COHORT_STATES,
+        "final_cohorts": {COHORT_STATES[i]: float(n_t[i]) for i in range(6)},
+        "daily_unaware": history[:, 0].tolist(),
+        "daily_aware": history[:, 1].tolist(),
+        "daily_considering": history[:, 2].tolist(),
+        "daily_trial": history[:, 3].tolist(),
+        "daily_loyal": history[:, 4].tolist(),
+        "daily_churned": history[:, 5].tolist(),
+        "daily_active_customers": (history[:, 3] + history[:, 4]).tolist(),
+        "steady_state_active": float(history[-1, 3] + history[-1, 4]),
+    }
+
+
 def run_abm(arch: Archetype, zones: list[Zone], comps: list[Competitor], biz: BusinessInputs, params: ResolvedParams,
             ref_price: float, *, n_agents: int = 10000, days: int = 84, seed: int = 42, age_sex: dict | None = None,
             spacing_km: float = 0.35, frame_every: int = 2, overrides: dict | None = None, profile: dict | None = None,
@@ -614,6 +740,16 @@ def run_abm(arch: Archetype, zones: list[Zone], comps: list[Competitor], biz: Bu
             "mean_time_fit_you": round(float(up.parts["time_fit"][in_market, 0].mean()) if in_market.any() else 0.0, 3),
         },
         "assumptions": dict(D),
+        "cohort_baseline": run_cohort_transition_baseline(
+            total_population=float(pop.scale * pop.N),
+            days=days,
+            p_aware_daily=daily_paid,
+            p_in_market_daily=float(params.values["participation"] * (params.values["frequency"] / 30.0 if not membership else 1.0 / 30.0)),
+            p_choice=float(cust.mean()) if cust.any() else 0.15,
+            p_trial_to_loyal=D["habit_build"] / 2.0,
+            p_churn_daily=D["monthly_churn"] / 30.0,
+            wom_rate=D["wom_rate"],
+        ),
         "note": "Synthetic agents placed by real population density, each with a 615-parameter genome; behaviour parameters are documented "
                 "assumptions. Not real people; not a forecast guarantee.",
         "timing_ms": {"genome": round((t_gen - t0) * 1000, 1), "total": round((time.perf_counter() - t0) * 1000, 1)},

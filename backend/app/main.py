@@ -46,6 +46,13 @@ def migrate_once() -> None:
 async def lifespan(app: FastAPI):
     get_settings()
     migrate_once()
+    try:
+        from .db import session_factory
+        from .services.runs import recover_stale_loading_snapshots
+        with session_factory()() as db:
+            recover_stale_loading_snapshots(db)
+    except Exception as e:
+        log.warning("Could not run recover_stale_loading_snapshots on startup: %s", e)
     yield
     await close_client()
 

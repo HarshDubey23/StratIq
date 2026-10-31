@@ -201,9 +201,10 @@ def market(project_id: str, location_id: str | None = Query(default=None), user:
     comps = competitors_for(db, p, loc, radius) if snap else []
     inactive = list(db.scalars(select(Competitor).where(Competitor.project_id == p.id, Competitor.active.is_(False))))
     from ..engine.geo import haversine_km
+    target_category_key = (p.category or {}).get("key")
     out_comps = []
     for c in comps + inactive:
-        d = competitor_out(c)
+        d = competitor_out(c, target_category_key=target_category_key)
         d["distance_km"] = round(float(haversine_km(loc.lat, loc.lng, c.lat, c.lng)), 3)
         out_comps.append(d)
     out_comps.sort(key=lambda x: x["distance_km"])

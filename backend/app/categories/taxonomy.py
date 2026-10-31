@@ -61,7 +61,7 @@ TAXONOMY: tuple[TaxonomyEntry, ...] = (
     _e("chinese_takeaway", "Chinese / momos takeaway", "takeaway", ['["cuisine"~"chinese|momo|tibetan",i]'], ("chinese", "momos", "noodles")),
     _e("street_food", "Street food / chaat", "takeaway", ['["cuisine"~"chaat|street_food|indian_street",i]', '["name"~"chaat|pani puri|golgappa",i]'], ("chaat", "pani puri", "golgappa", "vada pav", "street food")),
     # --- retail ---
-    _e("pharmacy", "Pharmacy / chemist", "retail", ['["amenity"="pharmacy"]', '["shop"="chemist"]', '["healthcare"="pharmacy"]', '["shop"]["name"~"pharma|chemist|medical|apollo|medplus|wellness forever|netmeds|frank ross|guardian",i]'], ("chemist", "medical store", "medicine shop", "drugstore")),
+    _e("pharmacy", "Pharmacy / chemist", "retail", ['["amenity"="pharmacy"]', '["shop"="chemist"]', '["healthcare"="pharmacy"]', '["shop"]["name"~"pharma|chemist|medical|apollo|medplus|wellness forever|netmeds|frank ross|guardian",i]'], ("chemist", "medical store", "medicine shop", "drugstore", "pharmacy", "apothecary")),
     _e("grocery", "Grocery / kirana", "retail", ['["shop"~"^(convenience|supermarket|grocery|general|greengrocer)$"]', '["shop"]["name"~"kirana|general store|provision|reliance (fresh|smart)|more (supermarket|retail)|d-?mart|big bazaar|spencer|easyday|star bazaar|nature.?s basket",i]'], ("kirana", "grocery", "supermarket", "general store", "provision store", "mart")),
     _e("fruit_veg", "Fruit & vegetable shop", "retail", ['["shop"="greengrocer"]'], ("vegetables", "sabzi", "fruits", "greengrocer")),
     _e("butcher", "Meat / fish shop", "retail", ['["shop"~"^(butcher|seafood)$"]'], ("chicken shop", "meat", "mutton", "fish", "butcher")),
@@ -83,10 +83,10 @@ TAXONOMY: tuple[TaxonomyEntry, ...] = (
     _e("fuel", "Fuel station", "retail", ['["amenity"="fuel"]'], ("petrol pump", "gas station", "fuel")),
     _e("ev_charging", "EV charging station", "retail", ['["amenity"="charging_station"]'], ("ev charging", "charging station")),
     # --- appointment ---
-    _e("salon", "Hair salon / barber", "appointment", ['["shop"~"^(hairdresser|barber|beauty)$"]', '["shop"]["name"~"salon|parlou?r|barber|naturals|lakme|jawed habib|toni|looks|enrich|green trends|hair",i]'], ("barber", "haircut", "salon", "parlour", "unisex salon", "hair")),
-    _e("beauty_salon", "Beauty parlour / spa", "appointment", ['["shop"~"^(beauty|massage)$"]', '["leisure"="spa"]', '["amenity"="spa"]'], ("beauty parlour", "spa", "massage", "nail art", "makeup artist", "facial")),
-    _e("clinic", "General clinic", "appointment", ['["amenity"~"^(clinic|doctors)$"]', '["healthcare"~"^(clinic|doctor)$"]'], ("clinic", "doctor", "gp", "general physician", "polyclinic")),
-    _e("dentist", "Dental clinic", "appointment", ['["amenity"="dentist"]', '["healthcare"="dentist"]'], ("dentist", "dental")),
+    _e("salon", "Hair salon / barber", "appointment", ['["shop"~"^(hairdresser|barber)$"]', '["shop"]["name"~"salon|barber|naturals|jawed habib|toni|looks|enrich|green trends|hair",i]'], ("barber", "haircut", "salon", "parlour", "unisex salon", "hair salon", "hairdresser", "grooming salon")),
+    _e("beauty_salon", "Beauty parlour / spa", "appointment", ['["shop"~"^(beauty|massage)$"]', '["leisure"="spa"]', '["amenity"="spa"]'], ("beauty parlour", "beauty parlor", "spa", "massage", "nail art", "makeup artist", "facial", "wellness spa", "ayurvedic spa")),
+    _e("clinic", "General clinic", "appointment", ['["amenity"~"^(clinic|doctors)$"]["healthcare"!="dentist"]', '["healthcare"~"^(clinic|doctor)$"]["healthcare"!="dentist"]'], ("clinic", "general clinic", "doctor", "gp", "general physician", "polyclinic", "medical clinic", "health clinic", "family doctor", "consulting doctor")),
+    _e("dentist", "Dental clinic", "appointment", ['["amenity"="dentist"]', '["healthcare"="dentist"]', '["healthcare:speciality"~"orthodontics|dentistry|dental",i]'], ("dentist", "dental", "dental clinic", "dentist clinic", "dental hospital", "orthodontist", "orthodontics", "pediatric dentist", "dental surgeon", "teeth clinic", "tooth clinic", "root canal", "braces clinic", "endodontist", "periodontist", "oral surgeon")),
     _e("physio", "Physiotherapy clinic", "appointment", ['["healthcare"="physiotherapist"]', '["name"~"physio",i]'], ("physiotherapy", "physio", "rehab")),
     _e("diagnostics", "Diagnostic / pathology lab", "appointment", ['["healthcare"~"^(laboratory|sample_collection)$"]', '["name"~"diagnostic|pathology|path lab",i]'], ("path lab", "pathology", "diagnostic centre", "blood test")),
     _e("veterinary", "Veterinary clinic", "appointment", ['["amenity"="veterinary"]'], ("vet", "pet clinic", "animal hospital")),

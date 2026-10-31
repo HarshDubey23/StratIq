@@ -56,8 +56,28 @@ def _placeholder(project: Project, loc: CandidateLocation) -> MarketSnapshot:
                           sources=[], coverage={"level": "unknown", "note": "Loading…", "signals": [], "method": ""}, activity_points=[], errors=[])
 
 
+def recover_stale_loading_snapshots(db: Session, max_age: timedelta = LOADING_STALE_AFTER) -> int:
+    """Finds all orphaned snapshots stuck in 'loading' longer than max_age and marks them failed."""
+    cutoff = datetime.now(timezone.utc) - max_age
+    stale_rows = list(db.scalars(
+        select(MarketSnapshot).where(
+            MarketSnapshot.status == "loading",
+            MarketSnapshot.retrieved_at < cutoff,
+        )
+    ))
+    for row in stale_rows:
+        row.status = "failed"
+        row.errors = [{"source": "job", "message": "Loading was interrupted (server restart or timeout). Please refresh again."}]
+        row.retrieved_at = datetime.now(timezone.utc)
+    if stale_rows:
+        db.commit()
+        log.warning("Recovered %d stale loading market snapshot(s)", len(stale_rows))
+    return len(stale_rows)
+
+
 def start_refresh(db: Session, project: Project, loc: CandidateLocation) -> MarketSnapshot:
     """Create a 'loading' snapshot and fill it in the background (live providers can take a minute)."""
+    recover_stale_loading_snapshots(db)
     existing = loading_snapshot(db, loc.id)
     if existing:
         return existing
@@ -65,28 +85,56 @@ def start_refresh(db: Session, project: Project, loc: CandidateLocation) -> Mark
     db.add(ms)
     db.commit()
     db.refresh(ms)
-    task = asyncio.create_task(_refresh_job(ms.id))
+    task = asyncio.create_task(_refresh_job(ms.id), name=f"snapshot-refresh-{ms.id}")
     _background.add(task)
     task.add_done_callback(_background.discard)
     return ms
 
 
-async def _refresh_job(snapshot_id: str) -> None:
+
+async def _refresh_job(snapshot_id: str, timeout_seconds: float = 180.0) -> None:
     with session_factory()() as db:
         ms = db.get(MarketSnapshot, snapshot_id)
         if ms is None:
             return
-        project, loc = db.get(Project, ms.project_id), db.get(CandidateLocation, ms.location_id)
-        try:
-            await refresh_snapshot(db, project, loc, into=ms)
-        except Exception as e:  # never leave a job hanging in 'loading'
-            log.exception("snapshot job failed %s", snapshot_id)
-            db.rollback()
-            ms = db.get(MarketSnapshot, snapshot_id)
+        project = db.get(Project, ms.project_id)
+        loc = db.get(CandidateLocation, ms.location_id)
+        if not project or not loc:
+            log.error("snapshot job failed: project or location missing for snapshot %s", snapshot_id)
             ms.status = "failed"
-            ms.errors = [{"source": "job", "message": (e.message if isinstance(e, ProviderError) else type(e).__name__)[:300]}]
+            ms.errors = [{"source": "job", "message": "Associated project or location was deleted"}]
             ms.retrieved_at = datetime.now(timezone.utc)
             db.commit()
+            return
+
+        error_message: str | None = None
+        try:
+            await asyncio.wait_for(
+                refresh_snapshot(db, project, loc, into=ms),
+                timeout=timeout_seconds,
+            )
+        except asyncio.TimeoutError:
+            log.warning("snapshot job timed out %s after %.1fs", snapshot_id, timeout_seconds)
+            error_message = f"Market data fetch timed out after {int(timeout_seconds)}s."
+        except asyncio.CancelledError:
+            log.warning("snapshot job was cancelled %s", snapshot_id)
+            error_message = "Snapshot refresh was cancelled."
+        except Exception as e:  # never leave a job hanging in 'loading'
+            log.exception("snapshot job failed %s", snapshot_id)
+            error_message = (e.message if isinstance(e, ProviderError) else type(e).__name__)[:300]
+
+        if error_message:
+            try:
+                db.rollback()
+                ms = db.get(MarketSnapshot, snapshot_id)
+                if ms:
+                    ms.status = "failed"
+                    ms.errors = [{"source": "job", "message": error_message}]
+                    ms.retrieved_at = datetime.now(timezone.utc)
+                    db.commit()
+            except Exception:
+                log.exception("critical error recording failure for snapshot %s", snapshot_id)
+
 
 
 async def refresh_snapshot(db: Session, project: Project, loc: CandidateLocation, into: MarketSnapshot | None = None) -> MarketSnapshot:

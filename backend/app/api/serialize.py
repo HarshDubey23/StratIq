@@ -30,14 +30,19 @@ def project_out(p: Project, summary: dict | None = None) -> dict:
             "summary": summary}
 
 
-def competitor_out(c: Competitor) -> dict:
+def competitor_out(c: Competitor, target_category_key: str | None = None) -> dict:
     tags = c.tags or {}
     public_attrs = {k: tags[k] for k in ("opening_hours", "website", "phone", "brand", "cuisine", "sport", "addr:street",
                                          "addr:city", "addr:postcode", "level", "operator", "check_date", "wheelchair") if k in tags}
     category_tag = next((f"{k}={tags[k]}" for k in ("amenity", "shop", "leisure", "tourism", "healthcare", "craft", "office") if k in tags), None)
+    from ..categories.competitors import classify_competitor
+    cl = classify_competitor(target_category_key, tags, c.name) if target_category_key else None
     return {
         "id": c.id, "source": c.source, "source_ref": c.source_ref, "name": c.name, "lat": c.lat, "lng": c.lng,
         "category_tag": category_tag, "public_attributes": public_attrs,
+        "relationship_tier": cl.tier if cl else "direct",
+        "relationship_reason": cl.reason if cl else "Active competitor",
+        "is_direct_competitor": cl.is_direct_or_partial if cl else True,
         "price": c.price, "price_status": c.price_status if c.price else "unknown",
         "quality": c.quality, "quality_status": c.quality_status if c.quality is not None else "unknown",
         "is_hypothetical": c.is_hypothetical, "active": c.active, "notes": c.notes,
