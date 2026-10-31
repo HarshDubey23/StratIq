@@ -3,7 +3,6 @@ import asyncio
 import json
 from pathlib import Path
 
-import pytest
 
 from app.categories.resolver import resolve_offline
 from app.engine.geo import circle_polygon
@@ -20,18 +19,6 @@ async def fake_agesex(polygon, cache=None):
 LAT, LNG = 28.6315, 77.2167
 
 
-@pytest.fixture(autouse=True)
-def offline_admin_and_routing(monkeypatch):
-    """Snapshot assembly also reverse-geocodes the state and routes zones over the road network: stub both offline."""
-    async def fake_admin(lat, lng, cache=None):
-        return {"state": "Delhi", "country_code": "IN", "settlement": "urban"}, {"source": "osm_nominatim", "name": "Nominatim"}
-
-    async def fake_routes(zones, dests, cache=None):
-        km = [[1.0 + 0.1 * j for j in range(len(dests))] for _ in zones]
-        return {"car": {"km": km, "min": km}, "foot": {"km": km, "min": [[12.0] * len(dests) for _ in zones]}}, {"source": "osrm", "name": "OSRM"}
-
-    monkeypatch.setattr(mk.osm, "reverse_admin", fake_admin)
-    monkeypatch.setattr(mk.routing, "route_matrix", fake_routes)
 
 
 def load(name):
