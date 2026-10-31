@@ -1,0 +1,55 @@
+shot 01-hero @ /
+shot 02-chapter-real @ /
+shot 03-chapter-agents @ /
+shot 05-chapter-voice @ /
+OK   landing (44s)
+shot 06-hero-pizza @ /
+[http 401] GET /api/v1/auth/me
+[console.error] Failed to load resource: the server responded with a status of 401 ()
+shot 10-market @ /app/projects/61ba4cc7-2ed8-4e3e-a6e0-3c3c3aff8ed8/market
+snapshot status=complete pop=422454.88 competitors=32 sources=competitors:OpenStreetMap (via Overpass API) | competitors:Foursquare Places | buildings:OpenStreetMap (via Overpass API) | context:OpenStreetMap (via Overpass API) | population:WorldPop Global population (100 m, unconstrained) | age_sex:WorldPop Global population (100 m, unconstrained) | admin:Nominatim geocoder (OpenStreetMap) | routing:OSRM road-network routing (FOSSGIS public servers)
+errors=[]
+first competitors: Domino's | Chicago Pizza | Eagle Boys Pizza | Chicago Pizza | Sbarro | Sbarro
+OK   open live demo (guest) (40s)
+shot 10b-competitors @ /app/projects/61ba4cc7-2ed8-4e3e-a6e0-3c3c3aff8ed8/market
+OK   competitor list (4s)
+shot 11-overview @ /app/projects/61ba4cc7-2ed8-4e3e-a6e0-3c3c3aff8ed8
+OK   overview (11s)
+run Lower price ₹399: 201
+shot 12-lab @ /app/projects/61ba4cc7-2ed8-4e3e-a6e0-3c3c3aff8ed8/simulation
+scenario Baseline: units=6600 profit=624000 p_loss=0.07
+scenario Lower price ₹399: units=6600 profit=287400 p_loss=0.075
+OK   simulation (17s)
+shot 13-live @ /app/projects/61ba4cc7-2ed8-4e3e-a6e0-3c3c3aff8ed8/live
+OK   live agents (17s)
+daily orders (wk3+): min=196.8 max=220 distinct=21 zeros=0 scale=50.23 cap/day=220
+insights [200]: Capacity is the bottleneck | Growing | Strongest rival: Chicago Pizza
+suggested: {"label":"Test 50% more capacity","changes":{"capacity_scale":1.5}}
+shot 13b-strategy-lab @ /app/projects/61ba4cc7-2ed8-4e3e-a6e0-3c3c3aff8ed8/live
+shot 13c-strategy-compare @ /app/projects/61ba4cc7-2ed8-4e3e-a6e0-3c3c3aff8ed8/live
+OK   live: smooth daily orders + strategy lab (33s)
+sites [200]: current profit=624000 demand=7160.5; top=624000@1.34km, 624000@1.86km, 624000@0.88km, 624000@1.45km, 624000@0.89km; scanned=145
+optimize [200]: tested=360 current=624000 best={"p":505,"m":80000,"c":1,"profit":839184,"loss":0.043}
+shot 10c-best-sites @ /app/projects/61ba4cc7-2ed8-4e3e-a6e0-3c3c3aff8ed8/market?tab=sites
+shot 13d-optimizer @ /app/projects/61ba4cc7-2ed8-4e3e-a6e0-3c3c3aff8ed8/live
+OK   best sites + optimizer (39s)
+shot 14-decisions @ /app/projects/61ba4cc7-2ed8-4e3e-a6e0-3c3c3aff8ed8/decisions
+OK   decisions (7s)
+Q: kitne competitors hain? -> [200] There are 32 competitors mapped within about 4.0 kilometres. The nearest are Domino's at 0.06 kilometres; Chicago Pizza at 0.13 kilometres; Eagle Boys Pizza at 0.21 kilometres. In the simulation the strongest is Chicago Pizza, with about 11,982 orders a month.
+Q: what is my profit -> [200] For the baseline at ₹450, the model estimates about 6,600 orders a month, revenue of ₹29.70 lakh, and operating profit of ₹6.24 lakh a month. The realistic range is ₹81,004 to ₹6.24 lakh.
+Q: what is the break even -> [200] You need about 3,698 orders a month to break even. The baseline is at 6,600. Startup cost pays back in about 7.2 months under these assumptions.
+Q: try price 300 -> [200] At ₹300 instead of ₹450, the model gives about 6,600 orders a month (+0 versus baseline) and an operating profit of minus ₹3.66 lakh a month, which is ₹9.90 lakh lower than the baseline. Modeled chance of a monthly loss goes from 7% to 100%.
+Q: how do agents decide whom to choose? -> [200] Each of the ten thousand agents is a synthetic person placed where WorldPop says people live, with 615 personal parameters: age, income, how far and how they travel, which hours they're free, 40 things they care about and the minimum they expect on each, how they react to 16 media channels, and how price-sensitive they are. Every day, an agent first has to be in the market and aware of you, through ads, word of mouth or your signboard. Then it scores every option it can reach — you, each competitor, or buying nothing — on price against its own budget, travel time, opening hours, quality and its own tastes, adds a little personal randomness, and picks the highest score. Habits build when it returns, and a bad experience like being turned away is remembered. In this run, 66% of in-market people can afford your price, 94% knew you by week 12, and 41% of customers came back. Daily orders are the sum of every agent's probability of choosing you times the residents it stands for, so one agent never jumps the total by hundreds.
+Q: what insights do you see on this map? -> [200] Capacity is the bottleneck: In the last four simulated weeks you served about 213 orders a day — your limit is 220 — and about 581 more a day wanted you but were turned away. Growing: Agent simulation: month 1 about 5,995 orders, month 3 about 6,380 (+6%). Growth stops at your capacity. Strongest rival: Chicago Pizza: Chicago Pizza at 0.21 km wins about 11,982 orders a month in the model. Among people who chose someone else, the factors that hurt you most: Relies on online reviews, Perceived risk of a new place, Reads reviews before visiting. My suggestion: test 50% more capacity — say 'test it' or press the button and I'll run it on the map.
+Q: double the marketing -> [200] I ran ads ₹80,000 on the map. Month 3 in the agent simulation: 6,405 orders versus 6,380 before (+25), and profit ₹5.42 lakh versus ₹5.77 lakh. Awareness 94% to 98%. You are still turning away about 596 orders a day. This strategy does not help; I'd keep the earlier one.
+Q: where should I open? -> [200] Your current site is already the best in this catchment by the model: about 7,160 orders of demand a month. The nearest alternative gives ₹6.24 lakh versus your ₹6.24 lakh.
+Q: find the best strategy -> [200] I tested 360 combinations. The most profitable: price ₹505, marketing ₹80,000 a month. That gives about 6,201 orders and ₹8.39 lakh a month versus ₹6.24 lakh now, and the chance of a loss month goes from 5% to 4%. Say 'test it' and I'll check it with the ten thousand agents on the map.
+Q: P10 ka matlab kya hai -> [200] P10 is the bad-but-realistic case: in 10% of the uncertainty runs profit was this low or lower. P90 is the good case. The truth is likely between them.
+Q: give me a tour -> [200] Your baseline has run. Next, open the Live market to watch ten thousand people decide day by day. Then read my insights on the right, test a strategy with the sliders, ask me for the best location or the best strategy, and finally check Decisions for the verdict and what to verify.
+facts: competitors=32 pop=422455 baseline_profit=624000
+shot 15-voice-dock @ /app/projects/61ba4cc7-2ed8-4e3e-a6e0-3c3c3aff8ed8/market
+OK   voice analyst (grounded answers) (33s)
+shot 20-quickstart-plan @ /app
+shot 21-quickstart-welcome @ /app/projects/c923d063-3b5a-40ce-a738-bc2550d4b95e/market?welcome=1
+shot 22-quickstart-market @ /app/projects/c923d063-3b5a-40ce-a738-bc2550d4b95e/market?welcome=1
+OK   quick start from one sentence (85s)
