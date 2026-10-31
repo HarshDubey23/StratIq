@@ -745,13 +745,15 @@ function VoiceDockInner() {
 
       <button
         onClick={() => (open ? (active ? void stop() : void start()) : (setOpen(true), void start()))}
-        className="group pointer-events-auto flex items-center gap-3 rounded-full border border-black/[0.08] bg-white/90 py-2 pl-2 pr-5 shadow-[0_1px_2px_rgba(20,18,10,.05),0_18px_40px_-16px_rgba(20,18,10,.35)] backdrop-blur-xl transition-[border-color,transform] duration-500 hover:-translate-y-0.5 hover:border-accent/40"
+        className="group pointer-events-auto flex items-center rounded-full border border-black/[0.08] bg-white/90 p-1.5 shadow-[0_1px_2px_rgba(20,18,10,.05),0_18px_40px_-16px_rgba(20,18,10,.35)] backdrop-blur-xl transition-[border-color,transform] duration-500 hover:-translate-y-0.5 hover:border-accent/40"
         aria-label={active ? "Stop voice analyst" : "Talk to Strata, the voice analyst"}
+        title="Strata se baat karo · press V"
       >
         <Orb level={level} phase={phase} size={40} />
-        <span className="text-left">
+        {/* compact by default so it never covers page actions; the label slides out on hover or while talking */}
+        <span className={cn("overflow-hidden whitespace-nowrap text-left transition-[max-width,padding] duration-500", active ? "max-w-60 pl-3 pr-3" : "max-w-0 group-hover:max-w-60 group-hover:pl-3 group-hover:pr-3")}>
           <span className="block text-[13px] font-medium text-ink-100">{active ? statusText[phase] : "Strata se baat karo"}</span>
-          <span className="block text-[11px] text-ink-400">{active ? "tap to stop" : "voice analyst · press V · Hinglish"}</span>
+          <span className="block text-[11px] text-ink-400">{active ? "tap to stop" : "press V · Hinglish"}</span>
         </span>
       </button>
     </div>
