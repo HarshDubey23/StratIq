@@ -1,0 +1,143 @@
+[console.error] Failed to load resource: the server responded with a status of 402 ()
+FAIL landing: TimeoutError: locator.waitFor: Timeout 60000ms exceeded.
+Call log:
+  - waiting for getByText('before you sign the lease.').first() to be visible
+
+FAIL open live demo (guest): TimeoutError: locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for getByRole('button', { name: 'Pizza', exact: true })
+
+FAIL competitor list: TimeoutError: locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for getByRole('button', { name: /Competitors/ }).first()
+
+[console.error] Failed to load resource: the server responded with a status of 402 ()
+shot 11-overview @ /app/projects/null
+OK   overview (9s)
+[http 402] GET /api/v1/projects/null
+[console.error] Failed to load resource: the server responded with a status of 402 ()
+FAIL simulation: TypeError: proj.scenarios is not iterable
+[console.error] Failed to load resource: the server responded with a status of 402 ()
+FAIL live agents: TimeoutError: locator.waitFor: Timeout 90000ms exceeded.
+Call log:
+  - waiting for getByText('Live market simulation') to be visible
+
+[http 402] GET /api/v1/projects/null
+[console.error] Failed to load resource: the server responded with a status of 402 ()
+FAIL live: smooth daily orders + strategy lab: TypeError: Cannot read properties of undefined (reading 'find')
+[http 402] GET /api/v1/projects/null/sites
+[console.error] Failed to load resource: the server responded with a status of 402 ()
+sites [402]: current profit=undefined demand=undefined; top=; scanned=undefined
+[http 402] GET /api/v1/projects/null/optimize
+[console.error] Failed to load resource: the server responded with a status of 402 ()
+optimize [402]: tested=undefined current=undefined best={}
+[console.error] Failed to load resource: the server responded with a status of 402 ()
+FAIL best sites + optimizer: TimeoutError: locator.waitFor: Timeout 90000ms exceeded.
+Call log:
+  - waiting for getByText('Where should you open?') to be visible
+
+[console.error] Failed to load resource: the server responded with a status of 402 ()
+FAIL decisions: TimeoutError: locator.waitFor: Timeout 60000ms exceeded.
+Call log:
+  - waiting for getByText('What could make this result wrong?') to be visible
+
+[http 402] POST /api/v1/projects/null/assistant/ask
+[console.error] Failed to load resource: the server responded with a status of 402 ()
+Q: kitne competitors hain? -> [402] Payment required
+
+DEPLOYMENT_DISABLED
+
+pdx1::5f46n-1794126002481-009962f10e1e
+
+[http 402] POST /api/v1/projects/null/assistant/ask
+[console.error] Failed to load resource: the server responded with a status of 402 ()
+Q: what is my profit -> [402] Payment required
+
+DEPLOYMENT_DISABLED
+
+pdx1::5f46n-1794126002506-3c2e5eb83b31
+
+[http 402] POST /api/v1/projects/null/assistant/ask
+[console.error] Failed to load resource: the server responded with a status of 402 ()
+Q: what is the break even -> [402] Payment required
+
+DEPLOYMENT_DISABLED
+
+pdx1::5f46n-1794126002525-88c73c163b46
+
+[http 402] POST /api/v1/projects/null/assistant/ask
+[console.error] Failed to load resource: the server responded with a status of 402 ()
+Q: try price 300 -> [402] Payment required
+
+DEPLOYMENT_DISABLED
+
+pdx1::5f46n-1794126002544-b398dcef8af7
+
+[http 402] POST /api/v1/projects/null/assistant/ask
+[console.error] Failed to load resource: the server responded with a status of 402 ()
+Q: how do agents decide whom to choose? -> [402] Payment required
+
+DEPLOYMENT_DISABLED
+
+pdx1::gd4dr-1794126002562-0c28c78d146f
+
+[http 402] POST /api/v1/projects/null/assistant/ask
+[console.error] Failed to load resource: the server responded with a status of 402 ()
+Q: what insights do you see on this map? -> [402] Payment required
+
+DEPLOYMENT_DISABLED
+
+pdx1::gd4dr-1794126002583-ec6f7df16752
+
+[http 402] POST /api/v1/projects/null/assistant/ask
+[console.error] Failed to load resource: the server responded with a status of 402 ()
+Q: double the marketing -> [402] Payment required
+
+DEPLOYMENT_DISABLED
+
+pdx1::5f46n-1794126002601-1e40d026560f
+
+[http 402] POST /api/v1/projects/null/assistant/ask
+[console.error] Failed to load resource: the server responded with a status of 402 ()
+Q: where should I open? -> [402] Payment required
+
+DEPLOYMENT_DISABLED
+
+pdx1::vnk2s-1794126002620-d14f428cff39
+
+[http 402] POST /api/v1/projects/null/assistant/ask
+[console.error] Failed to load resource: the server responded with a status of 402 ()
+Q: find the best strategy -> [402] Payment required
+
+DEPLOYMENT_DISABLED
+
+pdx1::vnk2s-1794126002773-6a884d7290e7
+
+[http 402] POST /api/v1/projects/null/assistant/ask
+[console.error] Failed to load resource: the server responded with a status of 402 ()
+Q: P10 ka matlab kya hai -> [402] Payment required
+
+DEPLOYMENT_DISABLED
+
+pdx1::vnk2s-1794126002798-7ccec974fa14
+
+[http 402] POST /api/v1/projects/null/assistant/ask
+[console.error] Failed to load resource: the server responded with a status of 402 ()
+Q: give me a tour -> [402] Payment required
+
+DEPLOYMENT_DISABLED
+
+pdx1::gd4dr-1794126002817-7bfea95866c5
+
+[http 402] GET /api/v1/projects/null/assistant/facts
+[console.error] Failed to load resource: the server responded with a status of 402 ()
+facts: competitors=undefined pop=undefined baseline_profit=undefined
+[console.error] Failed to load resource: the server responded with a status of 402 ()
+FAIL voice analyst (grounded answers): TimeoutError: locator.click: Timeout 30000ms exceeded.
+Call log:
+  - waiting for getByRole('button', { name: /Talk to Strata/ })
+
+[console.error] Failed to load resource: the server responded with a status of 402 ()
+FAIL quick start from one sentence: TimeoutError: locator.fill: Timeout 30000ms exceeded.
+Call log:
+  - waiting for getByLabel('Your business idea')
